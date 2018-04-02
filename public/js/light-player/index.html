@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Shaka Player compiled library: -->
+		<!--script src="/js/shaka/shaka-player.uncompiled.js"></script-->
+		<!-- script src="/js/shaka/dist/shaka-player.compiled.js"></script-->
+		<script src="/js/shaka/dist/shaka-player.compiled.debug.js"></script>
+		<script defer src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+    <script src="/js/light-player/common/controls.js"></script>
+    
+		
+		
+		<!-- script src="/js/shaka/third_party/closure/base.js"></script>
+		<script src="/js/shaka/third_party/closure/uri/uri.js"></script>
+		<script src="/js/shaka/third_party/closure/uri/utils.js"></script>
+		<script src="/js/shaka/lib/debug/log.js"></script-->
+    <!-- Your application source: -->
+    <script src="myapp.js"></script>
+  </head>
+  <body>
+
+      <div id="videoContainer" class="overlay-parent">
+        <video id="video" width="640" 
+					poster="//shaka-player-demo.appspot.com/assets/poster.jpg" autoplay></video>
+        <div id="giantPlayButtonContainer" class="overlay">
+          <button id="giantPlayButton" class="material-icons">play_arrow</button>
+        </div>
+        <div id="bufferingSpinner" class="overlay">
+          <svg class="spinnerSvg" viewBox="25 25 50 50">
+            <circle class="spinnerPath" cx="50" cy="50" r="20"
+                    fill="none" stroke-width="2" stroke-miterlimit="10" />
+          </svg>
+        </div>
+        <div id="castReceiverName" class="overlay"></div>
+        <div id="controlsContainer" class="overlay"><div id="controls">
+          <button id="playPauseButton" class="material-icons">play_arrow</button>
+          <label for="seekBar" class="for-screen-readers">seek</label>
+          <input id="seekBar" type="range" step="any" min="0" max="1" value="0">
+          <button id="rewindButton" class="material-icons">fast_rewind</button>
+          <div id="currentTime">0:00</div>
+          <button id="fastForwardButton" class="material-icons">fast_forward</button>
+          <button id="muteButton" class="material-icons">volume_up</button>
+          <label for="volumeBar" class="for-screen-readers">volume</label>
+          <input id="volumeBar" type="range" step="any" min="0" max="1" value="0">
+          <button id="castButton" class="material-icons">cast</button>
+          <button id="captionButton" class="material-icons">closed_caption</button>
+          <button id="fullscreenButton" class="material-icons">fullscreen</button>
+        </div></div>
+      </div>
+  </body>
+</html>

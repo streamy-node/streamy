@@ -1,0 +1,21 @@
+{
+  "name": "streamy",
+  "version": "0.1.0",
+  "description": "## Installation",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.4",
+    "express": "^4.16.3",
+    "shaka-player": "^2.3.3",
+    "ws": "^5.1.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.0"
+  }
+}
