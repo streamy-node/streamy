@@ -29,6 +29,8 @@ class Process{
     this.onError = onError;
     this._finished = false;
     this.ws = null;
+    this.worker = null;
+    this.autoRestart = true;
   }
 
   // System callbacks
@@ -211,16 +213,16 @@ class FfmpegProcessManager{
     return [available,processesToStop,processesToStopPriority];
   }
 
-  launchProcess(process){
+  // Return true if worker is available for the process
+  launchProcessOnWorker(process,worker){
+    var self = this;
+    [available, processesToStop, processesToStopPriority] = checkWorkerAvailablity(worker,process.priority,process.hw);
 
-    this.processes.push(process);
-    [worker,processesToStop] = this.findAvailableWorker(process.priority,process.hw);
-
-    // If there are no worker available, queue the task
-    if(worker == null){
-      queuedProcesses.push(process);
-      return;
+    if(!available){
+      return false;
     }
+
+    console.log("launching process ",process," on worker ",worker);
 
     // Stop enough lower priority processes on that worker
     for(var proc in processesToStop){
@@ -231,6 +233,7 @@ class FfmpegProcessManager{
 
     //Reserve ressource
     process.isRunning = true;
+    process.worker = worker;
 
     // Setup the call
     var ws = new WebSocket(worker.ws_uri);
@@ -269,13 +272,58 @@ class FfmpegProcessManager{
     ws.on('close', function close() {
       //console.log('disconnected');
       process._onFinal(new FinalMsg(2,"Socket closed",error));
-    });   
+      self.fillupWorker(worker);
+    });
+    
+    return true;
+  }
+
+  launchProcess(process){
+
+    this.processes.push(process);
+    [worker,processesToStop] = this.findAvailableWorker(process.priority,process.hw);
+
+    // If there are no worker available, queue the task
+    if(worker == null){
+      queuedProcesses.push(process);
+      return true;
+    }
+
+    return this.launchProcessOnWorker(process,worker)
+  }
+
+  startProcess(process){
+    console.log("Starting process ",process);
+    if(!process.worker){
+      console.log("Cannot start unlaunched process ",process);
+      return;
+    }
+    
+    //Check if there is availability
+    [available,,] = checkWorkerAvailablity(process.worker,process.priority,process.hw);
+    process.isRunning = true;//Reserve it now
+    process.autoRestart = true;
+    if(!process.isRunning){
+      if(process.ws){
+        sendAsJson(process.ws,"{ \"command\":\"kill\",\"signal\":\"SIGSTART\" }"
+          ,() => {process._onStart(autoRestart);}
+          ,(error) => {
+          //The worker made a socker error => disable it
+          if(error){
+            process._onFinal(new FinalMsg(2,"Socket send error",error));
+            worker.enabled = false; 
+          }
+        });
+      }
+    }
   }
 
   stopProcess(process,autoRestart=false){
+    console.log("Stopping process ",process);
+    process.autoRestart = false;
     if(process.ws){
-      sendAsJson(process.ws,msg
-        ,() => {process._onStop(autoRestart);/*notify*/}
+      sendAsJson(process.ws,"{ \"command\":\"kill\",\"signal\":\"SIGSTOP\" }"
+        ,() => {process._onStop(autoRestart);fillupWorker(process.worker);}
         ,(error) => {
         //The worker made a socker error => disable it
         if(error){
@@ -291,11 +339,34 @@ class FfmpegProcessManager{
 
     //First try to autostart local stopped processes if there are no higher task in queue
     worker.waitingProcesses.sort(compareProcesses);
+    this.queuedProcesses.sort(compareProcesses);
+    var queuedIdx = 0;
     for(var proc in worker.waitingProcesses){
-      proc;
+      if(this.queuedProcesses.length == 0 || proc.priority >= this.queuedProcesses[0].priority){
+        //If there are no queued process more with more priority, start waiting processes
+        if(!this.launchProcessOnWorker(proc,worker)){
+          //Not enough ressources for next priority task, stop
+          return;
+        }
+      }else{
+        //Try to start queued process
+        if(!this.launchProcessOnWorker(this.queuedProcesses[0],worker)){
+          //Not enough ressources for next priority task, stop
+          return;
+        }else{
+          //Remove queued task
+          this.queuedProcesses.shift();
+        }
+      }
       this.queuedProcesses;
     }
 
+    for(var proc in worker.waitingProcesses){
+      if(!this.launchProcessOnWorker(proc,worker)){
+        //Not enough ressources for next priority task, stop
+        return;
+      }
+    }
   }
     
   sendAsJson(ws,msg,onSuccess,onError){
