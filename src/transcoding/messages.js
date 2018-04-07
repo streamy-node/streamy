@@ -32,9 +32,5 @@ class FinalMsg {
   }
 }
 
-
-
-const _StatusMsg = StatusMsg;
-export { _StatusMsg as StatusMsg };
-const _FinalMsg = FinalMsg;
-export { _FinalMsg as FinalMsg };
+module.exports.StatusMsg=StatusMsg
+module.exports.FinalMsg=FinalMsg
