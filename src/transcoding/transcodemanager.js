@@ -7,14 +7,14 @@ const getHTTPContent = require('../netutils.js').getContent;
 const sendAsJson = require('../netutils.js').sendAsJson;
 const parseJson = require('../netutils').parseJson
 const moveFromToArray = require('../jsutils.js').moveFromToArray;
+const removeFromList = require('../jsutils.js').removeFromList;
 
 class Hardware{
-  constructor(core,gpu,vaapi,omx,exclusive = false){
+  constructor(core,gpu,vaapi,omx){
     this.core = core;
     this.gpu = gpu;
     this.vaapi = vaapi;
     this.omx = omx;
-    this.exclusive = exclusive;
   }
 }
 
@@ -29,7 +29,7 @@ const PROCESS_STATUS = {
 const EventEmitter = require('events');
 class Process extends EventEmitter{
    
-  constructor(cmd,args,priority,hw, onStart, onStop, onProgression, onFinal){
+  constructor(cmd,args,priority,hw,exclusive, onStart, onStop, onProgression, onFinal){
     super();
     this.cmd = cmd;
     this.args = args;
@@ -44,6 +44,7 @@ class Process extends EventEmitter{
     this.ws = null;
     this.worker = null;
     this.autoRestart = true;
+    this.exclusive = exclusive;
   }
 
   // System callbacks
@@ -83,7 +84,7 @@ class Worker{
     this.port = port;
     this.ffmpegInfos = ffmpegInfos;
     this.processes = [];
-    this.hw = hwInfos;//hwInfos
+    this.hw = hwInfos;
     this.id = ip+":"+port.toString();
     this.ws_uri = "ws://"+ip+":"+port.toString();
     this.enabled = true;
@@ -103,9 +104,15 @@ class FfmpegProcessManager{
 
   async addWorker(ip,port,onSuccess,onError){
     try{
-      var ffmpegInfos = await getHTTPContent("http://"+ip+":"+port.toString()+"/ffmpeg_infos" );
-      var hwInfos;// = await getHTTPContent("http://"+ip+":"+port.toString()+"/hw_infos" );
-      hwInfos = {core:1.0,gpu:1.6,vaapi:0.0,omx:0.0,exclusive:false};
+      var ffmpegInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/ffmpeg_infos" ));
+      var rawHwInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/hw_infos" ));
+      var hwInfos =  {
+        core:rawHwInfos.cpu.cores,
+        gpu:rawHwInfos.graphics.length,//For the moment when don't check differences
+        vaapi:0.0,//TODO
+        omx:0.0  //TODO
+      };
+      //hwInfos = {core:1.0,gpu:1.6,vaapi:0.0,omx:0.0};
       var worker = new Worker(ip,port,ffmpegInfos,hwInfos);
       this.workers.push(worker);
       console.log("Worker added ",ip,port);
@@ -217,9 +224,9 @@ class FfmpegProcessManager{
     lowerProcesses.sort(this.compareProcesses).reverse(); // Put lower priority on top (so bigger priority)
     for( var lprocess of lowerProcesses){
       if(freehw.core<inproc.hw.core && lprocess.hw.core > 0 
-        || freehw.gpu<hw.gpu && lprocess.hw.gpu > 0 
-        || freehw.gpvaapiu<hw.vaapi && lprocess.hw.vaapi > 0 
-        || freehw.omx<hw.omx && lprocess.hw.omx > 0 ){
+        || freehw.gpu<inproc.hw.gpu && lprocess.hw.gpu > 0 
+        || freehw.gpvaapiu<inproc.hw.vaapi && lprocess.hw.vaapi > 0 
+        || freehw.omx<inproc.hw.omx && lprocess.hw.omx > 0 ){
           processesToStop.push(lprocess);
           processesToStopPriority = lprocess.priority;
 
@@ -299,7 +306,10 @@ class FfmpegProcessManager{
             console.err("Invalid message received ",data)
           }
         }catch(error){
-          process._onFinal(new FinalMsg(3,"Invalid Json ",error));
+          var errdata = {};
+          errdata.error = error;
+          errdata.mesg = data;
+          process._onFinal(new FinalMsg(3,"Invalid Json ",errdata));
         }
         
       });
@@ -315,7 +325,7 @@ class FfmpegProcessManager{
         self.fillupWorker(worker);
       });
     }else{
-      //
+      console.warn("process already launched",process);
     }
     
     return true;
@@ -484,8 +494,8 @@ class FfmpegProcessManager{
       this.waitingProcesses;
     }
 
-    for(var qproc of this.waitingProcesses){
-      if(!this.launchProcessOnWorker(qproc,worker)){
+    while(this.waitingProcesses.length > 0){
+      if(!this.launchProcessOnWorker(this.waitingProcesses[0],worker)){
         //Not enough ressources for next priority task, stop
         return;
       }else{
@@ -500,16 +510,6 @@ class FfmpegProcessManager{
       removeFromList(process,this.waitingProcesses);
     }
   }
-
-  // removeFromList(process,list){
-  //   var index = list.indexOf(process);
-  //   if (index > -1) {
-  //     list.splice(index, 1);
-  //     return true;
-  //   }else{
-  //     return false;
-  //   }
-  // }
 
   compareProcesses(a,b) {
     if (a.priority < b.priority)
@@ -555,5 +555,3 @@ module.exports.Hardware=Hardware
 //   'dash',
 //   'kk.mpg'
 // ]
-
-

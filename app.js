@@ -34,7 +34,7 @@ var args = [
   'examples/input.mp4',
   '-y',
   '-threads',
-  '3',
+  '1',
   '-an',
   '-sn',
   '-c:v',
@@ -67,7 +67,7 @@ var firstrpoc;
 for(var i=0; i<2; i++){
   !function inner(i){
     var ident = i.toString();
-    var process = new Process("ffmpeg",args,10,hw,)
+    var process = new Process("ffmpeg",args,10,hw,false)
     .on('start',()=>{console.log("on start");})
     .on('stop',(restart)=>{console.log("on stop",ident,restart);})
     .on('progression',(msg)=>{console.log("on progression ",ident,msg);})
