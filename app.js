@@ -1,14 +1,127 @@
 var express = require('express')
 var cors = require('cors'); // Chrome cast
+var session = require('express-session');
+var MySQLStore = require('express-mysql-session')(session);
+var mysql = require('mysql');
+
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+var bodyParser = require('body-parser');
+var users = require('./src/users');
+
+//var helmet = require('helmet');
+
+//Setup db
+var dbOptions = {
+  host: '127.0.0.1',
+  port: 3306,
+  user: 'streamy',
+  password: 'pwd',
+  database: 'streamy'
+};
+var dbConnection = mysql.createConnection(dbOptions);
+
+dbConnection.connect(function(err) {
+  if (err) {
+    console.error("Cannot connect to db ",dbOptions,err);
+    process.exit(1);
+  }
+  console.log("Connected to db :)");
+});
+
+// var con = mysql.createConnection({
+//   host: "127.0.0.1",
+//   user: "streamy",
+//   password: "pwd"
+// });
+
+// con.connect(function(err) {
+//   if (err) throw err;
+//   console.log("Connected!");
+// });
 
 //Https
 //var https = require('https');
 //var fs = require('fs');
 
+// Setup express based server
+// var ssl_options = {
+//   key: fs.readFileSync('privatekey.pem'),
+//   cert: fs.readFileSync('certificate.pem')
+// };
+
+/// Setup sessions
+var sessionStore = new MySQLStore({},dbConnection);
+var sess = {
+  secret : 'sup3rs3cur3',
+  name : 'sessionId',
+  store: sessionStore,
+  resave: false,
+  saveUninitialized: false
+};
+
+/// Setup auth
+passport.use(new LocalStrategy(
+  function(username, password, done) {
+    users.findByUsername( username, function (err, user) {
+      if (err) { return done(err);console.log("PLOP"); }
+      if (!user) { return done(null, false); }
+      if (user.password !== password) { return done(null, false); }
+      return done(null, user);
+    });
+  }
+));
+
+// Configure Passport authenticated session persistence.
+//
+// In order to restore authentication state across HTTP requests, Passport needs
+// to serialize users into and deserialize users out of the session.  The
+// typical implementation of this is as simple as supplying the user ID when
+// serializing, and querying the user record by ID from the database when
+// deserializing.
+passport.serializeUser(function(user, cb) {
+  cb(null, user.id);
+});
+
+passport.deserializeUser(function(id, cb) {
+  users.findById(id, function (err, user) {
+    if (err) { return cb(err); }
+    cb(null, user);
+  });
+});
+
+/// Setup express server
 var app = express()
 
-app.use(cors());
+/// Setup more secure option in production
+if (app.get('env') === 'production') {
+  //minimale security
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1) // trust first proxy
+  sess.cookie.secure = true // serve secure cookies
+}
+
+
 app.use(express.static('public'));
+app.use(cors());
+//app.use(helmet());
+app.use(session(sess));
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(passport.initialize());
+app.use(passport.session());
+
+//TODO add path to all folders
+
+app.post('/login',
+  passport.authenticate('local', { successRedirect: '/',
+                                   failureRedirect: '/html/login.html?status=failed',
+                                   failureFlash: false }));
+
+app.get('/logout',
+  function(req, res){
+    req.logout();
+    res.redirect('/');
+  });
 
 app.get('/', function (req, res) {
   res.send('Hello World!')
@@ -22,76 +135,5 @@ var server = app.listen(8080, function () {
 	console.log("Streamy node listening at http://%s:%s", host, port)
 })
 
-//Test transcoder
-var TranscoderManager = require('./src/transcoding/transcodemanager').FfmpegProcessManager;
-var Process = require('./src/transcoding/transcodemanager').Process; 
-var Hardware = require('./src/transcoding/transcodemanager').Hardware;
-var transcoderMgr = new TranscoderManager();
-transcoderMgr.addWorker("127.0.0.1",7000);
-
-var args = [
-  '-i',
-  'examples/input.mp4',
-  '-y',
-  '-threads',
-  '1',
-  '-an',
-  '-sn',
-  '-c:v',
-  'libx264',
-  '-b:v:0',
-  '4800k',
-  '-profile',
-  'main',
-  '-keyint_min',
-  '120',
-  '-g',
-  '120',
-  '-b_strategy',
-  '0',
-  '-use_timeline',
-  '1',
-  '-use_template',
-  '1',
-  '-single_file',
-  '1',
-  '-single_file_name',
-  'video_1.mp4',
-  '-f',
-  'dash',
-  'kk.mpg'
-]
-
-var hw = new Hardware(1,0,0,0);
-var firstrpoc;
-for(var i=0; i<2; i++){
-  !function inner(i){
-    var ident = i.toString();
-    var process = new Process("ffmpeg",args,10,hw,false)
-    .on('start',()=>{console.log("on start");})
-    .on('stop',(restart)=>{console.log("on stop",ident,restart);})
-    .on('progression',(msg)=>{console.log("on progression ",ident,msg);})
-    .on('final',(msg)=>{console.log("on final",ident,msg);});
-    // var process = new Process("ffmpeg",args,10,hw,
-    // ()=>{console.log("on start");},
-    // (restart)=>{console.log("on stop",ident,restart);},
-    // (msg)=>{console.log("on progression ",ident,msg);},
-    // (msg)=>{console.log("on final",ident,msg);});
-    if(i==0){
-      firstrpoc = process;
-      firstrpoc.priority = 0;
-    }
-    transcoderMgr.launchProcess(process);
-  }(i);
-}
-
-setTimeout(()=>{
-  transcoderMgr.stopProcess(firstrpoc);
-}, 15000, 'funky');
-
-setTimeout(()=>{
-  transcoderMgr.startProcess(firstrpoc);
-}, 30000, 'funky2');
-
-
-
+// TODO properly shutdown
+// sessionStore.close();
