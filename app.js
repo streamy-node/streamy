@@ -7,7 +7,14 @@ var mysql = require('mysql');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
-var users = require('./src/users');
+var users = require('./server/users');
+
+
+//Lang
+var mustache = require('mustache');
+var i18n  = require('i18n');
+var path = require('path');
+var consolidate = require('consolidate');
 
 //var helmet = require('helmet');
 
@@ -27,6 +34,18 @@ dbConnection.connect(function(err) {
     process.exit(1);
   }
   console.log("Connected to db :)");
+});
+
+// Setup lang
+i18n.configure({
+  locales: ['en', 'fr'],
+  defaultLocale: 'en',
+  queryParameter: 'lang',
+  directory: path.join(__dirname, 'locales'),
+  api: {
+    '__': 'translate',  
+    '__n': 'translateN' 
+  },
 });
 
 // var con = mysql.createConnection({
@@ -64,7 +83,7 @@ var sess = {
 passport.use(new LocalStrategy(
   function(username, password, done) {
     users.findByUsername( username, function (err, user) {
-      if (err) { return done(err);console.log("PLOP"); }
+      if (err) { return done(err); }
       if (!user) { return done(null, false); }
       if (user.password !== password) { return done(null, false); }
       return done(null, user);
@@ -98,23 +117,40 @@ if (app.get('env') === 'production') {
   //minimale security
   app.disable('x-powered-by');
   app.set('trust proxy', 1) // trust first proxy
+  app.use(helmet());
   sess.cookie.secure = true // serve secure cookies
 }
 
 
-app.use(express.static('public'));
+app.use(express.static('static'));
 app.use(cors());
-//app.use(helmet());
 app.use(session(sess));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-//TODO add path to all folders
+//Setup lang
+app.engine('html', consolidate.mustache); // Assign html to mustache engine
+app.set('view engine', 'html'); // Set default extension
+app.set('views', __dirname + '/views');
+app.use(i18n.init);
 
+
+//register helper as a locals function wrapped as mustache expects
+app.use(function (req, res, next) {
+  // mustache helper
+  res.locals.__ = function () {
+    return function (text, render) {
+      return i18n.__.apply(req, arguments);
+    };
+  };
+
+  next();
+});
+//TODO add path to all folders
 app.post('/login',
-  passport.authenticate('local', { successRedirect: '/',
-                                   failureRedirect: '/html/login.html?status=failed',
+  passport.authenticate('local', { successRedirect: '/dashboard.html',
+                                   failureRedirect: '/login/auth.html?status=failed',
                                    failureFlash: false }));
 
 app.get('/logout',
@@ -125,6 +161,14 @@ app.get('/logout',
 
 app.get('/', function (req, res) {
   res.send('Hello World!')
+})
+
+app.get('/login/auth.html', function (req, res) {
+  res.render('login.html')
+})
+
+app.get('/dashboard', function (req, res) {
+  res.render('dashboard.html')
 })
 
 var server = app.listen(8080, function () {

@@ -26,4 +26,11 @@ http://expressjs.com/fr/advanced/best-practice-security.html
 
 ## TODO
 - Limit auth access rate (brute force multi ips)
+- Store hashed password
+- Multilang support i18n
+
+ npm install consolidate mustache
+ https://phraseapp.com/blog/posts/node-js-i18n-guide/
+
+
 

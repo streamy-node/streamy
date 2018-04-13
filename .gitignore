@@ -72,6 +72,6 @@ node_modules/
 *.swp
 *.m4s
 
-public/js/shaka/
-public/videos/
-public/js/demo-player/
+static/js/shaka/
+static/videos/
+static/js/demo-player/
