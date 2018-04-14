@@ -147,28 +147,57 @@ app.use(function (req, res, next) {
 
   next();
 });
+
+function loggedIn(req, res, next) {
+  if (req.user) {
+      next();
+  } else {
+      res.redirect('/login');
+  }
+}
+
 //TODO add path to all folders
 app.post('/login',
-  passport.authenticate('local', { successRedirect: '/dashboard.html',
-                                   failureRedirect: '/login/auth.html?status=failed',
+  passport.authenticate('local', { successRedirect: '/dashboard',
+                                   failureRedirect: '/login?status=failed',
                                    failureFlash: false }));
 
 app.get('/logout',
   function(req, res){
     req.logout();
-    res.redirect('/');
+    res.redirect('/login');
   });
 
 app.get('/', function (req, res) {
-  res.send('Hello World!')
+  res.redirect('/index.html');
 })
 
-app.get('/login/auth.html', function (req, res) {
+app.get('/login', function (req, res) {
   res.render('login.html')
 })
 
-app.get('/dashboard', function (req, res) {
-  res.render('dashboard.html')
+app.get('/index.html', loggedIn, function (req, res) {
+  res.render('index.html',{UserName:req.user.displayName});
+})
+
+app.get('/dashboard2', function (req, res) {
+  //Build movie list
+  //Insert in content
+  
+
+  res.render('dashboard.mustache')
+})
+
+app.get('/movies', function (req, res) {
+  //Build movie list
+  //Insert in content
+  
+
+  res.render('dashboard.html',{Content:"<div id=plop> Movies {{NAME}} Here </div>"})
+})
+
+app.get('/series', function (req, res) {
+  res.render('movies.html')
 })
 
 var server = app.listen(8080, function () {
