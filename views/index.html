@@ -61,6 +61,8 @@
         <script src="./js/mustache.min.js"></script>
         <!-- Load streamy js code -->
         <script src="./js/index.js"></script>
+        <script src="./js/movies.js"></script>
+        <script src="./js/series.js"></script>
         
         <script type="text/javascript">
             //TODO add collapsing button
@@ -70,9 +72,20 @@
                 });
             });
             
+            // Setup content
+            var contentMgr = new ContentManager();
+            contentMgr.load("en",()=>{
+                if(location.hash.length > 0){
+                    contentMgr.setContent("#content",location.hash);
+                }else{
+                    contentMgr.setContent("#content","#dashboard");
+                }
+            });
+
             // Catch hash changes
             window.addEventListener("hashchange", function () {
                     console.log("hash changed ",location.hash);
+                    contentMgr.setContent("#content",location.hash);
                 }, false);
                 
             // Just make last selected element a bit darker

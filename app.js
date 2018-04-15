@@ -36,12 +36,12 @@ dbConnection.connect(function(err) {
   console.log("Connected to db :)");
 });
 
-// Setup lang
+//Setup lang
 i18n.configure({
   locales: ['en', 'fr'],
   defaultLocale: 'en',
   queryParameter: 'lang',
-  directory: path.join(__dirname, 'locales'),
+  directory: path.join(__dirname, '/static/locales'),
   api: {
     '__': 'translate',  
     '__n': 'translateN' 
@@ -158,7 +158,7 @@ function loggedIn(req, res, next) {
 
 //TODO add path to all folders
 app.post('/login',
-  passport.authenticate('local', { successRedirect: '/dashboard',
+  passport.authenticate('local', { successRedirect: '/index',
                                    failureRedirect: '/login?status=failed',
                                    failureFlash: false }));
 
@@ -176,28 +176,24 @@ app.get('/login', function (req, res) {
   res.render('login.html')
 })
 
-app.get('/index.html', loggedIn, function (req, res) {
+app.get('/index', loggedIn, function (req, res) {
   res.render('index.html',{UserName:req.user.displayName});
+  //res.sendFile(__dirname + '/views/index.html');
 })
 
-app.get('/dashboard2', function (req, res) {
-  //Build movie list
-  //Insert in content
-  
-
-  res.render('dashboard.mustache')
+app.get('/session-infos', loggedIn, function (req, res) {
+  var sessInfos = {};
+  sessInfos.name = req.user.displayName;
+  res.send(sessInfos);
 })
 
-app.get('/movies', function (req, res) {
-  //Build movie list
-  //Insert in content
-  
+// templates
 
-  res.render('dashboard.html',{Content:"<div id=plop> Movies {{NAME}} Here </div>"})
+app.get('/movies.html', function (req, res) {
+  res.sendFile(__dirname + '/views/templates/movies.html');
 })
-
-app.get('/series', function (req, res) {
-  res.render('movies.html')
+app.get('/series.html', function (req, res) {
+  res.sendFile(__dirname + '/views/templates/series.html');
 })
 
 var server = app.listen(8080, function () {

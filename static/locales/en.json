@@ -1,0 +1,21 @@
+{
+  "Dashboard": "Dashbosard",
+	"Movies": "Movies",
+	"Series": "Series",
+	"Settings": "Settings",
+	"System": "System",
+	"Encoding": "Encoding",
+	"Users": "Users",
+	"Languages": "Languages",
+	"Logout": "Logout",
+	"AddMovie": "Add Movie",
+	"AddSerie": "Add Serie",
+	"video" : {
+	  "ReleaseDate":"Realease Date",
+	  "IMDBLink":"IMDB Link",
+	  "Rating":"Rating",
+	  "Rating Count":"Rating Count",
+	  "Overview":"Overview",
+	  "Trailer":"Trailer"
+	}
+}
