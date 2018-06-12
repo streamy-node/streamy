@@ -46,6 +46,12 @@
                 </ul>
             </nav>
 
+            <button type="button" id="sidebarCollapse" class="navbar-btn btn-transparent">
+                <!--i class="glyphicon glyphicon-align-left"></i-->
+                <span></span>
+                <span></span>
+                <span></span>                
+            </button>
 
             <!-- Page Content Holder -->
             <div id="content">
@@ -58,17 +64,23 @@
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
         
         <!-- Load mustache for dynamic rendering -->
-        <script src="./js/mustache.min.js"></script>
+        <script src="./js/mustache.min.js"></script>       
+
         <!-- Load streamy js code -->
         <script src="./js/index.js"></script>
         <script src="./js/movies.js"></script>
         <script src="./js/series.js"></script>
+        <script src="./js/empty.js"></script>
+
+        <!-- TV DB -->
+        <script src="./js/moviedb/moviedb.js"></script>
         
         <script type="text/javascript">
-            //TODO add collapsing button
+            
             $(document).ready(function () {
                 $('#sidebarCollapse').on('click', function () {
                     $('#sidebar').toggleClass('active');
+                    $(this).toggleClass('active');
                 });
             });
             
@@ -97,7 +109,8 @@
               }
             });
             
-            
+            // TVDBKey
+            theMovieDb.common.initialize();
             // Movies handle (todo use push)
             
             // Serie handle

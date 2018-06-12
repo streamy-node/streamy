@@ -1,5 +1,5 @@
 {
-  "Dashboard": "Dashbosard",
+	"Dashboard": "Dashbosard",
 	"Movies": "Movies",
 	"Series": "Series",
 	"Settings": "Settings",
@@ -7,5 +7,9 @@
 	"Encoding": "Encoding",
 	"Users": "Users",
 	"Languages": "Languages",
-	"Logout": "Logout"
+	"Logout": "Logout",
+	"Username": "Username",
+	"Password": "Password",
+	"AddMovieFromUpload": "Upload Movie",
+	"AddMovieFromFile": "Import Movie"
 }

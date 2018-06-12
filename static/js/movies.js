@@ -9,5 +9,8 @@ class MoviesContent{
     render(target){
         var rendered = Mustache.render(this.templates.movies, this.langs.active);
         $(target).html(rendered);
+
     }
+
+    
 }

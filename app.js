@@ -16,6 +16,15 @@ var i18n  = require('i18n');
 var path = require('path');
 var consolidate = require('consolidate');
 
+if(process.argv.length <= 2){
+  console.error("Moviedb key missing");
+  process.exit(1);
+}
+
+console.log("API key: ",process.argv[2]);
+
+//For local use
+const MovieDB_KEY = process.argv[2];
 //var helmet = require('helmet');
 
 //Setup db
@@ -169,7 +178,7 @@ app.get('/logout',
   });
 
 app.get('/', function (req, res) {
-  res.redirect('/index.html');
+  res.redirect('/index');
 })
 
 app.get('/login', function (req, res) {
@@ -195,6 +204,11 @@ app.get('/movies.html', function (req, res) {
 app.get('/series.html', function (req, res) {
   res.sendFile(__dirname + '/views/templates/series.html');
 })
+
+app.get('/moviedb/key', function (req, res) {
+  res.send(MovieDB_KEY);
+})
+
 
 var server = app.listen(8080, function () {
 

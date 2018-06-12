@@ -10,6 +10,9 @@
 	"Logout": "Logout",
 	"AddMovie": "Add Movie",
 	"AddSerie": "Add Serie",
+	"AddMovieFromUpload": "Upload Movie",
+	"AddMovieFromFile": "Import Movie",
+	"SerieNameLabel":"Serie Name",
 	"video" : {
 	  "ReleaseDate":"Realease Date",
 	  "IMDBLink":"IMDB Link",

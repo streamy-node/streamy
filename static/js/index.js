@@ -2,6 +2,7 @@ class ContentManager{
   constructor(){
     this.langs = {};
     this.templates = {};
+    this.emptyMgr = new EmptyContent(this.templates,this.langs);
     this.moviesMgr = new MoviesContent(this.templates,this.langs);
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
   }
@@ -47,7 +48,8 @@ class ContentManager{
     }else if(type === "#series"){
       this.seriesMgr.render(div);
     }else{
-      console.error("Unknown hash ", type);
+      this.emptyMgr.render(div);
+      console.error("Not implemented hash ", type);
     }
   }
 }
