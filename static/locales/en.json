@@ -1,5 +1,5 @@
 {
-  "Dashboard": "Dashbosard",
+	"Dashboard": "Dashbosard",
 	"Movies": "Movies",
 	"Series": "Series",
 	"Settings": "Settings",
@@ -12,13 +12,15 @@
 	"AddSerie": "Add Serie",
 	"AddMovieFromUpload": "Upload Movie",
 	"AddMovieFromFile": "Import Movie",
-	"SerieNameLabel":"Serie Name",
-	"video" : {
-	  "ReleaseDate":"Realease Date",
-	  "IMDBLink":"IMDB Link",
-	  "Rating":"Rating",
-	  "Rating Count":"Rating Count",
-	  "Overview":"Overview",
-	  "Trailer":"Trailer"
-	}
+	"SerieNameLabel": "Serie Name",
+	"video": {
+		"ReleaseDate": "Realease Date",
+		"IMDBLink": "IMDB Link",
+		"Rating": "Rating",
+		"Rating Count": "Rating Count",
+		"Overview": "Overview",
+		"Trailer": "Trailer"
+	},
+	"Username": "Username",
+	"Password": "Password"
 }

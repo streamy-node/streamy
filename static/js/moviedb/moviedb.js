@@ -9,6 +9,8 @@
 
 var theMovieDb = {};
 
+
+
 theMovieDb.common = {
   api_key: "",
   base_uri: "http://api.themoviedb.org/3/",
@@ -19,17 +21,25 @@ theMovieDb.common = {
   initialize: function(){
     if(!theMovieDb.common.initialized){
       const req = new XMLHttpRequest();
-      req.open('GET', '/moviedb/key', false); 
+      req.ontimeout = function () {
+        console.error("The request " + req + " timed out.");
+      };
+      req.open('GET', '/moviedb/key', true); 
+      req.onload = function (e) {
+        if (req.status === 200) {
+          console.log("MovieDB key received: %s", req.responseText);
+          theMovieDb.common.api_key = req.responseText
+          theMovieDb.common.initialized = true;
+          return true;
+        } else {
+          console.log("Cannot get MovieDB API key: %d (%s)", req.status, req.statusText);
+          return false;
+        }
+      };
+      req.onerror = function (e) {
+        console.ERROR("Cannot get MovieDB API key: %d (%s)", e);
+      };
       req.send(null);
-      if (req.status === 200) {
-        console.log("MovieDB key received: %s", req.responseText);
-        theMovieDb.common.api_key = req.responseText
-        theMovieDb.common.initialized = true;
-        return true;
-      } else {
-        console.log("Cannot get MovieDB API key: %d (%s)", req.status, req.statusText);
-        return false;
-      }
     }
   },
   generateQuery: function(options) {
