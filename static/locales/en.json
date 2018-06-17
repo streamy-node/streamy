@@ -14,10 +14,11 @@
 	"AddMovieFromFile": "Import Movie",
 	"SerieNameLabel": "Serie Name",
 	"video": {
+		"TitleNamePH": "insert your title here",
 		"ReleaseDate": "Realease Date",
 		"IMDBLink": "IMDB Link",
 		"Rating": "Rating",
-		"Rating Count": "Rating Count",
+		"RatingCount": "Rating Count",
 		"Overview": "Overview",
 		"Trailer": "Trailer"
 	},

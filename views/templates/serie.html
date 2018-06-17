@@ -1,0 +1,68 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_serie" >
+    <h1>{{dyn.serieName}}</h1>
+        <div class="autocomplete" style="width:300px;"></div>
+        <input type="text" placeholder="{{lang.video.TitleNamePH}}" class="form-control" id="serieName">
+    </h1>
+
+    <table class="table">
+        <tr>
+                <th scope="col">{{lang.video.ReleaseDate}}</th>
+                <th scope="col">{{lang.video.IMDBLink}}</th>
+                <th scope="col">{{lang.video.Rating}}</th>
+                <th scope="col">{{lang.video.RatingCount}}</th>
+                
+        </tr>
+        <tbody>
+            <tr>
+                <td scope="row">{{dyn.video.ReleaseDate}}</td>
+                <td>{{dyn.video.ImdbLink}}</td>
+                <td>{{dyn.video.Rating}}</td>
+                <td>{{dyn.video.RatingCount}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div >{{lang.video.Overview}}</div>
+    <div >{{dyn.video.Overview}}</div>
+</div>
+
+
+<script>
+    console.log("theMovieDb",theMovieDb);
+    // Initialize
+    // theMovieDb.search.getTv({"query":"Breaking%20Bad"}, 
+    // function(data){
+    //     console.log("Found ",data)
+    // }, function(data){
+    //     console.log("Failed seraching ",data);
+    // });
+
+
+//    var serieSearch = new Autocomplete(document.getElementById("serieName"),[],true);
+    var bufferedSearch = new BufferedSearch(function(inputData){
+        if(inputData.length > 1){
+            // Initialize
+            theMovieDb.search.getTv({"query":inputData}, 
+            function(jsonData){
+                let data = JSON.parse(jsonData);
+                titles = [];
+                for(var i=0; i<8 && i<data["results"].length;i++ ){
+                    titles.push(data["results"][i].name);   
+                }
+                console.log("Found ",titles,document.getElementById("serieName"))
+                //autocomplete(document.getElementById("serieName"), titles);
+                serieSearch.updateArray(titles);
+                //console.log("Found ",data)
+            }, function(data){
+                console.log("Failed seraching ",data);
+            });
+        } 
+    });
+
+    // $('#serieName').on('input', function() {
+    //     bufferedSearch.doSearch($(this).val());
+        
+    // });
+    
+</script>

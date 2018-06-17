@@ -204,6 +204,9 @@ app.get('/movies.html', function (req, res) {
 app.get('/series.html', function (req, res) {
   res.sendFile(__dirname + '/views/templates/series.html');
 })
+app.get('/serie.html', function (req, res) {
+  res.sendFile(__dirname + '/views/templates/serie.html');
+})
 
 app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);

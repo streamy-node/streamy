@@ -1,6 +1,9 @@
 <!-- Create movies content page skeleton -->
 <div id="tpl_series" >
 
+        
+    <a id="add_serie_btn" class="btn btn-primary" href="#addSerie">{{AddSerie}}1</a>
+    
     <button id="add_serie_btn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_serie_modal">{{AddSerie}}</button>
     <h1>My series</h1> 
     <div id="serie_list">
@@ -158,7 +161,7 @@
                 let data = JSON.parse(jsonData);
                 titles = [];
                 for(var i=0; i<8 && i<data["results"].length;i++ ){
-                    titles.push({label:data["results"][i].name,index:i});   
+                    titles.push(data["results"][i].name);   
                 }
                 console.log("Found ",titles,document.getElementById("serieName"))
                 //autocomplete(document.getElementById("serieName"), titles);

@@ -4,10 +4,30 @@ class SeriesContent{
         this.movies;
         this.templates = templates;
         this.langs = langs;
+
+        this.defaults = {};
+        this.defaults.addSerie = {};
+        this.defaults.addSerie.video = {};
+        this.defaults.addSerie.video.ReleaseDate = "00/00/00";
+    }
+
+    genericRender(target,template,viewData){
+        var rendered = Mustache.render(template, viewData);
+        $(target).html(rendered);
     }
 
     render(target){
         var rendered = Mustache.render(this.templates.series, this.langs.active);
         $(target).html(rendered);
     }
+
+    renderAddSerie(target){
+        this.genericRender(target,this.templates.serie,{lang:this.langs.active,dyn:this.defaults.addSerie})
+    }
+
+    renderSerie(target,serieID){
+        this.genericRender(target,this.templates.serie,{lang:this.langs.active,dyn:{}})
+    }
+
+
 }
