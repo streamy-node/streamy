@@ -5,10 +5,10 @@ class SeriesContent{
         this.templates = templates;
         this.langs = langs;
 
-        this.defaults = {};
-        this.defaults.addSerie = {};
-        this.defaults.addSerie.video = {};
-        this.defaults.addSerie.video.ReleaseDate = "00/00/00";
+        // this.defaults = {};
+        // this.defaults.addSerie = {};
+        // this.defaults.addSerie.video = {};
+        // this.defaults.addSerie.video.ReleaseDate = "00/00/00";
     }
 
     genericRender(target,template,viewData){
@@ -21,8 +21,8 @@ class SeriesContent{
         $(target).html(rendered);
     }
 
-    renderAddSerie(target){
-        this.genericRender(target,this.templates.serie,{lang:this.langs.active,dyn:this.defaults.addSerie})
+    renderAddVideo(target){
+        this.genericRender(target,this.templates.addvideo,{lang:this.langs.active,dyn:{}})
     }
 
     renderSerie(target,serieID){

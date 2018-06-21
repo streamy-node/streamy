@@ -25,11 +25,11 @@ class ContentManager{
     $.when(
       $.get("movies.html"),
       $.get("series.html"),
-      $.get("serie.html")).done(function(a1,a2,a3){
+      $.get("addvideo.html")).done(function(a1,a2,a3){
         var templates = {}
         templates.movies =  a1[0];
         templates.series =  a2[0];
-        templates.serie =  a3[0];
+        templates.addvideo =  a3[0];
       // the code here will be executed when all four ajax requests resolve.
       // a1, a2, a3 and a4 are lists of length 3 containing the response text,
       // status, and jqXHR object for each of the four ajax calls respectively.
@@ -49,8 +49,10 @@ class ContentManager{
       this.moviesMgr.render(div);
     }else if(type === "#series"){
       this.seriesMgr.render(div);
-    }else if(type === "#addSerie"){
-      this.seriesMgr.renderAddSerie(div);
+    }else if(type === "#addserie"){
+      this.seriesMgr.renderAddVideo(div);
+    }else if(type === "#addmovie"){
+      this.seriesMgr.renderAddVideo(div);
     }else if(type === "#serie"){//#serie?id=xxx
       this.seriesMgr.renderSerie(div,0);
     }else{

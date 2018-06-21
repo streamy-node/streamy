@@ -13,6 +13,7 @@
 	"AddMovieFromUpload": "Upload Movie",
 	"AddMovieFromFile": "Import Movie",
 	"SerieNameLabel": "Serie Name",
+	"Cancel": "Cancel",
 	"video": {
 		"TitleNamePH": "insert your title here",
 		"ReleaseDate": "Realease Date",
@@ -20,7 +21,10 @@
 		"Rating": "Rating",
 		"RatingCount": "Rating Count",
 		"Overview": "Overview",
-		"Trailer": "Trailer"
+		"Trailer": "Trailer",
+		"AddTitle": "Add title",
+		"GoToTitle": "Go to title"
+		
 	},
 	"Username": "Username",
 	"Password": "Password"

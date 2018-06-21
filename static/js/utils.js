@@ -52,19 +52,20 @@ class Autocomplete{
                     /*and simulate a click on the "active" item:*/
                     if (x) x[self.currentFocus].click();
                 }
-                onSelectItem(self.currentFocus);
             }
         });
 
         /*execute a function when someone clicks in the document:*/
         document.addEventListener("click", function (e) {
             self._closeAllLists(e.target);
-            onSelectItem(self.currentFocus);
+            if(self.currentFocus != null){
+                onSelectItem(self.currentFocus);
+            }
         });
     }
 
     updateArray(arr){
-        //console.log("ARR",arr);
+        console.log("ARR",arr);
         var a, b, i, val = this.input.value;
         var self = this;
         this.array = arr;
@@ -80,6 +81,7 @@ class Autocomplete{
         this.input.parentNode.appendChild(a);
         /*for each item in the array...*/
         for (i = 0; i < arr.length; i++) {
+            let index = i;
             /*check if the item starts with the same letters as the text field value:*/
             if (this.filter || arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
                 /*create a DIV element for each matching element:*/
@@ -94,11 +96,12 @@ class Autocomplete{
                 }
                 
                 /*insert a input field that will hold the current array item's value:*/
-                b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                b.innerHTML += '<input type="hidden" value="' + arr[i] + '">';
                 /*execute a function when someone clicks on the item value (DIV element):*/
                 b.addEventListener("click", function(e) {
                     /*insert the value for the autocomplete text field:*/
                     self.input.value = this.getElementsByTagName("input")[0].value;
+                    self.currentFocus = index;//new Number(index);
                     /*close the list of autocompleted values,
                     (or any other open lists of autocompleted values:*/
                     self._closeAllLists();
@@ -121,7 +124,7 @@ class Autocomplete{
     _removeActive(x) {
         /*a function to remove the "active" class from all autocomplete items:*/
         for (var i = 0; i < x.length; i++) {
-        x[i].classList.remove("autocomplete-active");
+            x[i].classList.remove("autocomplete-active");
         }
     }
     _closeAllLists(elmnt) {

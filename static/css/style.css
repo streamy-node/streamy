@@ -6,6 +6,7 @@
 
 body {
     font-family: 'Poppins', sans-serif;
+    color: #999;
     background: #1f1f1f;
 }
 
@@ -189,6 +190,10 @@ a.article, a.article:hover {
     display: block;
     background: #555;
     transition: all 0.8s cubic-bezier(0.810, -0.330, 0.345, 1.375);
+}
+
+.poster {
+    max-height:600px;
 }
 
 .autocomplete {

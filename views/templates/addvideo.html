@@ -1,0 +1,113 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_serie" >
+        <div class="autocomplete" style="width:300px;">
+            <input type="text" placeholder="{{lang.video.TitleNamePH}}" class="form-control" id="serieName">
+        </div>
+        <button type="button hidden" class="btn btn-primary">{{lang.video.AddTitle}}</button>
+        <button type="button hidden" class="btn btn-primary">{{lang.video.GoToTitle}}</button>
+        <a class="btn btn-primary " href="#series">{{lang.Cancel}}</a>
+    </h1>
+
+    <table class="table">
+        <tr>
+                <th scope="col">{{lang.video.ReleaseDate}}</th>
+                <th scope="col">{{lang.video.Rating}}</th>
+                <th scope="col">{{lang.video.RatingCount}}</th> 
+        </tr>
+        
+        <tbody>
+            <tr>
+                <td scope="row" id="releasedate" >{{dyn.video.ReleaseDate}}</td>
+                <td id="rating">{{dyn.video.Rating}}</td>
+                <td id="ratingcount">{{dyn.video.RatingCount}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div >{{lang.video.Overview}}</div>
+    <div id="overview">{{dyn.video.Overview}}</div>
+
+    <img id="poster" class="img-responsive poster" src=""/>
+</div>
+
+
+<script>
+
+    var isSerie;
+    if(location.hash === "#addserie"){
+        isSerie = true;
+    }else if(location.hash === "#addmovie"){
+        isSerie = false;
+    }else{
+        console.log("Unknown addvideo hash");
+    }
+
+    ///// Setup search mechanism ////
+    var searchResults = null;
+
+    var onTitleSelection = function(selectedIndex){
+        console.log("selectedIndex",selectedIndex)
+        if(searchResults){
+            // Update fields
+            let infos = searchResults["results"][selectedIndex];
+           
+            if(isSerie){
+                $("#releasedate").text(infos.first_air_date);
+            }else{
+                $("#releasedate").text(infos.release_date);
+            }
+            $("#rating").text(infos.vote_average);
+            $("#ratingcount").text(infos.vote_count);
+            $("#overview").text(infos.overview);
+            $("#poster").attr("src",theMovieDb.common.images_uri+"original"+infos.poster_path);
+            //$("#poster_path").text(infos.poster_path);
+        }
+
+    };
+
+    var serieSearch = new Autocomplete(document.getElementById("serieName"),[],true,onTitleSelection);
+    var bufferedSearch = new BufferedSearch(function(inputData){
+        if(inputData.length > 1){
+            // Initialize
+            var getter =null;
+            var isSerie;
+            if(location.hash === "#addserie"){
+                getter = theMovieDb.search.getTv;
+                isSerie = true;
+            }else if(location.hash === "#addmovie"){
+                getter = theMovieDb.search.getMovie;
+                isSerie = false;
+            }else{
+                console.log("Unknown addvideo hash");
+                return;
+            }
+
+            getter({"query":inputData}, 
+            function(jsonData){
+                searchResults = JSON.parse(jsonData);
+                titles = [];
+                for(var i=0; i<8 && i<searchResults["results"].length;i++ ){
+                    if(isSerie){
+                        titles.push(searchResults["results"][i].name);   
+                    }else{
+                        titles.push(searchResults["results"][i].title);   
+                    }
+                    
+                }
+                console.log("ff",searchResults);
+                console.log("Found ",titles,document.getElementById("serieName"))
+                //autocomplete(document.getElementById("serieName"), titles);
+                serieSearch.updateArray(titles);
+                //console.log("Found ",data)
+            }, function(data){
+                console.log("Failed seraching ",data);
+            });
+        }
+        
+    });
+
+    $('#serieName').on('input', function() {
+        bufferedSearch.doSearch($(this).val());
+    });
+    
+</script>
