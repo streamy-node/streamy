@@ -8,7 +8,8 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
 var users = require('./server/users');
-
+var SeriesMgr = require('./server/series.js');
+var DBStructure = require('./server/dbstructure.js');
 
 //Lang
 var mustache = require('mustache');
@@ -33,9 +34,11 @@ var dbOptions = {
   port: 3306,
   user: 'streamy',
   password: 'pwd',
-  database: 'streamy'
+  database: 'streamy',
+  multipleStatements: true
 };
 var dbConnection = mysql.createConnection(dbOptions);
+var dbStructure = new DBStructure(dbConnection);
 
 dbConnection.connect(function(err) {
   if (err) {
@@ -43,6 +46,14 @@ dbConnection.connect(function(err) {
     process.exit(1);
   }
   console.log("Connected to db :)");
+  
+  // Setup dbase
+  dbStructure.initialize(function(error){
+    if(error){
+      console.error("Cannot setup the db ",dbOptions,err);
+      process.exit(1);
+    } 
+  });  
 });
 
 //Setup lang
@@ -56,6 +67,11 @@ i18n.configure({
     '__n': 'translateN' 
   },
 });
+
+
+
+// setup managers
+var serieMgr = new SeriesMgr(dbConnection);
 
 // var con = mysql.createConnection({
 //   host: "127.0.0.1",
@@ -144,6 +160,7 @@ app.set('view engine', 'html'); // Set default extension
 app.set('views', __dirname + '/views');
 app.use(i18n.init);
 
+app.use(express.json());
 
 //register helper as a locals function wrapped as mustache expects
 app.use(function (req, res, next) {
@@ -208,10 +225,46 @@ app.get('/addvideo.html', function (req, res) {
   res.sendFile(__dirname + '/views/templates/addvideo.html');
 })
 
+// API key
 app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);
 })
 
+// Add serie
+app.post('/series', async function (req, res) {
+  if(req.user){ //TODO check rights
+    console.log("body",req.body);
+
+    //For the moment only moviedb id
+    if(req.body.moviedbId != null){
+      //Check if serie already added
+      let serieId = await serieMgr.findSerieFromMoviedbId(req.body.moviedbId);
+
+      // prepare response
+      res.setHeader('Content-Type', 'application/json');
+      if(serieId === null){
+        //The serie don't exist, create it
+        console.log("Adding a new serie");
+        serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
+      }
+      
+      if(serieId !== null){
+        res.status(200).send(JSON.stringify({id:serieId}));
+      }else{
+        console.error("Failed to add serie from ",req.body);
+        res.status(500).send('Cannot create serie');
+      }
+      
+
+    }else{
+      res.status(400).send('Unknown request');
+    }
+
+  }else{
+    res.status(401).send('You need to login');
+  }
+
+}) 
 
 var server = app.listen(8080, function () {
 

@@ -3,8 +3,7 @@
         <div class="autocomplete" style="width:300px;">
             <input type="text" placeholder="{{lang.video.TitleNamePH}}" class="form-control" id="serieName">
         </div>
-        <button type="button hidden" class="btn btn-primary">{{lang.video.AddTitle}}</button>
-        <button type="button hidden" class="btn btn-primary">{{lang.video.GoToTitle}}</button>
+        <button id="addtitle" type="button hidden" class="btn btn-primary">{{lang.video.AddTitle}}</button>
         <a class="btn btn-primary " href="#series">{{lang.Cancel}}</a>
     </h1>
 
@@ -33,6 +32,7 @@
 
 <script>
 
+    // Findout if we add a serie or a movie
     var isSerie;
     if(location.hash === "#addserie"){
         isSerie = true;
@@ -42,24 +42,24 @@
         console.log("Unknown addvideo hash");
     }
 
-    ///// Setup search mechanism ////
+    // Setup search mechanism
     var searchResults = null;
-
+    var videoInfos = null;
     var onTitleSelection = function(selectedIndex){
         console.log("selectedIndex",selectedIndex)
         if(searchResults){
             // Update fields
-            let infos = searchResults["results"][selectedIndex];
+            videoInfos = searchResults["results"][selectedIndex];
            
             if(isSerie){
-                $("#releasedate").text(infos.first_air_date);
+                $("#releasedate").text(videoInfos.first_air_date);
             }else{
-                $("#releasedate").text(infos.release_date);
+                $("#releasedate").text(videoInfos.release_date);
             }
-            $("#rating").text(infos.vote_average);
-            $("#ratingcount").text(infos.vote_count);
-            $("#overview").text(infos.overview);
-            $("#poster").attr("src",theMovieDb.common.images_uri+"original"+infos.poster_path);
+            $("#rating").text(videoInfos.vote_average);
+            $("#ratingcount").text(videoInfos.vote_count);
+            $("#overview").text(videoInfos.overview);
+            $("#poster").attr("src",theMovieDb.common.images_uri+"original"+videoInfos.poster_path);
             //$("#poster_path").text(infos.poster_path);
         }
 
@@ -109,5 +109,23 @@
     $('#serieName').on('input', function() {
         bufferedSearch.doSearch($(this).val());
     });
-    
+
+    //Connect buttons
+    $("#addtitle").click(function(){
+        
+        var data = {moviedbId:videoInfos.id};
+        if(isSerie){
+            console.log("#addtitle/serie",videoInfos);
+            postAsJson(data,"/series", function(response){
+                alert("Serie link ",response);
+            },function(response){
+                alert("Failed to add serie",response);
+            })
+        }else{
+            $.post("/movies", function(data, status){
+                alert("Movie Data: " + data + "\nStatus: " + status);
+            });
+        }
+    });
+
 </script>
