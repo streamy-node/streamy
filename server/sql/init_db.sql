@@ -2,12 +2,23 @@ CREATE TABLE `languages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` char(49) CHARACTER SET utf8 DEFAULT NULL,
   `iso_639-1` char(2) CHARACTER SET utf8 DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT UNIQUE (`iso_639-1`)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=136 ;
 
 CREATE TABLE `genres` (
   `id` int NOT NULL,
+  `default_name` char(49) CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `genres_moviedb` (
+  `id` int NOT NULL,
+  `genre_id` int NOT NULL,
+  `moviedb_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`genre_id`) REFERENCES genres(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`genre_id`,`moviedb_id`)
 );
 
 CREATE TABLE `genres_translations` (
@@ -29,15 +40,6 @@ CREATE TABLE `videos_resolutions` (
   CONSTRAINT UNIQUE (`name`) 
 );
 
-CREATE TABLE `episodes` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `serie_id` int NOT NULL,
-    `lang_id` int NOT NULL,
-    `title` VARCHAR(255) NOT NULL,
-    `overview` VARCHAR(255),
-    PRIMARY KEY (`id`)
-);
-
 CREATE TABLE `series` (
   `id` int NOT NULL AUTO_INCREMENT,
   `release_date` datetime NOT NULL,
@@ -45,11 +47,11 @@ CREATE TABLE `series` (
   `rating_count` int UNSIGNED DEFAULT '0',
   `number_of_seasons` TINYINT UNSIGNED,
   `number_of_episodes` INT UNSIGNED,
-  `original_name` VARCHAR(255),
-  `original_language` int(10) UNSIGNED NOT NULL,
-  `path` VARCHAR(255),
+  `original_name` VARCHAR(255) NOT NULL,
+  `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`original_language`) REFERENCES languages(`id`)
+  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`),
+  CONSTRAINT UNIQUE (`release_date`,`original_name`)
 );
 
 CREATE TABLE `series_locations` (
@@ -57,7 +59,8 @@ CREATE TABLE `series_locations` (
   `serie_id` int NOT NULL,
   `path` VARCHAR(255),
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`serie_id`) REFERENCES series(`id`) DELETE ON CASCADE
+  FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE(`serie_id`, `path`)
 );
 
 CREATE TABLE `series_translations` (
@@ -65,7 +68,7 @@ CREATE TABLE `series_translations` (
     `serie_id` int NOT NULL,
     `lang_id` int(10) unsigned NOT NULL,
     `title` VARCHAR(255) NOT NULL,
-    `overview` VARCHAR(255),
+    `overview` VARCHAR(765),
     PRIMARY KEY (`id`),
     FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
@@ -83,6 +86,7 @@ CREATE TABLE `series_moviedb` (
   `id` int NOT NULL AUTO_INCREMENT,
   `serie_id` int NOT NULL,
   `moviedb_id` int NOT NULL,
+  `poster_path` VARCHAR(255),
   PRIMARY KEY (`id`),
   FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`moviedb_id`)
@@ -99,24 +103,36 @@ CREATE TABLE `series_seasons` (
     CONSTRAINT UNIQUE (`serie_id`,`season_number`) 
 );
 
-CREATE TABLE `series_season_translations` (
+CREATE TABLE `series_seasons_translations` (
     `id` int NOT NULL AUTO_INCREMENT,
     `season_id` int NOT NULL,
     `lang_id` int(10) unsigned NOT NULL,
+    `title` VARCHAR(255),
+    `overview` VARCHAR(765),
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
+);
+
+CREATE TABLE `series_seasons_moviedb` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `season_id` int NOT NULL,
+  `moviedb_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`moviedb_id`)
 );
 
 CREATE TABLE `series_episodes` (
     `id` int NOT NULL AUTO_INCREMENT,
     `season_id` int NOT NULL,
     `episode_number` int NOT NULL,
+    `original_name` VARCHAR(255),
+    `release_date` datetime,
     `rating` decimal(3,1) DEFAULT '0.0',
     `rating_count` int UNSIGNED DEFAULT '0',
-    `max_resolution` int DEFAULT '0',
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`season_id`) REFERENCES series(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
     CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
 );
 
@@ -125,11 +141,20 @@ CREATE TABLE `series_episodes_translations` (
     `episode_id` int NOT NULL,
     `lang_id` int(10) unsigned NOT NULL,
     `title` VARCHAR(255) NOT NULL,
-    `overview` VARCHAR(255),
+    `overview` VARCHAR(765),
     PRIMARY KEY (`id`),
     FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-    CONSTRAINT UNIQUE (`episode_id`,`lang_id`) 
+    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
+);
+
+
+CREATE TABLE `series_episodes_moviedb` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `episode_id` int NOT NULL,
+  `moviedb_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`moviedb_id`)
 );
 
 CREATE TABLE `series_episodes_genres` (
@@ -166,10 +191,9 @@ CREATE TABLE `films` (
   `rating` decimal(3,1) DEFAULT '0.0',
   `rating_count` int UNSIGNED DEFAULT '0',
   `original_name` VARCHAR(255),
-  `original_language` int(10) UNSIGNED NOT NULL,
-  `path` VARCHAR(255),
+  `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`original_language`) REFERENCES languages(`id`)
+  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`)
 );
 
 CREATE TABLE `films_locations` (
@@ -177,7 +201,7 @@ CREATE TABLE `films_locations` (
   `film_id` int NOT NULL,
   `path` VARCHAR(255),
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`) DELETE ON CASCADE
+  FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE
 );
 
 CREATE TABLE `films_translations` (
@@ -185,7 +209,7 @@ CREATE TABLE `films_translations` (
     `film_id` int NOT NULL,
     `lang_id` int(10) unsigned NOT NULL,
     `title` VARCHAR(255) NOT NULL,
-    `overview` VARCHAR(255),
+    `overview` VARCHAR(765),
     PRIMARY KEY (`id`),
     FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),

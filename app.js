@@ -38,7 +38,7 @@ var dbOptions = {
   multipleStatements: true
 };
 var dbConnection = mysql.createConnection(dbOptions);
-var dbStructure = new DBStructure(dbConnection);
+var dbMgr = new DBStructure(dbConnection);
 
 dbConnection.connect(function(err) {
   if (err) {
@@ -48,7 +48,7 @@ dbConnection.connect(function(err) {
   console.log("Connected to db :)");
   
   // Setup dbase
-  dbStructure.initialize(function(error){
+  dbMgr.initialize(function(error){
     if(error){
       console.error("Cannot setup the db ",dbOptions,err);
       process.exit(1);
@@ -71,7 +71,7 @@ i18n.configure({
 
 
 // setup managers
-var serieMgr = new SeriesMgr(dbConnection);
+var serieMgr = new SeriesMgr(dbMgr);
 
 // var con = mysql.createConnection({
 //   host: "127.0.0.1",
