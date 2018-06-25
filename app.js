@@ -1,3 +1,6 @@
+// var netq = require('./server/netutils')
+// netq.download("https://image.tmdb.org/t/p/w300/kqjL17yufvn9OVLyXYpvtyrFfak.jpg","./plop/fanart.jpg")
+
 var express = require('express')
 var cors = require('cors'); // Chrome cast
 var session = require('express-session');
@@ -10,12 +13,14 @@ var bodyParser = require('body-parser');
 var users = require('./server/users');
 var SeriesMgr = require('./server/series.js');
 var DBStructure = require('./server/dbstructure.js');
+var Settings = require('./server/settings.js');
 
 //Lang
 var mustache = require('mustache');
 var i18n  = require('i18n');
 var path = require('path');
 var consolidate = require('consolidate');
+
 
 if(process.argv.length <= 2){
   console.error("Moviedb key missing");
@@ -39,6 +44,7 @@ var dbOptions = {
 };
 var dbConnection = mysql.createConnection(dbOptions);
 var dbMgr = new DBStructure(dbConnection);
+var settings = new Settings(dbMgr);
 
 dbConnection.connect(function(err) {
   if (err) {
@@ -52,8 +58,11 @@ dbConnection.connect(function(err) {
     if(error){
       console.error("Cannot setup the db ",dbOptions,err);
       process.exit(1);
-    } 
-  });  
+    }else{
+      settings.pullSettings();
+    }
+  });
+
 });
 
 //Setup lang
@@ -71,7 +80,7 @@ i18n.configure({
 
 
 // setup managers
-var serieMgr = new SeriesMgr(dbMgr);
+var serieMgr = new SeriesMgr(dbMgr,settings);
 
 // var con = mysql.createConnection({
 //   host: "127.0.0.1",

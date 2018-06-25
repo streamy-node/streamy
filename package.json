@@ -24,6 +24,7 @@
     "mysql": "^2.15.0",
     "passport": "^0.4.0",
     "passport-local": "^1.0.0",
+    "request": "^2.87.0",
     "shaka-player": "^2.3.3",
     "ws": "^5.1.0"
   },

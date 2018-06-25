@@ -12,6 +12,13 @@ CREATE TABLE `genres` (
   PRIMARY KEY (`id`)
 );
 
+CREATE TABLE `bricks` (
+  `id` int NOT NULL,
+  `alias` char(49) CHARACTER SET utf8 NOT NULL,
+  `path` VARCHAR(255),
+  PRIMARY KEY (`id`)
+);
+
 CREATE TABLE `genres_moviedb` (
   `id` int NOT NULL,
   `genre_id` int NOT NULL,
@@ -57,10 +64,11 @@ CREATE TABLE `series` (
 CREATE TABLE `series_locations` (
   `id` int NOT NULL AUTO_INCREMENT,
   `serie_id` int NOT NULL,
-  `path` VARCHAR(255),
+  `brick_id` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE(`serie_id`, `path`)
+  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE(`serie_id`, `brick_id`)
 );
 
 CREATE TABLE `series_translations` (
@@ -336,7 +344,30 @@ CREATE TABLE `users_settings` (
   FOREIGN KEY (`subtitle_lang`) REFERENCES languages(`id`)
 );
 
+CREATE TABLE `value_types` (
+  `id` int NOT NULL,
+  `setting_type` varchar(50) NOT NULL,
+   PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `global_settings` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `key` varchar(50),
+  `type` int,
+  `string` varchar(50),
+  `int` int,
+  `float` float,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`type`) REFERENCES value_types(`id`)
+) AUTO_INCREMENT=3 ;
+
 -- INSERTIONS
+INSERT INTO `value_types` VALUES(1, 'string');
+INSERT INTO `value_types` VALUES(2, 'int');
+INSERT INTO `value_types` VALUES(3, 'float');
+
+INSERT INTO `global_settings` VALUES(1, 'new_serie_brick', 1,NULL,NULL,NULL);
+INSERT INTO `global_settings` VALUES(2, 'new_film_brick', 1,NULL,NULL,NULL);
 
 -- Languages --
 INSERT INTO `languages` VALUES(0, 'Native', NULL);

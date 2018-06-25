@@ -6,9 +6,9 @@ class DBStructure{
         this.con = dbconnection;
     }
 
-    initialize(){
+    initialize(onFinal){
         console.log("Initializing database");
-        this.setup_database();
+        this.setup_database(onFinal);
     }
 
     setup_database(onFinal){
@@ -30,6 +30,14 @@ class DBStructure{
         });
     }
 
+    strdb(str){
+        if(str === NULL){
+            return "NULL"
+        }else{
+            return "'"+str.replace(/'/g,"\\'")+"'";
+        }
+    }
+
     async _import_genres(){ //TODO
         let tmdbMovieGenres = await moviedb.genreMovieList({"language":"en-US"});
         let tmdbSerieGenres = await moviedb.genreTvList({"language":"en-US"});
@@ -45,6 +53,17 @@ class DBStructure{
                 resolve(result);
             });
         });
+    }
+
+    async getBrick(brickId){
+        var sql = "SELECT id alias path FROM `bricks` WHERE id='"+brickId+"'";
+        var result = await this.con.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
     }
 }
 module.exports=DBStructure

@@ -1,4 +1,22 @@
 /// Network utils
+const fs = require('fs');
+const request = require('request');
+
+const download = function(url, filename) {
+    // return new pending promise
+    return new Promise((resolve, reject) => {
+        downloadCB(url,filename,resolve,reject);
+    });
+};
+
+const downloadCB = function(uri, filename, onSucess, onError){
+    request(uri).pipe(fs.createWriteStream(filename)).on('close', onSucess).on('error',onError);
+    // request.head(uri, function(err, res, body){
+    //     console.log('content-type:', res.headers['content-type']);
+    //     console.log('content-length:', res.headers['content-length']);
+    //     request(uri).pipe(fs.createWriteStream(filename)).on('close', callback).on('error',onError);
+    // });
+};
 
 const getContent = function(url) {
     // return new pending promise
@@ -80,6 +98,7 @@ const parseJson = function(jsonString){
     return JSON.parse(escapeSpecialChars(jsonString));
 }
 
+module.exports.download = download
 module.exports.getContent = getContent
 module.exports.sendAsJson = sendAsJson
 module.exports.parseJson = parseJson
