@@ -56,19 +56,11 @@ CREATE TABLE `series` (
   `number_of_episodes` INT UNSIGNED,
   `original_name` VARCHAR(255) NOT NULL,
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
+  `brick_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`),
+  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
   CONSTRAINT UNIQUE (`release_date`,`original_name`)
-);
-
-CREATE TABLE `series_locations` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `serie_id` int NOT NULL,
-  `brick_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE(`serie_id`, `brick_id`)
 );
 
 CREATE TABLE `series_translations` (
@@ -200,16 +192,11 @@ CREATE TABLE `films` (
   `rating_count` int UNSIGNED DEFAULT '0',
   `original_name` VARCHAR(255),
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
+  `brick_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`)
-);
-
-CREATE TABLE `films_locations` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `film_id` int NOT NULL,
-  `path` VARCHAR(255),
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`),
+  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
+  CONSTRAINT UNIQUE (`original_name`,`release_date`) 
 );
 
 CREATE TABLE `films_translations` (
@@ -366,8 +353,7 @@ INSERT INTO `value_types` VALUES(1, 'string');
 INSERT INTO `value_types` VALUES(2, 'int');
 INSERT INTO `value_types` VALUES(3, 'float');
 
-INSERT INTO `global_settings` VALUES(1, 'new_serie_brick', 1,NULL,NULL,NULL);
-INSERT INTO `global_settings` VALUES(2, 'new_film_brick', 1,NULL,NULL,NULL);
+INSERT INTO `global_settings` VALUES(1, 'new_video_brick', 2,NULL,NULL,NULL);
 
 -- Languages --
 INSERT INTO `languages` VALUES(0, 'Native', NULL);
@@ -514,3 +500,7 @@ INSERT INTO `roles` VALUES(3, 'guest');
 
 -- default user
 INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'admin', 'streamy',1,255);
+
+-- dev
+INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');
+UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;

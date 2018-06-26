@@ -55,9 +55,20 @@ class DBStructure{
         });
     }
 
+    async getSerie(serieId){
+        var sql = "SELECT * FROM `series` WHERE id = "+serieId+"";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
     async getBrick(brickId){
-        var sql = "SELECT id alias path FROM `bricks` WHERE id='"+brickId+"'";
-        var result = await this.con.query(sql);
+        var sql = "SELECT `id`, `alias`, `path` FROM `bricks` WHERE `id`="+brickId+"";
+        var result = await this.query(sql);
 
         if(result.length == 0 ){
             return null;
