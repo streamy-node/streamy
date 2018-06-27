@@ -1,8 +1,14 @@
 /// Network utils
 const fs = require('fs');
+const fsutils = require('./fsutils');
 const request = require('request');
 
-const download = function(url, filename) {
+const download = async function(url, filename, replace = true) {
+    
+    if(!replace && await fsutils.exists(filename)){
+        return true; 
+    }
+
     // return new pending promise
     return new Promise((resolve, reject) => {
         downloadCB(url,filename,resolve,reject);

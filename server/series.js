@@ -1,6 +1,6 @@
 var moviedb = require('./moviedb.js');
 var fsutils = require('./fsutils.js');
-var netutils = require('./netutils')
+var netutils = require('./netutils.js');
 //var mkdirp = require('mkdirp');
 
 class SeriesMgr{
@@ -82,6 +82,11 @@ class SeriesMgr{
                 await fsutils.mkdirp(seriePath);
             }
 
+            //Create streamy folder
+            if(!await fsutils.exists(seriePath+"/.streamy")){
+                await fsutils.mkdirp(seriePath+"/.streamy");
+            }
+
             //Create season and episodes folders
             for(var i=0; i<serieInfos.seasons.length; i++){
                 let seasonInfo = serieInfos.seasons[i];
@@ -109,7 +114,20 @@ class SeriesMgr{
         return true;
     }
 
-    async addSerie(serieInfos,serieImages){
+    //Add info so that a new streamy server can quickly import a server
+    async addHintInfos(serieId,infos){
+        var serie = await this.con.getSerie(serieId);
+        var seriePath = await this._getSeriePath(serie);
+
+        //Check serie folder
+        if(!await fsutils.exists(seriePath)){
+            return false;
+        }
+        await fsutils.appendJson(seriePath+"/.streamy/infos.json",infos);
+        return true;
+    }
+    
+    async addSerie(serieInfos,serieImages,serieHints){
         //Check if serie is already in an adding state (the original name is suffiscient)
         if(this.current_series_creating.has(serieInfos.original_name)){
             console.error("Already adding serie ",serieInfos.original_name);
@@ -191,6 +209,9 @@ class SeriesMgr{
 
             if(await this._createSerieFS(serieId,serieInfos)){
                 await this.downloadFanarts(serieId,serieImages);
+
+
+                serieHints
             }
 
             console.log("Serie added: ",serieInfos.original_name);
@@ -220,9 +241,9 @@ class SeriesMgr{
             }
 
             //Download serie images
-            if("fanart500" in serieImages) await netutils.download(serieImages.fanart500,seriePath+"/fanart/img500.jpg");
-            if("fanart300" in serieImages) await netutils.download(serieImages.fanart300,seriePath+"/fanart/img300.jpg");
-            if("fanart200" in serieImages) await netutils.download(serieImages.fanart200,seriePath+"/fanart/img200.jpg");
+            if("fanart500" in serieImages) await netutils.download(serieImages.fanart500,seriePath+"/fanart/img500.jpg",false);
+            if("fanart300" in serieImages) await netutils.download(serieImages.fanart300,seriePath+"/fanart/img300.jpg",false);
+            if("fanart200" in serieImages) await netutils.download(serieImages.fanart200,seriePath+"/fanart/img200.jpg",false);
 
             for(var i=0; i<serieImages.seasons.length; i++){
                 var season = serieImages.seasons[i];
@@ -233,9 +254,9 @@ class SeriesMgr{
                 }
 
                 //Download seasons images
-                if("fanart500" in season) await netutils.download(season.fanart500,seasonFolder+"/fanart/img500.jpg");
-                if("fanart300" in season) await netutils.download(season.fanart300,seasonFolder+"/fanart/img300.jpg");
-                if("fanart200" in season) await netutils.download(season.fanart200,seasonFolder+"/fanart/img200.jpg");
+                if("fanart500" in season) await netutils.download(season.fanart500,seasonFolder+"/fanart/img500.jpg",false);
+                if("fanart300" in season) await netutils.download(season.fanart300,seasonFolder+"/fanart/img300.jpg",false);
+                if("fanart200" in season) await netutils.download(season.fanart200,seasonFolder+"/fanart/img200.jpg",false);
                 
                 for(var i=0; i<season.episodes.length; i++){
                     var episode = season.episodes[i];
@@ -246,8 +267,8 @@ class SeriesMgr{
                         await fsutils.mkdirp(episodeFolder+"/fanart");
                     }
 
-                    if("fanart300" in episode) await netutils.download(episode.fanart300,episodeFolder+"/fanart/img300.jpg");
-                    if("fanart200" in episode) await netutils.download(episode.fanart200,episodeFolder+"/fanart/img200.jpg");
+                    if("fanart300" in episode) await netutils.download(episode.fanart300,episodeFolder+"/fanart/img300.jpg",false);
+                    if("fanart200" in episode) await netutils.download(episode.fanart200,episodeFolder+"/fanart/img200.jpg",false);
                 }
             }
 
@@ -382,6 +403,9 @@ class SeriesMgr{
                 var sql = "INSERT INTO `series_moviedb` (`serie_id`,`moviedb_id`)"+
                 " VALUES("+serieId+", "+movieDBId+")";
                 await this.con.query(sql);
+
+                //Add hint to be faster if you copy the serie folder to another streamy serv
+                await this.addHintInfos(serieId,{tmdb_id:movieDBId});
             }
 
             return serieId;
