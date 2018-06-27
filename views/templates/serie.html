@@ -1,0 +1,76 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_serie" >
+    <h1  id="serieName">
+    </h1>
+
+    <table class="table">
+        <tr>
+                <th scope="col">{{lang.video.ReleaseDate}}</th>
+                <th scope="col">{{lang.video.Rating}}</th>
+                <th scope="col">{{lang.video.RatingCount}}</th> 
+        </tr>
+        
+        <tbody>
+            <tr>
+                <td scope="row" id="releasedate" >{{dyn.video.ReleaseDate}}</td>
+                <td id="rating">{{dyn.video.Rating}}</td>
+                <td id="ratingcount">{{dyn.video.RatingCount}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div >{{lang.video.Overview}}</div>
+    <div id="overview">{{dyn.video.Overview}}</div>
+
+    <img id="poster" class="img-responsive poster" src=""/>
+</div>
+
+
+<script>
+    //Get serie id
+    var serieId = null;
+    if(type.substr(0,6) === "#serie" && type.length > 7){//#serie_id
+      //Extract id
+      serieId = parseInt(type.substr(7));
+    }
+
+    //Get serie infos
+    var serieInfos = null;
+
+    if(serieInfos){
+        // Update fields
+        videoInfos = searchResults["results"][selectedIndex];
+    
+        if(isSerie){
+            $("#releasedate").text(videoInfos.first_air_date);
+        }else{
+            $("#releasedate").text(videoInfos.release_date);
+        }
+        $("#rating").text(videoInfos.vote_average);
+        $("#ratingcount").text(videoInfos.vote_count);
+        $("#overview").text(videoInfos.overview);
+        $("#poster").attr("src",theMovieDb.common.images_uri+"original"+videoInfos.poster_path);
+        //$("#poster_path").text(infos.poster_path);
+    }else{
+        console.error("Cannot find serie");
+    }
+
+    //Connect buttons
+    $("#addtitle").click(function(){
+        
+        var data = {moviedbId:videoInfos.id};
+        if(isSerie){
+            console.log("#addtitle/serie",videoInfos);
+            postAsJson(data,"/series", function(response){
+                alert("Serie link "+response.id.toString());
+            },function(response){
+                alert("Failed to add serie",response);
+            })
+        }else{
+            $.post("/movies", function(data, status){
+                alert("Movie Data: " + data + "\nStatus: " + status);
+            });
+        }
+    });
+
+</script>

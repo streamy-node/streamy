@@ -26,6 +26,9 @@ class SeriesContent{
     }
 
     renderSerie(target,serieID){
+        //Get serie infos
+
+        //var rendered = Mustache.render(template, viewData);
         this.genericRender(target,this.templates.serie,{lang:this.langs.active,dyn:{}})
     }
 

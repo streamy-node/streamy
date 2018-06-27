@@ -117,9 +117,15 @@
         if(isSerie){
             console.log("#addtitle/serie",videoInfos);
             postAsJson(data,"/series", function(response){
-                alert("Serie link ",response);
+                //var baseUrl = [location.protocol, '//', location.host, location.pathname].join('');
+
+                //window.history.pushState("object or string", "Title", "new url");
+                //window.history.replaceState(null, null, "/another-new-url");
+                window.location.hash = "#serie_"+response.id.toString();
+                //e.preventDefault();
+                //alert("Serie link "+response.id.toString());
             },function(response){
-                alert("Failed to add serie",response);
+                alert("Failed to add serie "+response);
             })
         }else{
             $.post("/movies", function(data, status){

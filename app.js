@@ -230,6 +230,9 @@ app.get('/movies.html', function (req, res) {
 app.get('/series.html', function (req, res) {
   res.sendFile(__dirname + '/views/templates/series.html');
 })
+app.get('/serie.html', function (req, res) {
+  res.sendFile(__dirname + '/views/templates/serie.html');
+})
 app.get('/addvideo.html', function (req, res) {
   res.sendFile(__dirname + '/views/templates/addvideo.html');
 })
@@ -237,6 +240,11 @@ app.get('/addvideo.html', function (req, res) {
 // API key
 app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);
+})
+
+app.get('/serie', function (req, res) {
+  //TODO
+  //res.send(MovieDB_KEY);
 })
 
 // Add serie

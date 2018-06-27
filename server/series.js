@@ -470,7 +470,7 @@ class SeriesMgr{
         " WHERE moviedb_id = "+movieDBId.toString();
         let result = await this.con.query(sql);
         if(result.length > 0){
-            return result[0];
+            return result[0].serie_id;
         }else{
             return null;
         }
