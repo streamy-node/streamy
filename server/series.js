@@ -179,7 +179,7 @@ class SeriesMgr{
                     var episode_id = sqlres.insertId;
                     //TODO manage multilang add english by default
                     if(episode.langs.en){
-                        console.log(episode.langs.en.overview.replace(/'/g,"\\'").length);
+                        //console.log(episode.langs.en.overview.replace(/'/g,"\\'").length);
                         sql = "INSERT INTO `series_episodes_translations` (`episode_id`,`lang_id`,`title`,"+
                             "`overview`)"+
                             " VALUES("+episode_id+", 1, '"+episode.langs.en.title.replace("'","\\'")+
@@ -240,8 +240,8 @@ class SeriesMgr{
                 if("fanart300" in season) await netutils.download(season.fanart300,seasonFolder+"/fanart/img300.jpg",false);
                 if("fanart200" in season) await netutils.download(season.fanart200,seasonFolder+"/fanart/img200.jpg",false);
                 
-                for(var i=0; i<season.episodes.length; i++){
-                    var episode = season.episodes[i];
+                for(var e=0; e<season.episodes.length; e++){
+                    var episode = season.episodes[e];
                     var episodeFolder = seasonFolder + "/episode_" + episode.episode_number.toString();
 
                     //create fanart folder
@@ -448,8 +448,11 @@ class SeriesMgr{
     }
 
     async findSerieFromMoviedbId(movieDBId){
-        var sql = "SELECT serie_id FROM series_moviedb "
-        " WHERE moviedb_id = "+movieDBId.toString();
+        if(!this.con.checkId(movieDBId)){
+            return null;
+        }
+        var sql = "SELECT serie_id FROM series_moviedb "+
+        " WHERE moviedb_id="+movieDBId;
         let result = await this.con.query(sql);
         if(result.length > 0){
             return result[0].serie_id;
