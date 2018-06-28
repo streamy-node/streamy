@@ -29,10 +29,22 @@
 <script>
     //Get serie id
     var serieId = null;
-    if(type.substr(0,6) === "#serie" && type.length > 7){//#serie_id
+    if(location.hash.substr(0,6) === "#serie" && location.hash.length > 7){//#serie_id
       //Extract id
-      serieId = parseInt(type.substr(7));
+      serieId = parseInt(location.hash.substr(7));
+    }else{
+        console.error("Invalid data");
     }
+
+    $.getJSON( "series/"+serieId.toString(), function( data ) {
+        $("#serieName").text(data.language.title);
+        $("#releasedate").text(data.release_date.substr(0,4));
+        $("#rating").text(data.rating);
+        $("#ratingcount").text(data.rating_count);
+        $("#overview").text(data.language.overview);
+        $("#poster").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img500.jpg");
+    });
+
 
     //Get serie infos
     var serieInfos = null;
@@ -72,5 +84,5 @@
             });
         }
     });
-
+    //# sourceURL=serie.js
 </script>

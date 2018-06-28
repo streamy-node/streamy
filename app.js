@@ -231,10 +231,33 @@ app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);
 })
 
-app.get('/serie', function (req, res) {
-  //TODO
+app.get('/series/:serieId', async function (req, res) {
+  var serieId = req.params.serieId;
+  var lang = req.query.lang;
+
+  //Set default lang
+  if(!lang){
+    lang = 'en';
+  }
+
+  let infos = await serieMgr.getSerieInfos(parseInt(serieId),lang);
+
+  if(infos === null){
+    res.status(404).send('Serie not found');
+  }else{
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(infos));
+  }
+
   //res.send(MovieDB_KEY);
 })
+
+app.get('/data/series/:brickid/*', async function (req, res) {
+  var brickid = req.params.brickid;
+  var brick = await dbMgr.getBrick(brickid);
+  res.sendFile(brick.path+"/series/" + req.params[0]);
+})
+
 
 // Add serie
 app.post('/series', async function (req, res) {

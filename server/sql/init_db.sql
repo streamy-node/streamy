@@ -1,9 +1,9 @@
 CREATE TABLE `languages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` char(49) CHARACTER SET utf8 DEFAULT NULL,
-  `iso_639-1` char(2) CHARACTER SET utf8 DEFAULT NULL,
+  `iso_639_1` char(2) CHARACTER SET utf8 DEFAULT NULL,
   PRIMARY KEY (`id`),
-  CONSTRAINT UNIQUE (`iso_639-1`)
+  CONSTRAINT UNIQUE (`iso_639_1`)
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=136 ;
 
 CREATE TABLE `genres` (
@@ -58,7 +58,7 @@ CREATE TABLE `series` (
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`),
+  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
   CONSTRAINT UNIQUE (`release_date`,`original_name`)
 );
@@ -194,7 +194,7 @@ CREATE TABLE `films` (
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639-1`),
+  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
   CONSTRAINT UNIQUE (`original_name`,`release_date`) 
 );

@@ -14,35 +14,17 @@ class SeriesMgr{
     }
 
     init(){
-        // var sql = "CREATE TABLE IF NOT EXISTS series ("
-        // " id int NOT NULL AUTO_INCREMENT,"
-        // " release_date datetime NOT NULL,"
-        // " rating decimal(3,1) NOT NULL DEFAULT '0.0',"
-        // " rating_count int UNSIGNED NOT NULL DEFAULT '0',"
-        // " nb_seasons TINYINT UNSIGNED (255) NOT NULL,"
-        // " original_name VARCHAR(255),"
-        // " path VARCHAR(255),"
-        // " address VARCHAR(255),"
-        // " PRIMARY KEY (id)"
-        // ") ";
+    }
 
-        // var sql = "CREATE TABLE IF NOT EXISTS series_descriptions ("
-        // " id int NOT NULL AUTO_INCREMENT,"
-        // " serie_id int NOT NULL,"
-        // " release_date datetime NOT NULL,"
-        // " rating decimal(3,1) NOT NULL DEFAULT '0.0',"
-        // " rating_count int UNSIGNED NOT NULL DEFAULT '0',"
-        // " nb_seasons TINYINT UNSIGNED (255) NOT NULL,"
-        // " original_name VARCHAR(255),"
-        // " path VARCHAR(255),"
-        // " address VARCHAR(255)),"
-        // " PRIMARY KEY (id),"
-        // " FOREIGN KEY (serie_id) REFERENCES series(id) ON DELETE CASCADE"
-        // ") ";
-        // con.query(sql, function (err, result) {
-        //   if (err) throw err;
-        //   console.log("Table created");
-        // });
+    async getSerieInfos(serieId,lang){
+        var serie = await this.con.getSerie(serieId);
+        if(!serie){
+            return null;
+        }
+        serie.language = await this.con.getSerieTranslation(serieId,this.con.getLangsId(lang));
+        serie.brick = await this.con.getBrick(serie.brick_id);
+        serie.seasons = await this.con.getFullSerieSeasons(serieId,this.con.getLangsId(lang));
+        return serie;
     }
 
     async _getSeriePathById(serieId){
