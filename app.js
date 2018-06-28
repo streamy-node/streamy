@@ -5,7 +5,7 @@ var express = require('express')
 var cors = require('cors'); // Chrome cast
 var session = require('express-session');
 var MySQLStore = require('express-mysql-session')(session);
-var mysql = require('mysql');
+
 
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
@@ -42,27 +42,16 @@ var dbOptions = {
   database: 'streamy',
   multipleStatements: true
 };
-var dbConnection = mysql.createConnection(dbOptions);
-var dbMgr = new DBStructure(dbConnection);
+//var dbConnection = mysql.createConnection(dbOptions).on;
+var dbMgr = new DBStructure();
 var settings = new Settings(dbMgr);
 
-dbConnection.connect(function(err) {
+dbMgr.initialize(dbOptions,function(err) {
   if (err) {
-    console.error("Cannot connect to db ",dbOptions,err);
     process.exit(1);
+  }else{
+    settings.pullSettings();
   }
-  console.log("Connected to db :)");
-  
-  // Setup dbase
-  dbMgr.initialize(function(error){
-    if(error){
-      console.error("Cannot setup the db ",dbOptions,err);
-      process.exit(1);
-    }else{
-      settings.pullSettings();
-    }
-  });
-
 });
 
 //Setup lang
@@ -104,7 +93,7 @@ var serieMgr = new SeriesMgr(dbMgr,settings);
 // };
 
 /// Setup sessions
-var sessionStore = new MySQLStore({},dbConnection);
+var sessionStore = new MySQLStore({},dbMgr.getConnection());
 var sess = {
   secret : 'sup3rs3cur3',
   name : 'sessionId',
