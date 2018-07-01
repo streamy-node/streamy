@@ -298,7 +298,7 @@ CREATE TABLE `users_films_progressions` (
   `audio_lang` int,
   `subtitle_lang` int,
   `progression` float DEFAULT '0.0',
-  `last_seen` datetime,
+  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`film_id`) REFERENCES films(`id`)
@@ -311,10 +311,26 @@ CREATE TABLE `users_episodes_progressions` (
   `audio_lang` int,
   `subtitle_lang` int,
   `progression` float DEFAULT '0.0',
-  `last_seen` datetime,
+  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`)
+);
+
+CREATE TABLE `offline_tasks` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `command` VARCHAR(255) NOT NULL,
+  `niceness` int NOT NULL,
+  `args` VARCHAR(765) NOT NULL,
+  `creation_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `working_dir` VARCHAR(255) NOT NULL,
+  `output_files` VARCHAR(255) NOT NULL,
+  `episode_id` int,
+  `film_id` int,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`working_dir`,`output_files`) 
 );
 
 CREATE TABLE `users_settings` (
@@ -354,6 +370,7 @@ INSERT INTO `value_types` VALUES(2, 'int');
 INSERT INTO `value_types` VALUES(3, 'float');
 
 INSERT INTO `global_settings` VALUES(1, 'new_video_brick', 2,NULL,NULL,NULL);
+INSERT INTO `global_settings` VALUES(2, 'upload_brick', 2,NULL,NULL,NULL);
 
 -- Languages --
 INSERT INTO `languages` VALUES(0, 'Native', NULL);
@@ -503,4 +520,6 @@ INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'ad
 
 -- dev
 INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');
+INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 2, 'brick_upload','/data/upload');
 UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
+UPDATE `global_settings` SET `int` = 2 WHERE `key` = 'upload_brick' ;

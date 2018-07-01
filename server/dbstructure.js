@@ -16,7 +16,7 @@ class DBStructure{
             // Setup dbase
             this.setup_database(function(error){
                 if(error){
-                    console.error("Cannot setup the db ",dbOptions,err);
+                    console.error("Cannot setup the db ",error);
                     onResult(error);
                 }else{
                     self.loadLangs();
@@ -117,7 +117,7 @@ class DBStructure{
         var results = await this.query(sql);
 
         if(results.length == 0 ){
-            console.error("Cannot get langs ",serieId);
+            console.error("Cannot get langs ");
             return null;
         }else{
             return results;

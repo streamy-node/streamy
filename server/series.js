@@ -223,9 +223,10 @@ class SeriesMgr{
             }
 
             //Download serie images
-            if("fanart500" in serieImages) await netutils.download(serieImages.fanart500,seriePath+"/fanart/img500.jpg",false);
-            if("fanart300" in serieImages) await netutils.download(serieImages.fanart300,seriePath+"/fanart/img300.jpg",false);
-            if("fanart200" in serieImages) await netutils.download(serieImages.fanart200,seriePath+"/fanart/img200.jpg",false);
+            var downloads = [];
+            if("fanart500" in serieImages) downloads.push(netutils.download(serieImages.fanart500,seriePath+"/fanart/img500.jpg",false));
+            if("fanart300" in serieImages) downloads.push(netutils.download(serieImages.fanart300,seriePath+"/fanart/img300.jpg",false));
+            if("fanart200" in serieImages) downloads.push(netutils.download(serieImages.fanart200,seriePath+"/fanart/img200.jpg",false));
 
             for(var i=0; i<serieImages.seasons.length; i++){
                 var season = serieImages.seasons[i];
@@ -236,9 +237,9 @@ class SeriesMgr{
                 }
 
                 //Download seasons images
-                if("fanart500" in season) await netutils.download(season.fanart500,seasonFolder+"/fanart/img500.jpg",false);
-                if("fanart300" in season) await netutils.download(season.fanart300,seasonFolder+"/fanart/img300.jpg",false);
-                if("fanart200" in season) await netutils.download(season.fanart200,seasonFolder+"/fanart/img200.jpg",false);
+                if("fanart500" in season) downloads.push(netutils.download(season.fanart500,seasonFolder+"/fanart/img500.jpg",false));
+                if("fanart300" in season) downloads.push(netutils.download(season.fanart300,seasonFolder+"/fanart/img300.jpg",false));
+                if("fanart200" in season) downloads.push(netutils.download(season.fanart200,seasonFolder+"/fanart/img200.jpg",false));
                 
                 for(var e=0; e<season.episodes.length; e++){
                     var episode = season.episodes[e];
@@ -249,11 +250,12 @@ class SeriesMgr{
                         await fsutils.mkdirp(episodeFolder+"/fanart");
                     }
 
-                    if("fanart300" in episode) await netutils.download(episode.fanart300,episodeFolder+"/fanart/img300.jpg",false);
-                    if("fanart200" in episode) await netutils.download(episode.fanart200,episodeFolder+"/fanart/img200.jpg",false);
+                    if("fanart300" in episode) downloads.push(netutils.download(episode.fanart300,episodeFolder+"/fanart/img300.jpg",false));
+                    if("fanart200" in episode) downloads.push(netutils.download(episode.fanart200,episodeFolder+"/fanart/img200.jpg",false));
                 }
             }
-
+            //Wait all downloads
+            await Promise.all(downloads);
         }catch(err){
             console.error("Failed to download fanart for serie ",serieId,err);
             return false;

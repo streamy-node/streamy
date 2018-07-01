@@ -4,6 +4,7 @@
 var express = require('express')
 var cors = require('cors'); // Chrome cast
 var session = require('express-session');
+var formidable = require('formidable');
 var MySQLStore = require('express-mysql-session')(session);
 
 
@@ -258,6 +259,72 @@ app.get('/data/series/:brickid/*', async function (req, res) {
   res.sendFile(brick.path+"/series/" + req.params[0]);
 })
 
+// Upload files
+app.post('/upload/', async function(req,res){
+  if(req.user){ //TODO check rights
+    var form = new formidable.IncomingForm();
+    form.uploadDir = "/tmp";//TODO pull location from db
+    form.keepExtensions = true;
+    form.maxFileSize = 10 * 1024 * 1024 * 1024; // 10 Go
+    form.multiples = true;
+
+    var uploadInfos = {};
+    uploadInfos.user = req.user;
+
+    form.parse(req, function(err, fields, files) {
+      console.log("Fields: ",fields);
+      console.log("Files: ", files);
+      uploadInfos.fields = fields;
+      uploadInfos.files = files;
+    });
+
+    form.onPart = function(part) {
+      form.handlePart(part);
+    }
+
+    //On upload starting
+    form.on('fileBegin', function(name, file) {
+      //TODO check name *.mp4, mkv, mp3 ...
+      // TODO check if already updating
+      // TODO create random folder to avoid colisions
+      var uploadPath = form.uploadDir;
+      file.path = uploadPath;
+    });
+
+    //One ulpoad done
+    form.on('file', async function(name, file) {
+      console.log('File uploaded ',name,file);
+
+      //var fileType = "video";//TODO parse extension
+
+      //Move file
+      if(uploadInfos.field.type === "series"){
+        var serie = await serieMgr.getSerie(uploadInfos.field.serie_id);
+        //Processing folder
+      }
+
+      //Move file to offline processing
+    });
+
+    //On upload done
+    form.on('end', function() {
+      if(uploadInfos.field.type === "serie"){
+
+      }
+      //Move file
+      //Update db
+      //Notify the client
+      res.status(200).send();
+    });
+
+    form.on('error', function(err) {
+      console.error("Failed to download file ",err);
+      res.status(424).send("Upload failed!");
+    });
+  }else{
+    console.warn("Unknown user is trying to upload files");
+  }
+})
 
 // Add serie
 app.post('/series', async function (req, res) {
