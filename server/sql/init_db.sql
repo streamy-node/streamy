@@ -57,6 +57,7 @@ CREATE TABLE `series` (
   `original_name` VARCHAR(255) NOT NULL,
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
+  `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
@@ -98,6 +99,7 @@ CREATE TABLE `series_seasons` (
     `release_date` datetime NOT NULL,
     `season_number` int NOT NULL,
     `number_of_episodes` int NOT NULL,
+    `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
     CONSTRAINT UNIQUE (`serie_id`,`season_number`) 
@@ -131,6 +133,7 @@ CREATE TABLE `series_episodes` (
     `release_date` datetime,
     `rating` decimal(3,1) DEFAULT '0.0',
     `rating_count` int UNSIGNED DEFAULT '0',
+    `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
     CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
@@ -193,6 +196,7 @@ CREATE TABLE `films` (
   `original_name` VARCHAR(255),
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
+  `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
@@ -263,6 +267,7 @@ CREATE TABLE `users` (
   `last_connection` datetime,
   `email` VARCHAR(255),
   `phone` VARCHAR(255),
+  `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`role_id`) REFERENCES roles(`id`),
   CONSTRAINT UNIQUE (`username`) 

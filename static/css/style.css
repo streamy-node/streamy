@@ -196,6 +196,10 @@ a.article, a.article:hover {
     max-height:600px;
 }
 
+.smallPoster {
+    max-height:300px;
+}
+
 .autocomplete {
     /*the container must be positioned relative:*/
     position: relative;
@@ -241,6 +245,11 @@ a.article, a.article:hover {
 /* ---------------------------------------------------
     BOX UPLOAD
 ----------------------------------------------------- */
+.whitten {
+    box-shadow: inset 2000px 0 0 0 rgba(255, 255, 255, 0.5);
+    border-color: rgba(255, 255, 255, 1);
+}
+
 .box__dragndrop,
 .box__uploading,
 .box__success,
@@ -256,6 +265,139 @@ a.article, a.article:hover {
 
 .box.has-advanced-upload .box__dragndrop {
     display: inline;
+}
+
+.box.is-dragover {
+    background-color: grey;
+    box-shadow: inset 2000px 0 0 0 rgba(255, 255, 255, 0.5);
+}
+.hidden {
+    display: none;
+}
+.box__button {
+    /*display: none;*/
+    font-weight: 700;
+    color: #e5edf1;
+    background-color: #39d35a;
+    display: block;
+    padding: 8px 16px;
+    margin: 40px auto 0;
+}
+.no-js .box__button {
+    display: block;
+}
+
+.inputfile {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+
+.inputfile + label {
+    font-size: 1.25em;
+    font-weight: 700;
+    color: white;
+    background-color: #d3394c;
+    display: inline-block;
+    max-width: 80%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0.625rem 1.25rem;
+}
+
+.inputfile:focus + label,
+.inputfile + label:hover {
+    background-color: red;
+}
+
+.inputfile + label {
+	cursor: pointer; /* "hand" cursor */
+}
+
+.inputfile:focus + label {
+	outline: 1px dotted #000;
+	outline: -webkit-focus-ring-color auto 5px;
+}
+
+.box.is-uploading .box__input {
+    visibility: none;
+}
+
+.box.is-uploading .box__uploading {
+    display: block;
+}
+
+.episodeBox{
+    /*width: 30%;
+    height: 200px;*/
+    background-size: contain;
+    background-repeat: no-repeat;
+    margin:auto auto;
+    background-position: center; 
+    /*align-items: center;*/
+    text-align:center;
+    vertical-align: middle; 
+    padding: 70px 0;
+}
+
+.episode-item{
+    height: 122px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    padding-right: 4px;
+    padding-left: 4px;
+}
+
+.episode-image{
+    height: 114px;
+    width: 206px;
+    padding-right: 8px;
+}
+
+.episode_number,.episode_title {
+    display: inline-block;
+}
+
+.episode_overview{
+    overflow:hidden !important;
+    text-overflow: ellipsis;
+}
+
+
+
+/* Centered text */
+.centered {
+    /*margin:auto auto;
+    vertical-align: middle;
+    display:table-cell;
+    margin:auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);*/
+}
+
+.content {
+    /*mwidth: 100%;
+    max-width: 800px;
+    text-align: center;
+    argin: 0 auto;
+    padding: 0 0 3em 0;*/
+}
+
+.left {
+    overflow: hidden;
+}
+
+.right {
+    float: right;
+    width: 20px;
+    margin-left: 4px;
 }
 
 /* ---------------------------------------------------

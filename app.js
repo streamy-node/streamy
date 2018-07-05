@@ -232,6 +232,22 @@ app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);
 })
 
+// get series
+app.get('/series', async function (req, res) {
+  if(req.user){ //TODO check rights
+    var lang = req.query.lang;
+    //Set default lang
+    if(!lang){
+      lang = 'en';
+    }
+
+    let series = await serieMgr.getSeriesInfos(lang);
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(series));
+  }
+});
+
 app.get('/series/:serieId', async function (req, res) {
   var serieId = req.params.serieId;
   var lang = req.query.lang;
@@ -251,25 +267,58 @@ app.get('/series/:serieId', async function (req, res) {
   }
 
   //res.send(MovieDB_KEY);
-})
+});
 
+app.get('/series/:serieId/seasons', async function (req, res) {
+  var serieId = req.params.serieId;
+  var lang = req.query.lang;
+
+  //Set default lang
+  if(!lang){
+    lang = 'en';
+  }
+
+  let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang);
+
+  if(infos === null){
+    res.status(404).send('No season found');
+  }else{
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(infos));
+  }
+
+  //res.send(MovieDB_KEY);
+});
+
+//DEPRECATED use /series/:serieId/data/* instead
 app.get('/data/series/:brickid/*', async function (req, res) {
   var brickid = req.params.brickid;
   var brick = await dbMgr.getBrick(brickid);
   res.sendFile(brick.path+"/series/" + req.params[0]);
 })
 
+app.get('/series/:serieId/data/*', async function (req, res) {
+  //TODO improve performances by caching requests
+  var serieId = req.params.serieId;
+  var serie = await dbMgr.getSerie(serieId);
+  var brick = await dbMgr.getBrick(serie.brick_id);
+  var path = brick.path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+  res.sendFile(path);
+})
+
 // Upload files
-app.post('/upload/', async function(req,res){
+app.post('/upload/:type', async function(req,res){
   if(req.user){ //TODO check rights
+    var type = req.params.type;
     var form = new formidable.IncomingForm();
-    form.uploadDir = "/tmp";//TODO pull location from db
+    form.uploadDir = settings.getUploadPath();
     form.keepExtensions = true;
     form.maxFileSize = 10 * 1024 * 1024 * 1024; // 10 Go
     form.multiples = true;
 
     var uploadInfos = {};
     uploadInfos.user = req.user;
+    uploadInfos.id = null;
 
     form.parse(req, function(err, fields, files) {
       console.log("Fields: ",fields);
@@ -278,9 +327,15 @@ app.post('/upload/', async function(req,res){
       uploadInfos.files = files;
     });
 
-    form.onPart = function(part) {
-      form.handlePart(part);
-    }
+    // form.onPart = function(part) {
+    //   form.handlePart(part);
+    // }
+    form.on('field', function(name, value) {
+      console.log("Field: ",name,value);
+      if(name === "id"){
+        uploadInfos.id = value;
+      }
+    });
 
     //On upload starting
     form.on('fileBegin', function(name, file) {
@@ -288,7 +343,7 @@ app.post('/upload/', async function(req,res){
       // TODO check if already updating
       // TODO create random folder to avoid colisions
       var uploadPath = form.uploadDir;
-      file.path = uploadPath;
+      file.path;
     });
 
     //One ulpoad done
@@ -298,8 +353,8 @@ app.post('/upload/', async function(req,res){
       //var fileType = "video";//TODO parse extension
 
       //Move file
-      if(uploadInfos.field.type === "series"){
-        var serie = await serieMgr.getSerie(uploadInfos.field.serie_id);
+      if(type === "series"){
+        //var serie = await serieMgr.getSerie(uploadInfos.id);
         //Processing folder
       }
 
@@ -308,7 +363,7 @@ app.post('/upload/', async function(req,res){
 
     //On upload done
     form.on('end', function() {
-      if(uploadInfos.field.type === "serie"){
+      if(type === "series"){
 
       }
       //Move file
@@ -324,7 +379,7 @@ app.post('/upload/', async function(req,res){
   }else{
     console.warn("Unknown user is trying to upload files");
   }
-})
+});
 
 // Add serie
 app.post('/series', async function (req, res) {

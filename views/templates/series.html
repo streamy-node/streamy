@@ -4,6 +4,13 @@
         
     <a id="add_serie_btn" class="btn btn-primary" href="#addserie">{{AddSerie}}</a>
     
+    <div class="container" id="all_series">
+        <div class="row">
+
+        </div>
+    </div>
+
+
     <!-- <button id="add_serie_btn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_serie_modal">{{AddSerie}}</button>
     <h1>My series</h1> 
     <div id="serie_list">
@@ -36,13 +43,26 @@
             </div>
         </div>
     </div> -->
+<!--/div-->
 </div>
-</div>
+
+<!--<template>-->
+    <div id="poster_tpl" class="hidden">
+        <div>
+            <a class="series_link" href="#serie">
+                <img class="img-responsive smallPoster" src=""/>
+                <div class="series_rating right">0</div>
+                <div class="series_titles left">Title 1970</div>
+            </a>       
+        </div>
+    </div>
+    
+<!--</template>-->
 
 
 <script>
     console.log("theMovieDb",theMovieDb);
-    
+
 </script>
 
 

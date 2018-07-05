@@ -3,6 +3,8 @@
     <h1  id="serieName">
     </h1>
 
+    <img id="poster" class="img-responsive poster" src=""/>
+
     <table class="table">
         <tr>
                 <th scope="col">{{lang.video.ReleaseDate}}</th>
@@ -22,14 +24,25 @@
     <div >{{lang.video.Overview}}</div>
     <div id="overview">{{dyn.video.Overview}}</div>
 
-    <img id="poster" class="img-responsive poster" src=""/>
+    <div id="seasons">
+
+    </div>
 
     <!-- episode trial -->
-    <form class="box" method="post" action="" enctype="multipart/form-data">
-        <div class="box__input">
-            <input class="box__file" type="file" name="files[]" id="file" data-multiple-caption="{count} files selected" multiple />
-            <label for="file"><strong>Choose a file</strong><span class="box__dragndrop"> or drag it here</span>.</label>
+    <form class="box episodeBox" method="post" action="upload/series" enctype="multipart/form-data" id="box-1">
+        <div class="box__input episodeBox" id="input-1" >
+            <!--img id="poster2" class="img-responsive poster" src=""-->
+            <!--input class="hidden" type="number" name="serie_id" id="serie_id-1" /-->
+            <input class="box__file  inputfile" type="file" name="files[]" id="file-1" data-multiple-caption="{count} files selected" multiple />
+            <label for="file-1" class="content centered">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="17" viewBox="0 0 20 17">
+                    <path d="M10 0l-5.2 4.9h3.3v5.1h3.8v-5.1h3.3l-5.2-4.9zm9.3 11.5l-3.2-2.1h-2l3.4 2.6h-3.5c-.1 0-.2.1-.2.1l-.8 2.3h-6l-.8-2.2c-.1-.1-.1-.2-.2-.2h-3.6l3.4-2.6h-2l-3.2 2.1c-.4.3-.7 1-.6 1.5l.6 3.1c.1.5.7.9 1.2.9h16.3c.6 0 1.1-.4 1.3-.9l.6-3.1c.1-.5-.2-1.2-.7-1.5z"/></svg>
+                <strong>Choose a file</strong>
+                <span class="box__dragndrop"> or drag it here</span>.
+            </label>
+            <br>
             <button class="box__button" type="submit">Upload</button>
+            
         </div>
         <div class="box__uploading">Uploading&hellip;</div>
         <div class="box__success">Done!</div>
@@ -37,71 +50,177 @@
     </form>
 </div>
 
+<!-- Templates -->
+<div id="serie_season_tpl">
+    <div class="panel-group">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h4 class="panel-title">
+                    <a data-toggle="collapse" class="season_name" href="#collapse1">{{}}</a>
+                </h4>
+            </div>
+            <div id="collapse1" class="panel-collapse collapse">
+                <ul class="list-group">
+                </ul>
+                <!--div class="panel-footer">Footer</div-->
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- <h2 class="season_name"></h2>
+    <ul class="list_group"> -->
+    <!-- </ul> -->
+</div>
+
+<div id="serie_episode_tpl">
+    <li class="list-group-item episode-item">
+            <img id="poster" class="pull-left gap-right episode-image" src=""/>
+            <div class="episode_number">{{_1}}</div>
+            <div class="episode_title">{{_episode 1}}</div>
+            <div rows="4" class="episode_overview">{{}}</div>
+    </li>
+</div>
+
+<div id="serie_episode_uploadable">
+
+</div>
 
 <script>
-    //Get serie id
-    var serieId = null;
-    if(location.hash.substr(0,6) === "#serie" && location.hash.length > 7){//#serie_id
-      //Extract id
-      serieId = parseInt(location.hash.substr(7));
-    }else{
-        console.error("Invalid data");
-    }
+    // //Get serie id
+    // var serieId = null;
+    // if(location.hash.substr(0,6) === "#serie" && location.hash.length > 7){//#serie_id
+    //   //Extract id
+    //   serieId = parseInt(location.hash.substr(7));
+    // }else{
+    //     console.error("Invalid data");
+    // }
 
-    $.getJSON( "series/"+serieId.toString(), function( data ) {
-        $("#serieName").text(data.language.title);
-        $("#releasedate").text(data.release_date.substr(0,4));
-        $("#rating").text(data.rating);
-        $("#ratingcount").text(data.rating_count);
-        $("#overview").text(data.language.overview);
-        $("#poster").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img500.jpg");
-    });
+    // $.getJSON( "series/"+serieId.toString(), function( data ) {
+    //     $("#serieName").text(data.language.title);
+    //     $("#releasedate").text(data.release_date.substr(0,4));
+    //     $("#rating").text(data.rating);
+    //     $("#ratingcount").text(data.rating_count);
+    //     $("#overview").text(data.language.overview);
+    //     $("#poster").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img500.jpg");
+    //     //$("#poster2").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img300.jpg");
+    //     $('#box-1').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
+    //     //$("#serie_id").val(serieId);
+    //     //$('#input-1').css('background-repeat', 'no-repeat');
 
+    // });
 
-    //Get serie infos
-    var serieInfos = null;
-
-    if(serieInfos){
-        // Update fields
-        videoInfos = searchResults["results"][selectedIndex];
-    
-        if(isSerie){
-            $("#releasedate").text(videoInfos.first_air_date);
-        }else{
-            $("#releasedate").text(videoInfos.release_date);
-        }
-        $("#rating").text(videoInfos.vote_average);
-        $("#ratingcount").text(videoInfos.vote_count);
-        $("#overview").text(videoInfos.overview);
-        $("#poster").attr("src",theMovieDb.common.images_uri+"original"+videoInfos.poster_path);
-        //$("#poster_path").text(infos.poster_path);
-    }else{
-        console.error("Cannot find serie");
-    }
-
-    //Connect buttons
-    $("#addtitle").click(function(){
+    // //Connect buttons
+    // $("#addtitle").click(function(){
         
-        var data = {moviedbId:videoInfos.id};
-        if(isSerie){
-            console.log("#addtitle/serie",videoInfos);
-            postAsJson(data,"/series", function(response){
-                alert("Serie link "+response.id.toString());
-            },function(response){
-                alert("Failed to add serie",response);
-            })
-        }else{
-            $.post("/movies", function(data, status){
-                alert("Movie Data: " + data + "\nStatus: " + status);
-            });
-        }
-    });
+    //     var data = {moviedbId:videoInfos.id};
+    //     if(isSerie){
+    //         console.log("#addtitle/serie",videoInfos);
+    //         postAsJson(data,"/series", function(response){
+    //             alert("Serie link "+response.id.toString());
+    //         },function(response){
+    //             alert("Failed to add serie",response);
+    //         })
+    //     }else{
+    //         $.post("/movies", function(data, status){
+    //             alert("Movie Data: " + data + "\nStatus: " + status);
+    //         });
+    //     }
+    // });
 
     // Upload
     var $form = $('.box');
-    if (isAdvancedUpload) {
+    if (uploadUtils.isAdvancedUpload()) {
         $form.addClass('has-advanced-upload');
+
+        var droppedFiles = false;
+
+        $form.on('drag dragstart dragend dragover dragenter dragleave drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        })
+        .on('dragover dragenter', function() {
+        $form.addClass('is-dragover');
+        })
+        .on('dragleave dragend drop', function() {
+        $form.removeClass('is-dragover');
+        })
+        .on('drop', function(e) {
+            droppedFiles = e.originalEvent.dataTransfer.files;
+            showFiles( droppedFiles );
+        });
+
     }
+
+    var $input    = $form.find('input[type="file"]'),
+    $label    = $form.find('label'),
+    showFiles = function(files) {
+      $label.text(files.length > 1 ? ($input.attr('data-multiple-caption') || '').replace( '{count}', files.length ) : files[ 0 ].name);
+    };
+
+    $input.on('change', function(e) {
+        showFiles(e.target.files);
+    });
+
+    $form.on('submit', function(e) {
+        if ($form.hasClass('is-uploading')) return false;
+    
+        $form.addClass('is-uploading').removeClass('is-error');
+    
+        if (uploadUtils.isAdvancedUpload()) {
+        // ajax for modern browsers
+            e.preventDefault();
+
+            var ajaxData = new FormData($form.get(0));
+            ajaxData.append("serieId",serieId );
+
+            if (droppedFiles) {
+                $.each( droppedFiles, function(i, file) {
+                    ajaxData.append( $input.attr('name'), file );
+                });
+            }
+
+            $.ajax({
+                url: $form.attr('action'),
+                type: $form.attr('method'),
+                data: ajaxData,
+                dataType: 'json',
+                cache: false,
+                contentType: false,
+                processData: false,
+                complete: function() {
+                    $form.removeClass('is-uploading');
+                },
+                success: function(data) {
+                    $form.addClass( data.success == true ? 'is-success' : 'is-error' );
+                    if (!data.success) 
+                        $errorMsg.text(data.error);
+                },
+                error: function() {
+                // Log the error, show an alert, whatever works for you
+                }
+            });
+        } else {
+            // ajax for legacy browsers
+            var iframeName  = 'uploadiframe' + new Date().getTime();
+            $iframe   = $('<iframe name="' + iframeName + '" style="display: none;"></iframe>');
+
+            $('body').append($iframe);
+            $form.attr('target', iframeName);
+
+            $iframe.one('load', function() {
+                var data = JSON.parse($iframe.contents().find('body' ).text());
+                $form
+                .removeClass('is-uploading')
+                .addClass(data.success == true ? 'is-success' : 'is-error')
+                .removeAttr('target');
+                if (!data.success) $errorMsg.text(data.error);
+                $form.removeAttr('target');
+                $iframe.remove();
+            });
+        }
+    });
 
     //# sourceURL=serie.js
 </script>

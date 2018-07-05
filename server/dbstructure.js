@@ -133,6 +133,13 @@ class DBStructure{
     //     `iso_639_1` char(2) CHARACTER SET utf8 DEFAULT NULL,
     //     PRIMARY KEY (`id`),
 
+    async getSeries(){
+        var sql = "SELECT * FROM `series`";
+        var results = await this.query(sql);
+
+        return results;
+    }
+
     async getSerie(serieId){
         var sql = "SELECT * FROM `series` WHERE id = "+serieId+"";
         var result = await this.query(sql);
@@ -144,6 +151,20 @@ class DBStructure{
             return result[0];
         }
     }
+
+    // async getSeriesLightTranslations(lang){
+    //     var sql = "SELECT * FROM `series` AS s "+
+    //     "LEFT JOIN `series_translations` AS t  ON s.id = t.lang_id "+
+    //     "LEFT JOIN `series_translations` AS t_en ON s.id = 1";
+    //     var result = await this.query(sql);
+
+    //     if(result.length == 0 ){
+    //         console.error("Cannot get serie ",serieId);
+    //         return null;
+    //     }else{
+    //         return result[0];
+    //     }
+    // }
 
     async getSerieTranslation(serieId,langCode){
         if(!this.checkId(serieId) || !this.checkId(langCode)){
@@ -161,9 +182,9 @@ class DBStructure{
         }
     }
 
-    async getFullSerieSeasons(serieId,langCode){
+    async getSerieSeasons(serieId,langCode){
         if(!this.checkId(serieId) || !this.checkId(langCode)){
-            console.error("getFullSerieSeasons: Invalid entries ");
+            console.error("getSerieSeasons: Invalid entries ");
             return null;
         }
 
@@ -178,6 +199,25 @@ class DBStructure{
             return results;
         }
     }
+
+    async getSerieSeasonEpisodes(seasonId,langCode){
+        if(!this.checkId(seasonId) || !this.checkId(langCode)){
+            console.error("getFullSerieSeasons: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_episodes`, `series_episodes_translations`"
+        +" WHERE series_episodes.season_id = "+seasonId+" AND series_episodes.id = episode_id AND series_episodes_translations.lang_id = "+langCode
+        +" ORDER BY series_episodes.episode_number";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }
+
     // CREATE TABLE `series_seasons` (
     //     `id` int NOT NULL AUTO_INCREMENT,
     //     `serie_id` int NOT NULL,
@@ -191,6 +231,7 @@ class DBStructure{
     //         `lang_id` int(10) unsigned NOT NULL,
     //         `title` VARCHAR(255),
     //         `overview` VARCHAR(765),
+
 
     async getBrick(brickId){
         var sql = "SELECT `id`, `alias`, `path` FROM `bricks` WHERE `id`="+brickId+"";

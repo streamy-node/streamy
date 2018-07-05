@@ -50,7 +50,7 @@ class ContentManager{
     if(type === "#movies"){
       this.moviesMgr.render(div);
     }else if(type === "#series"){
-      this.seriesMgr.render(div);
+      this.seriesMgr.renderSeries(div);
     }else if(type === "#addserie"){
       this.seriesMgr.renderAddVideo(div);
     }else if(type === "#addmovie"){

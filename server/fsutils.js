@@ -34,7 +34,7 @@ class FSUtils{
         return new Promise((resolve, reject) => {
             fs.readFile('file', 'utf8', function (err, data) {
                 if (err) reject(err);
-                resolve(JSON.parse(data));
+                return data;
             });
         });
     }
@@ -60,7 +60,7 @@ class FSUtils{
             var oldJson = null;
             var newObj = null;
             if(await this.exists(file)){
-                var oldBytes = await read(file);
+                var oldBytes = await this.read(file);
                 if(oldBytes.length > 0){
                     oldJson = JSON.parse(oldBytes);
                     newObj = Object.assign(obj, oldJson);

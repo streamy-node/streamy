@@ -1,11 +1,14 @@
 class GLOBAL_SETTINGS{
     constructor(){
+        this.new_video_brick = null;
+        this.upload_brick = null;
     }
 }
 class SettingsMgr{
     constructor(con){
         this.con = con;
         this.global = new GLOBAL_SETTINGS();
+        this.upload_path = null;
     }
 
     async pullSettings(){
@@ -17,8 +20,14 @@ class SettingsMgr{
                 this.global.new_video_brick = result[i].int;
             }else if(result[i].key === "upload_brick"){
                 this.global.upload_brick = result[i].int;
+                var uploadBrick = await this.con.getBrick(this.global.upload_brick);
+                this.upload_path = uploadBrick.path;
             }
         }  
+    }
+
+    getUploadPath(){
+        return this.upload_path;
     }
 
     async updateGlobalSettings(){

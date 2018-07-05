@@ -16,15 +16,64 @@ class SeriesMgr{
     init(){
     }
 
+    async getSeries(){
+        return await this.con.getSeries();
+    }
+
+    async getSeriesInfos(lang){
+        var series = await this.getSeries();
+        var seriesPromises = [];
+        for(var i=0; i<series.length; i++){
+            seriesPromises.push(this.getSerieInfos(series[i].id,lang));
+        }
+
+        //Wait all series
+        return await Promise.all(seriesPromises);
+    }
+
     async getSerieInfos(serieId,lang){
         var serie = await this.con.getSerie(serieId);
         if(!serie){
             return null;
         }
-        serie.language = await this.con.getSerieTranslation(serieId,this.con.getLangsId(lang));
-        serie.brick = await this.con.getBrick(serie.brick_id);
-        serie.seasons = await this.con.getFullSerieSeasons(serieId,this.con.getLangsId(lang));
+
+        var promises = [];
+        // TODO use sql join may be better
+        promises.push(this.con.getSerieTranslation(serieId,this.con.getLangsId(lang)));
+        promises.push(this.con.getBrick(serie.brick_id));
+        //promises.push(await this.con.getFullSerieSeasons(serieId,this.con.getLangsId(lang)));
+        
+        let results = await Promise.all(promises);
+        serie.language = results[0];
+        serie.brick = results[1];
+        //serie.seasons = promises[2];
         return serie;
+    }
+
+    async getSeasonsInfos(serieId,lang){
+        return await this.con.getSerieSeasons(serieId,this.con.getLangsId(lang));
+    }
+
+    async getSeasonsEpisodesInfos(serieId,lang){
+        try{
+            var seasons = await this.getSeasonsInfos(serieId,lang);
+            var seasonsPromises = [];
+            for(var i=0; i<seasons.length; i++){
+                seasonsPromises.push(this.con.getSerieSeasonEpisodes(seasons[i].id,this.con.getLangsId(lang)));
+            }
+    
+            //Wait all promises
+            var episodes = await Promise.all(seasonsPromises);
+            for(var i=0; i<seasons.length; i++){
+                seasons[i].episodes = episodes[i];
+            }
+    
+            return seasons;
+        }catch(err){
+            console.error("getSeasonsEpisodesInfos: ",err);
+            return null;
+        }
+
     }
 
     async _getSeriePathById(serieId){
