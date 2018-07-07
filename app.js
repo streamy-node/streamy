@@ -319,6 +319,7 @@ app.post('/upload/:type', async function(req,res){
     var uploadInfos = {};
     uploadInfos.user = req.user;
     uploadInfos.id = null;
+    uploadInfos.type = null;
 
     form.parse(req, function(err, fields, files) {
       console.log("Fields: ",fields);
@@ -334,6 +335,8 @@ app.post('/upload/:type', async function(req,res){
       console.log("Field: ",name,value);
       if(name === "id"){
         uploadInfos.id = value;
+      }else if(name === "type"){
+        uploadInfos.type = value;
       }
     });
 

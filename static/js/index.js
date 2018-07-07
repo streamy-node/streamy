@@ -5,6 +5,7 @@ class ContentManager{
     this.emptyMgr = new EmptyContent(this.templates,this.langs);
     this.moviesMgr = new MoviesContent(this.templates,this.langs);
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
+    this.serieMgr = new SerieController(this.templates,this.langs);
   }
 
   load(code,onSuccess){
@@ -58,7 +59,7 @@ class ContentManager{
     }else if(type.substr(0,6) === "#serie" && type.length > 7){//#serie_id
       //Extract id
       var serieId = parseInt(type.substr(7));
-      this.seriesMgr.renderSerie(div,serieId);
+      this.serieMgr.renderSerie(div,serieId);
     }else{
       this.emptyMgr.render(div);
       console.error("Not implemented hash ", type);

@@ -1,14 +1,9 @@
 
-class SeriesContent{
+class SerieController{
     constructor(templates,langs){
-        this.movies;
         this.templates = templates;
         this.langs = langs;
-
-        // this.defaults = {};
-        // this.defaults.addSerie = {};
-        // this.defaults.addSerie.video = {};
-        // this.defaults.addSerie.video.ReleaseDate = "00/00/00";
+        this.blocks = [];
     }
 
 
@@ -22,10 +17,6 @@ class SeriesContent{
         return $(target).html(rendered);
     }
 
-    renderAddVideo(target){
-        this.genericRender(target,this.templates.addvideo,{lang:this.langs.active,dyn:{}})
-    }
-
     renderSerie(target,serieID){
         //Get serie infos
         var self = this;
@@ -33,49 +24,6 @@ class SeriesContent{
         this.genericRender(target,this.templates.serie,{lang:this.langs.active,dyn:{}}).ready(function(){
             self.setupSerie();
         });
-    }
-
-    renderSeries(target){
-        var self = this;
-        this.render(target).ready(function(){
-            self.getSeries(function(results){
-                self.renderSeries_elements(results)
-            })
-        });
-    }
-
-    //HELPERS
-    getSeries(onResult, count=0, orderby="release_date", pattern=""){
-        $.getJSON( "series/?count="+parseInt(count)+"&orderby="+orderby+"&pattern="+pattern, onResult);
-    }
-
-    //
-    addToContainer(containerId,elem){
-        $(containerId).first().after("<div class=\"col-sm-3 col-s-6\">"+elem+"</div>");
-        //$(containerId).first().after(elem);
-
-    }
-
-
-    // series.html
-    renderSeries_element(serieInfos){
-        var template = $("#poster_tpl").clone();
-        //template.attr("id","serie_"+parseInt(serieInfos.id));
-        console.log(template.html());
-        console.log(template.text());
-        console.log(template);
-        template.find("img").attr("src","/data/series/"+serieInfos.brick_id+"/"+serieInfos.original_name+" ("+serieInfos.release_date.substr(0,4)+")/fanart/img500.jpg");
-        template.find(".series_titles").html(serieInfos.language.title+" ("+serieInfos.release_date.substr(0,4)+")");
-        template.find(".series_rating").html(serieInfos.rating);
-        template.find(".series_link").attr("href","#serie_"+serieInfos.id);
-        
-        return template.html();
-    }
-
-    renderSeries_elements(seriesInfos){
-        for(var i=0; i<seriesInfos.length; i++){ 
-            this.addToContainer("#all_series",this.renderSeries_element(seriesInfos[i]));
-        } 
     }
 
     // serie.html
@@ -111,16 +59,19 @@ class SeriesContent{
     renderSerie_season(serieId,seasonInfos){
         var template = $("#serie_season_tpl").clone();
         //template.attr("id","serie_"+parseInt(serieInfos.id));
-        console.log(template.html());
-        console.log(template.text());
-        console.log(template);
+        // console.log(template.html());
+        // console.log(template.text());
+        console.log("template: ",template);
+        template.attr('id','');
         template.find(".season_name").attr("href","#collapse_"+seasonInfos.season_number.toString());
         template.find(".season_name").append(seasonInfos.title);
         template.find(".panel-collapse").attr("id","collapse_"+seasonInfos.season_number.toString());
 
         for(var i=0; i<seasonInfos.episodes.length; i++){
             var episode = seasonInfos.episodes[i];
-            var ep_tpl = $("#serie_episode_tpl").clone();
+            let ep_tpl = $("#serie_episode_tpl").clone();
+            ep_tpl.find(".box").attr("type","serie");
+            ep_tpl.find(".box").attr("video_id",episode.id.toString());
             //ep_tpl.find("img").attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
             ep_tpl.find('.episode-image').attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
             //ep_tpl.find('.episode-image').css('background-image', 'url(' + '"series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg"' + ')');
@@ -129,16 +80,19 @@ class SeriesContent{
             ep_tpl.find(".episode_overview").append(episode.overview);
             
             console.log("ep_tpl.html():",ep_tpl.html());
-            template.find(".list-group").append(ep_tpl.html());
+            template.find(".list-group").append(ep_tpl);
 
             var videoBock = new VideoBlock();
-            videoBock.setup(ep_tpl);
+            videoBock.setup(template);
+            this.blocks.push(videoBock);
+
         }
         
-        return template.html();
+        return template;
     }
 
     renderSerie_seasons(serieId,seasonsInfos){
+        this.blocks = [];
         for(var i=0; i<seasonsInfos.length; i++){ 
             this.appendToContainer("#seasons",this.renderSerie_season(serieId,seasonsInfos[i]));
         } 
@@ -175,7 +129,16 @@ class SeriesContent{
         //Render seasons and episodes
         $.getJSON( "series/"+serieId.toString()+"/seasons", function( data ) {
             self.renderSerie_seasons(serieId,data);
+
+            // //TODFO
+            // var videoBock = new VideoBlock();
+            // videoBock.setup(ep_tpl,"serie",episode.id);
+            // this.blocks.push(videoBock);
         });
+
+        // $(".box").each(function(elem) {
+
+        // });
 
         //Connect buttons
         $("#addtitle").click(function(){
