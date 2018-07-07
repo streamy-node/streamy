@@ -322,20 +322,18 @@ CREATE TABLE `users_episodes_progressions` (
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`)
 );
 
-CREATE TABLE `offline_tasks` (
+CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `command` VARCHAR(255) NOT NULL,
-  `niceness` int NOT NULL,
-  `args` VARCHAR(765) NOT NULL,
   `creation_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `working_dir` VARCHAR(255) NOT NULL,
-  `output_files` VARCHAR(255) NOT NULL,
+  `file` VARCHAR(255) NOT NULL,
+  `working_folder` VARCHAR(255) NOT NULL,
   `episode_id` int,
   `film_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`working_dir`,`output_files`) 
+  CONSTRAINT UNIQUE (`file`) ,
+  CONSTRAINT UNIQUE (`working_folder`) 
 );
 
 CREATE TABLE `users_settings` (
@@ -350,6 +348,39 @@ CREATE TABLE `users_settings` (
   FOREIGN KEY (`interface_lang`) REFERENCES languages(`id`),
   FOREIGN KEY (`audio_lang`) REFERENCES languages(`id`),
   FOREIGN KEY (`subtitle_lang`) REFERENCES languages(`id`)
+);
+
+CREATE TABLE `resolutions` (
+  `id` int NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `width` int NOT NULL,
+   PRIMARY KEY (`id`),
+   CONSTRAINT UNIQUE (`name`),
+   CONSTRAINT UNIQUE (`width`) 
+);
+
+CREATE TABLE `resolutions_bitrates` (
+  `id` int NOT NULL,
+  `resolution_id` int NOT NULL,
+  `bitrate` int NOT NULL,
+   PRIMARY KEY (`id`),
+   CONSTRAINT UNIQUE (`resolution_id`)
+);
+
+CREATE TABLE `series_transcoding_resolutions` (
+  `id` int NOT NULL,
+  `resolution_id` int NOT NULL,
+   PRIMARY KEY (`id`),
+   FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`) ON DELETE CASCADE,
+   CONSTRAINT UNIQUE (`resolution_id`)
+);
+
+CREATE TABLE `films_transcoding_resolutions` (
+  `id` int NOT NULL,
+  `resolution_id` int NOT NULL,
+   PRIMARY KEY (`id`),
+   FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`) ON DELETE CASCADE,
+   CONSTRAINT UNIQUE (`resolution_id`)
 );
 
 CREATE TABLE `value_types` (
@@ -367,7 +398,7 @@ CREATE TABLE `global_settings` (
   `float` float,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`type`) REFERENCES value_types(`id`)
-) AUTO_INCREMENT=3 ;
+) AUTO_INCREMENT=10 ;
 
 -- INSERTIONS
 INSERT INTO `value_types` VALUES(1, 'string');
@@ -376,6 +407,7 @@ INSERT INTO `value_types` VALUES(3, 'float');
 
 INSERT INTO `global_settings` VALUES(1, 'new_video_brick', 2,NULL,NULL,NULL);
 INSERT INTO `global_settings` VALUES(2, 'upload_brick', 2,NULL,NULL,NULL);
+INSERT INTO `global_settings` VALUES(3, 'segment_duration', 2,NULL,2,NULL);
 
 -- Languages --
 INSERT INTO `languages` VALUES(0, 'Native', NULL);
@@ -522,6 +554,29 @@ INSERT INTO `roles` VALUES(3, 'guest');
 
 -- default user
 INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'admin', 'streamy',1,255);
+
+-- resolutions
+INSERT INTO `resolutions` VALUES(1, 'LOW', 0);
+INSERT INTO `resolutions` VALUES(2, 'SD', 720);
+INSERT INTO `resolutions` VALUES(3, 'HD', 1280);
+INSERT INTO `resolutions` VALUES(4, 'FHD', 1920);
+INSERT INTO `resolutions` VALUES(5, 'UHD', 3840);
+INSERT INTO `resolutions` VALUES(6, '4K', 4096);
+
+INSERT INTO `resolutions_bitrates` VALUES(1, 1,800);
+INSERT INTO `resolutions_bitrates` VALUES(2, 2,1200);
+INSERT INTO `resolutions_bitrates` VALUES(3, 3,2400);
+INSERT INTO `resolutions_bitrates` VALUES(4, 4,4800);
+INSERT INTO `resolutions_bitrates` VALUES(5, 5,16000);
+INSERT INTO `resolutions_bitrates` VALUES(6, 6,16000);
+
+
+-- transcoding resolutions
+INSERT INTO `films_transcoding_resolutions` VALUES(1, 4);
+INSERT INTO `films_transcoding_resolutions` VALUES(2, 3);
+
+INSERT INTO `series_transcoding_resolutions` VALUES(1, 4);
+INSERT INTO `series_transcoding_resolutions` VALUES(2, 3);
 
 -- dev
 INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');

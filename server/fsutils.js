@@ -32,9 +32,9 @@ class FSUtils{
 
     async read(file){
         return new Promise((resolve, reject) => {
-            fs.readFile('file', 'utf8', function (err, data) {
+            fs.readFile(file, 'utf8', function (err, data) {
                 if (err) reject(err);
-                return data;
+                resolve(data);
             });
         });
     }
@@ -50,6 +50,19 @@ class FSUtils{
                 }
             
                 console.log("The file was saved!");
+            });
+        });
+    }
+
+    async unlink(file){
+        return new Promise((resolve, reject) => {
+            fs.unlink(file, (err) => {
+                if(err) {
+                    console.log(err);
+                    reject(err);
+                }else{
+                    resolve(true);
+                }
             });
         });
     }

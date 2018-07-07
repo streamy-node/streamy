@@ -70,7 +70,7 @@ class Process extends EventEmitter{
   _onFinal(msg){
     if(this.status != PROCESS_STATUS.TERMINATED){
       if(this.ws.readyState == WebSocket.CONNECTING || this.ws.readyState == WebSocket.OPEN ){
-        this.ws.close(0,"work finished");
+        this.ws.close(1000,"work finished");//1000 means close normal (cf https://developer.mozilla.org/fr/docs/Web/API/CloseEvent )
       }
       this.status = PROCESS_STATUS.TERMINATED;
       this.emit('final',msg);
@@ -102,7 +102,7 @@ class FfmpegProcessManager{
     this.stoppedProcesses = []; // Processes not yet launched stopped
   }
 
-  async addWorker(ip,port,onSuccess,onError){
+  async addWorker(ip,port){
     try{
       var ffmpegInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/ffmpeg_infos" ));
       var rawHwInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/hw_infos" ));
@@ -303,13 +303,14 @@ class FfmpegProcessManager{
             process._onFinal(jsonContent);
           }else{
             process._onFinal(new FinalMsg(3,"Unknown message",error));
-            console.err("Invalid message received ",data)
+            console.err("Invalid message received ",data);
           }
         }catch(error){
           var errdata = {};
           errdata.error = error;
           errdata.mesg = data;
           process._onFinal(new FinalMsg(3,"Invalid Json ",errdata));
+          console.err("ffmpegProc: Invalid Json ",error)
         }
         
       });
@@ -517,6 +518,12 @@ class FfmpegProcessManager{
     if (a.priority > b.priority)
       return 1;
     return 0;
+  }
+
+  async ffprobe(file){
+    //For the moment take only last worker to do ffprobe
+    var worker = this.workers[this.workers.length-1];
+    return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
   }
 
 }

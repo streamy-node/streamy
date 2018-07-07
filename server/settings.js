@@ -22,6 +22,8 @@ class SettingsMgr{
                 this.global.upload_brick = result[i].int;
                 var uploadBrick = await this.con.getBrick(this.global.upload_brick);
                 this.upload_path = uploadBrick.path;
+            }else if(result[i].key === "segment_duration"){
+                this.global.segment_duration = result[i].int;
             }
         }  
     }

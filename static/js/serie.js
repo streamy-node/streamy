@@ -70,7 +70,6 @@ class SerieController{
         for(var i=0; i<seasonInfos.episodes.length; i++){
             var episode = seasonInfos.episodes[i];
             let ep_tpl = $("#serie_episode_tpl").clone();
-            ep_tpl.find(".box").attr("type","serie");
             ep_tpl.find(".box").attr("video_id",episode.id.toString());
             //ep_tpl.find("img").attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
             ep_tpl.find('.episode-image').attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");

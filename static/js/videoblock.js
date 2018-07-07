@@ -1,5 +1,5 @@
 class VideoBlock{
-    constructor(type){
+    constructor(){
         this.droppedFiles = null;
     }
 
@@ -59,11 +59,10 @@ class VideoBlock{
                 e.preventDefault();
     
                 var ajaxData = new FormData($form.get(0));
-                ajaxData.append("type",$form.attr('type') );
                 ajaxData.append("id",$form.attr('video_id') );
     
-                if (this.droppedFiles) {
-                    $.each( this.droppedFiles, function(i, file) {
+                if (self.droppedFiles) {
+                    $.each( self.droppedFiles, function(i, file) {
                         ajaxData.append( $input.attr('name'), file );
                     });
                 }

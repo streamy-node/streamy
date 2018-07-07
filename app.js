@@ -22,6 +22,14 @@ var i18n  = require('i18n');
 var path = require('path');
 var consolidate = require('consolidate');
 
+var fsUtils = require('./server/fsutils.js')
+
+
+//Ffmpeg manager
+const ProcessesMgr = require('./server/transcoding/ffmpegprocesses').FfmpegProcessManager;
+const TranscodeMgr = require('./server/transcoding/transcodermanager');
+
+
 
 if(process.argv.length <= 2){
   console.error("Moviedb key missing");
@@ -71,6 +79,12 @@ i18n.configure({
 
 // setup managers
 var serieMgr = new SeriesMgr(dbMgr,settings);
+
+var processesMgr = new ProcessesMgr();
+var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,settings);
+
+//TODO add worker from config file and/or web page
+processesMgr.addWorker("127.0.0.1",7000);
 
 // var con = mysql.createConnection({
 //   host: "127.0.0.1",
@@ -320,7 +334,7 @@ app.post('/upload/:type', async function(req,res){
     var uploadInfos = {};
     uploadInfos.user = req.user;
     uploadInfos.id = null;
-    uploadInfos.type = null;
+    uploadInfos.type = type;
 
     form.parse(req, function(err, fields, files) {
       console.log("Fields: ",fields);
@@ -336,8 +350,6 @@ app.post('/upload/:type', async function(req,res){
       console.log("Field: ",name,value);
       if(name === "id"){
         uploadInfos.id = value;
-      }else if(name === "type"){
-        uploadInfos.type = value;
       }
     });
 
@@ -356,13 +368,16 @@ app.post('/upload/:type', async function(req,res){
 
       //var fileType = "video";//TODO parse extension
 
-      //Move file
-      if(type === "series"){
-        //var serie = await serieMgr.getSerie(uploadInfos.id);
-        //Processing folder
+      //If file has no name delete it
+      if(file.name === ""){
+        fsUtils.unlink(file.path);
+      }else{
+        if(type === "series"){
+          transcodeMgr.addEpisode(file,parseInt(uploadInfos.id));
+        }else if(type === "films"){
+          transcodeMgr.addFilm(file,parseInt(uploadInfos.id));;
+        }
       }
-
-      //Move file to offline processing
     });
 
     //On upload done
@@ -370,9 +385,6 @@ app.post('/upload/:type', async function(req,res){
       if(type === "series"){
 
       }
-      //Move file
-      //Update db
-      //Notify the client
       res.status(200).send();
     });
 

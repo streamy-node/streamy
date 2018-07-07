@@ -237,6 +237,28 @@ class DBStructure{
         }
     }
 
+    /// Transcoding part
+    async insertAddFileTask(file,target_folder,episode_id,film_id){
+        if( (!this.checkId(episode_id) && !this.checkId(film_id)) || target_folder.length == 0 || file.length == 0 ){
+            console.error("insertOfflineSplittingTasks: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `add_file_tasks` (`file`,`working_folder`,`episode_id`,`film_id`) "
+        + " VALUES('"+file+"', '"+target_folder+"', "+episode_id+", "+film_id+")";
+        var sqlres = await this.query(sql);
+        var taskId = sqlres.insertId;
+
+        return taskId;
+    }
+
+    async removeAddFileTask(id){
+        var sql = "DELETE FROM `add_file_tasks`  "
+        + " WHERE id = "+id+")";
+        var sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+
         // async getSeriesLightTranslations(lang){
     //     var sql = "SELECT * FROM `series` AS s "+
     //     "LEFT JOIN `series_translations` AS t  ON s.id = t.lang_id "+
@@ -276,6 +298,48 @@ class DBStructure{
             return result[0];
         }
     }
+
+    async getSeriesTranscodingResolutions(){
+        var sql = "SELECT serie_res.*, res.name, res.width FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+        " WHERE serie_res.resolution_id = res.id";
+        var results = await this.query(sql);
+        return results;
+    }
+
+    async getFilmsTranscodingResolutions(){
+        var sql = "SELECT * FROM `films_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+        " WHERE serie_res.resolution_id = res.id";
+        var results = await this.query(sql);
+        return results;
+    }
+
+    async getResolutions(){
+        var sql = "SELECT * FROM `resolutions` "+
+        " ORDER BY width";
+        var results = await this.query(sql);
+        return results;
+    }
+
+    async getBitrates(){
+        var sql = "SELECT * FROM `resolutions_bitrates` "+
+        " ORDER BY bitrate";
+        var results = await this.query(sql);
+        return results;
+    }
+
+    async getBitrate(resolutionId){
+        var sql = "SELECT * FROM `resolutions_bitrates` "+
+        " WHERE resolution_id = "+resolutionId.toString();
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].bitrate;
+        }
+    }
+
+    
 
     checkId(id){
         if (typeof id != "number") {
