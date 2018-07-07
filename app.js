@@ -272,13 +272,14 @@ app.get('/series/:serieId', async function (req, res) {
 app.get('/series/:serieId/seasons', async function (req, res) {
   var serieId = req.params.serieId;
   var lang = req.query.lang;
+  var userId = 1;//TODO get userId
 
   //Set default lang
   if(!lang){
     lang = 'en';
   }
 
-  let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang);
+  let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
 
   if(infos === null){
     res.status(404).send('No season found');

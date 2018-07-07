@@ -218,6 +218,39 @@ class DBStructure{
         }
     }
 
+    async getSerieSeasonEpisodesFull(seasonId,langCode,userId){
+        if(!this.checkId(seasonId) || !this.checkId(langCode)){
+            console.error("getFullSerieSeasons: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT e.*, t.lang_id, t.title, t.overview, p.user_id, p.episode_id, p.audio_lang, p.subtitle_lang, p.progression, p.last_seen FROM `series_episodes` AS e "+
+        " LEFT JOIN `series_episodes_translations` AS t  ON e.id = t.episode_id AND t.lang_id = "+langCode+
+        " LEFT JOIN `users_episodes_progressions` AS p ON p.user_id = "+userId+" AND e.id = p.episode_id"+
+        " WHERE e.season_id = "+seasonId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }
+
+        // async getSeriesLightTranslations(lang){
+    //     var sql = "SELECT * FROM `series` AS s "+
+    //     "LEFT JOIN `series_translations` AS t  ON s.id = t.lang_id "+
+    //     "LEFT JOIN `series_translations` AS t_en ON s.id = 1";
+    //     var result = await this.query(sql);
+
+    //     if(result.length == 0 ){
+    //         console.error("Cannot get serie ",serieId);
+    //         return null;
+    //     }else{
+    //         return result[0];
+    //     }
+    // }
+
     // CREATE TABLE `series_seasons` (
     //     `id` int NOT NULL AUTO_INCREMENT,
     //     `serie_id` int NOT NULL,

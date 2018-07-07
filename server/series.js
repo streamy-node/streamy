@@ -54,12 +54,12 @@ class SeriesMgr{
         return await this.con.getSerieSeasons(serieId,this.con.getLangsId(lang));
     }
 
-    async getSeasonsEpisodesInfos(serieId,lang){
+    async getSeasonsEpisodesInfos(serieId,lang,userId){
         try{
             var seasons = await this.getSeasonsInfos(serieId,lang);
             var seasonsPromises = [];
             for(var i=0; i<seasons.length; i++){
-                seasonsPromises.push(this.con.getSerieSeasonEpisodes(seasons[i].id,this.con.getLangsId(lang)));
+                seasonsPromises.push(this.con.getSerieSeasonEpisodesFull(seasons[i].id,this.con.getLangsId(lang),userId));
             }
     
             //Wait all promises
