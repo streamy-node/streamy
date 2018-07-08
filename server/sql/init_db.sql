@@ -134,8 +134,10 @@ CREATE TABLE `series_episodes` (
     `rating` decimal(3,1) DEFAULT '0.0',
     `rating_count` int UNSIGNED DEFAULT '0',
     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+    `best_resolution` int ,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`best_resolution`) REFERENCES resolutions(`id`),
     CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
 );
 
@@ -354,6 +356,7 @@ CREATE TABLE `resolutions` (
   `id` int NOT NULL,
   `name` varchar(50) NOT NULL,
   `width` int NOT NULL,
+  `height` int NOT NULL,
    PRIMARY KEY (`id`),
    CONSTRAINT UNIQUE (`name`),
    CONSTRAINT UNIQUE (`width`) 
@@ -408,6 +411,8 @@ INSERT INTO `value_types` VALUES(3, 'float');
 INSERT INTO `global_settings` VALUES(1, 'new_video_brick', 2,NULL,NULL,NULL);
 INSERT INTO `global_settings` VALUES(2, 'upload_brick', 2,NULL,NULL,NULL);
 INSERT INTO `global_settings` VALUES(3, 'segment_duration', 2,NULL,2,NULL);
+INSERT INTO `global_settings` VALUES(5, 'encoder_h264_profile', 1,"main",NULL,NULL);
+INSERT INTO `global_settings` VALUES(6, 'encoder_h264_preset', 1,"slow",NULL,NULL);
 
 -- Languages --
 INSERT INTO `languages` VALUES(0, 'Native', NULL);
@@ -556,12 +561,12 @@ INSERT INTO `roles` VALUES(3, 'guest');
 INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'admin', 'streamy',1,255);
 
 -- resolutions
-INSERT INTO `resolutions` VALUES(1, 'LOW', 0);
-INSERT INTO `resolutions` VALUES(2, 'SD', 720);
-INSERT INTO `resolutions` VALUES(3, 'HD', 1280);
-INSERT INTO `resolutions` VALUES(4, 'FHD', 1920);
-INSERT INTO `resolutions` VALUES(5, 'UHD', 3840);
-INSERT INTO `resolutions` VALUES(6, '4K', 4096);
+INSERT INTO `resolutions` VALUES(1, 'LOW', 1,1);
+INSERT INTO `resolutions` VALUES(2, 'SD', 720,576);
+INSERT INTO `resolutions` VALUES(3, 'HD', 1280,720);
+INSERT INTO `resolutions` VALUES(4, 'FHD', 1920,1080);
+INSERT INTO `resolutions` VALUES(5, 'UHD', 3840,2160);
+INSERT INTO `resolutions` VALUES(6, '4K', 4096,2160);
 
 INSERT INTO `resolutions_bitrates` VALUES(1, 1,800);
 INSERT INTO `resolutions_bitrates` VALUES(2, 2,1200);

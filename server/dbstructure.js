@@ -237,10 +237,46 @@ class DBStructure{
         }
     }
 
+    async getEpisodePath(episodeId){
+        if(!this.checkId(episodeId) ){
+            console.error("getEpisodePath: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, season.season_number,  ep.episode_number"
+        +" FROM `series_episodes` AS ep, `series_seasons` AS season, `series`, `bricks` "
+        +" WHERE ep.id = "+episodeId+" and ep.season_id = season.id AND season.serie_id = series.id AND bricks.id = series.brick_id";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0];
+        }
+    }
+
+    async getFilmPath(filmId){
+        if(!this.checkId(filmId) ){
+            console.error("getFilmPath: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT bricks.path as brick_path, films.original_name, films.release_date "
+        +" FROM `films`, `bricks` "
+        +" WHERE films.id = "+filmId+" AND bricks.id = films.brick_id";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0];
+        }
+    }
+
     /// Transcoding part
     async insertAddFileTask(file,target_folder,episode_id,film_id){
         if( (!this.checkId(episode_id) && !this.checkId(film_id)) || target_folder.length == 0 || file.length == 0 ){
-            console.error("insertOfflineSplittingTasks: Invalid entries ");
+            console.error("insertAddFileTask: Invalid entries ");
             return null;
         }
         var sql = "INSERT INTO `add_file_tasks` (`file`,`working_folder`,`episode_id`,`film_id`) "
@@ -249,6 +285,17 @@ class DBStructure{
         var taskId = sqlres.insertId;
 
         return taskId;
+    }
+
+    async getAddFileTask(fileName){
+        var sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"'";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
     }
 
     async removeAddFileTask(id){
@@ -300,7 +347,7 @@ class DBStructure{
     }
 
     async getSeriesTranscodingResolutions(){
-        var sql = "SELECT serie_res.*, res.name, res.width FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+        var sql = "SELECT serie_res.*, res.name, res.width, res.height FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
         " WHERE serie_res.resolution_id = res.id";
         var results = await this.query(sql);
         return results;
@@ -325,6 +372,18 @@ class DBStructure{
         " ORDER BY bitrate";
         var results = await this.query(sql);
         return results;
+    }
+
+    async getResolutionBitrate(resolutionId){
+        var sql = "SELECT * FROM `resolutions_bitrates`, `resolutions` "+
+        " WHERE resolution_id = "+resolutionId.toString()+" AND resolutions.id = resolution_id";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0];
+        }
     }
 
     async getBitrate(resolutionId){

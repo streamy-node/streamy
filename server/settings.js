@@ -24,6 +24,10 @@ class SettingsMgr{
                 this.upload_path = uploadBrick.path;
             }else if(result[i].key === "segment_duration"){
                 this.global.segment_duration = result[i].int;
+            }else if(result[i].key === "encoder_h264_profile"){
+                this.global.encoder_h264_profile = result[i].string;
+            }else if(result[i].key === "encoder_h264_preset"){
+                this.global.encoder_h264_preset = result[i].string;
             }
         }  
     }
