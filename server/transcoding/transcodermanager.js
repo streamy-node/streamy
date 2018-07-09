@@ -5,8 +5,8 @@ var fsutils = require('../fsutils');
 var Process = require('./ffmpegprocesses').Process;
 var Hardware = require('./ffmpegprocesses').Hardware;
 
-var MPD = require("./server/transcoding/mpdutils").MPDFile;
-var mpdUtils = require("./server/transcoding/mpdutils").MPDUtils;
+var MPD = require("./mpdutils").MPDFile;
+var mpdUtils = require("./mpdutils").MPDUtils;
 
 const Semaphore = require("await-semaphore");
 
@@ -19,14 +19,14 @@ class TranscoderManager{
     }
 
     async addEpisode(file,episodeId){
-        this.addFile(file,episodeId,null);
+        this.addVideoFile(file,episodeId,null);
     }
 
     async addFilm(file,film_id){
-        this.addFile(file,null,film_id);
+        this.addVideoFile(file,null,film_id);
     }
 
-    async addFile(file,episodeId,filmId){
+    async addVideoFile(file,episodeId,filmId){
         var self = this;
         var filename = path.basename(file.path);
 
@@ -48,8 +48,8 @@ class TranscoderManager{
             await fsutils.mkdirp(absoluteWorkingFolder);
         }
 
-        // Get files already added to serie / film if any
-        var existingFiles = await this._getProcessedFiles(episodeId,filmId);
+        // Get files already added to episode or movie folder (if any). Do not transcode again if already done
+        var existingFiles = await this._getProcessedFiles(episodeId,filmId,workingFolder);
         
         let resolutions;
         if(filmId){
@@ -73,21 +73,49 @@ class TranscoderManager{
                 if(stream.codec_type === "video"){
                     this._addVideoFile(filename,stream,resolutions,workingFolder,existingFiles,
                         async function(workingdir,cmd,resolution){
+                            //This callback is called when the transcoding of one stream succeed
                             var h264File = self.settings.upload_path+"/"+workingdir+"/"+cmd.targetName;
                             var dashFile = self.settings.upload_path+"/"+workingdir+"/"+cmd.dashName;
                             var targetFolder = await self._getTargetFolder(episodeId,filmId);
-                            var targeth264File = targetFolder + "/" + cmd.targetName;
-                            var targethDashFile = targetFolder + "/" + cmd.dashName;
-                            var mergeDashFile = targetFolder + "/all.mpd";
+                            var targeth264File = targetFolder + "/"+workingdir+"/" + cmd.targetName;
+                            var targethDashFile = targetFolder + "/"+workingdir + "/" + cmd.dashName;
+                            var mergeDashFile = targetFolder + "/"+workingdir+ "/all.mpd";
                             //Moving file
                             console.log("Moving file "+h264File+" to "+targeth264File);
                             await fsutils.rename(h264File,targeth264File);
                             console.log("Moving file "+dashFile+" to "+targethDashFile);
-                            await fsutils.rename(dashFile,targethDashFile);                           
+                            await fsutils.rename(dashFile,targethDashFile);
+
                             console.log("Updating mdp");
 
-                            //Critical section
                             if(await updateMPD(targethDashFile,mergeDashFile)){
+                                // add
+                                var mpdinfos = null
+                                var mpdId = null
+                                if(episodeId){
+                                    mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir);
+                                }else if(filmId){
+                                    mpdinfos = await this.dbMgr.getFilmMpdFile(filmId);
+                                }
+
+                                //If not already in db, add it
+                                if(!mpdinfos){
+                                    if(episodeId){
+                                        mpdId = await this.dbMgr.insertSerieMPDFile(episodeId,workingdir);
+                                    }else if(filmId){
+                                        mpdId = await this.dbMgr.insertFilmMPDFile(episodeId,workingdir);
+                                    }
+                                }
+
+                                if(!mpdId){
+                                    console.error("Failed to create mdp entry in db ",episodeId,workingdir);
+                                    return;
+                                }
+
+                                var id = await this.dbMgr.insertSerieVideo(mpdId,resolution.id);
+                                if(!id){
+                                    console.error("Failed to create video entry in db ",mpdId,resolution.id);
+                                }
                                 
                             }
 
@@ -140,9 +168,13 @@ class TranscoderManager{
         return mainFolder;
     }
 
-    async _getProcessedFiles(episodeId,filmId){
+    async _getProcessedFiles(episodeId,filmId,workingDir){
         var mainFolder = await this._getTargetFolder(episodeId,filmId);
-        return await fsutils.readir(mainFolder);
+        if(await fsutils.exists(mainFolder+"/"+workingDir)){
+            return await fsutils.readir(mainFolder+"/"+workingDir);
+        }else{
+            return[];
+        }
     }
 
     async _getBestResolution(episodeId,filmId){
@@ -181,7 +213,7 @@ class TranscoderManager{
         //Send transcoding commands
         for(var i=0; i<validResolutions.length; i++){
             let target_resolution = validResolutions[i];
-            var cmd = await this._generateX264Command(file,video_stream,target_resolution,workingDir);
+            let cmd = await this._generateX264Command(file,video_stream,target_resolution,workingDir);
 
             //Check if command will produce already existing file in target folder
             // If it the case, skip this file

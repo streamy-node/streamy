@@ -134,10 +134,10 @@ CREATE TABLE `series_episodes` (
     `rating` decimal(3,1) DEFAULT '0.0',
     `rating_count` int UNSIGNED DEFAULT '0',
     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
-    `best_resolution` int ,
+    `best_resolution_id` int,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`best_resolution`) REFERENCES resolutions(`id`),
+    FOREIGN KEY (`best_resolution_id`) REFERENCES videos_resolutions(`id`),
     CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
 );
 
@@ -170,24 +170,42 @@ CREATE TABLE `series_episodes_genres` (
   CONSTRAINT UNIQUE (`episode_id`,`genre_id`) 
 );
 
-CREATE TABLE `series_episodes_audio_langs` (
+CREATE TABLE `series_mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `episode_id` int NOT NULL,
-  `lang_id` int(10) unsigned NOT NULL,
+  `folder` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`episode_id`,`lang_id`) 
+  CONSTRAINT UNIQUE (`episode_id`,`folder`) 
 );
 
-CREATE TABLE `series_episodes_srt_langs` (
+CREATE TABLE `series_videos` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `episode_id` int NOT NULL,
+  `mpd_id` int NOT NULL,
+  `resolution_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resolution_id`) REFERENCES videos_resolutions(`id`)
+);
+
+CREATE TABLE `series_audio_langs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `mpd_id` int NOT NULL,
+  `lang_id` int(10) unsigned NOT NULL,
+  `channels` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
+  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`) 
+);
+
+CREATE TABLE `series_srt_langs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned  NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`episode_id`,`lang_id`) 
+  FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `films` (
@@ -225,24 +243,42 @@ CREATE TABLE `films_genres` (
   CONSTRAINT UNIQUE (`film_id`,`genre_id`) 
 );
 
-CREATE TABLE `films_audio_langs` (
+CREATE TABLE `films_mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `film_id` int NOT NULL,
-  `lang_id` int(10) unsigned  NOT NULL,
+  `folder` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`film_id`,`folder`) 
+);
+
+CREATE TABLE `films_videos` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `mpd_id` int NOT NULL,
+  `resolution_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resolution_id`) REFERENCES videos_resolutions(`id`)
+);
+
+CREATE TABLE `films_audio_langs` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `mpd_id` int NOT NULL,
+  `lang_id` int(10) unsigned NOT NULL,
+  `channels` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`mpd_id`) REFERENCES films_audio_langs(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`film_id`,`lang_id`) 
+  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`) 
 );
 
 CREATE TABLE `films_srt_langs` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `film_id` int NOT NULL,
+  `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned  NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`film_id`,`lang_id`) 
+  FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `films_moviedb` (

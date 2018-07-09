@@ -98,7 +98,7 @@ class MPDFile{
     }
 
     async parse(mpdFile){
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             var self = this;
             this.mpdFile = mpdFile;
             this.header = "";
@@ -109,7 +109,7 @@ class MPDFile{
             var segmentCapture = false;
             var headerDone = false;
 
-            if(!await fsutils.exists(mpdFile)){
+            if(! await fsutils.exists(mpdFile)){
                 resolve(false);
             }
 
