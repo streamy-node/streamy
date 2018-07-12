@@ -255,14 +255,14 @@ class DBStructure{
         }
     }
 
-    async getSerieMpdFileFromEpisode(episodeId){
-        if(!this.checkId(episodeId) ){
+    async getSerieMpdFileFromEpisode(episodeId,workingDir){
+        if(!this.checkId(episodeId) && workingDir.length > 0 ){
             console.error("getSerieMpdFileFromEpisode: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
         +" FROM `series_mpd_files` "
-        +" WHERE series_mpd_files.episode_id = '"+episodeId+"'";
+        +" WHERE series_mpd_files.episode_id = "+episodeId+" AND folder = '"+workingDir+"'";
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -273,12 +273,12 @@ class DBStructure{
     }
 
     async insertSerieMPDFile(episode_id,folder){
-        if( (!this.checkId(mpd_id) && folder.length > 0)){
+        if( (!this.checkId(episode_id) && folder.length > 0)){
             console.error("insertSerieVideo: Invalid entries ");
             return null;
         }
         var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`) "
-        + " VALUES("+episode_id+", '"+folder+")";
+        + " VALUES("+episode_id+", '"+folder+"')";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -290,7 +290,7 @@ class DBStructure{
             return null;
         }
         var sql = "INSERT INTO `series_videos` (`mpd_id`,`resolution_id`) "
-        + " VALUES('"+mpd_id+"', '"+resolution_id+")";
+        + " VALUES("+mpd_id+", "+resolution_id+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -315,13 +315,13 @@ class DBStructure{
     }
 
     async getFilmMpdFile(filmId,workingDir){
-        if(!this.checkId(filmId) ){
+        if(!this.checkId(filmId) && workingDir.length > 0){
             console.error("getFilmMpdFile: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
         +" FROM `films_mpd_files` "
-        +" WHERE films_mpd_files.film_id = '"+filmId+"' AND films_mpd_files.folder = '"+workingDir+"'";
+        +" WHERE films_mpd_files.film_id = "+filmId+" AND films_mpd_files.folder = '"+workingDir+"'";
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -337,7 +337,7 @@ class DBStructure{
             return null;
         }
         var sql = "INSERT INTO `films_mpd_files` (`film_id`,`folder`) "
-        + " VALUES("+film_id+", '"+folder+")";
+        + " VALUES("+film_id+", '"+folder+"')";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -419,14 +419,14 @@ class DBStructure{
     }
 
     async getSeriesTranscodingResolutions(){
-        var sql = "SELECT serie_res.*, res.name, res.width, res.height FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+        var sql = "SELECT res.* FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
         " WHERE serie_res.resolution_id = res.id";
         var results = await this.query(sql);
         return results;
     }
 
     async getFilmsTranscodingResolutions(){
-        var sql = "SELECT * FROM `films_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+        var sql = "SELECT res.* FROM `films_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
         " WHERE serie_res.resolution_id = res.id";
         var results = await this.query(sql);
         return results;
@@ -470,7 +470,19 @@ class DBStructure{
         }
     }
 
-    
+    async insertWorker(ipv4,port,enabled){
+        var sql = "INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) "
+        + " VALUES(INET_ATON("+ipv4+"), "+port+", "+enabled+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async getFfmpegWorkers(){
+        var sql = "SELECT `id`, INET_NTOA(`ipv4`), `port`, `enabled` FROM `ffmpeg_workers` ";
+        var results = await this.query(sql);
+        return results; 
+    } 
 
     checkId(id){
         if (typeof id != "number") {

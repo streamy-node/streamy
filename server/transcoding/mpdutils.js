@@ -59,7 +59,6 @@ class Representation extends MPDData {
         var output = "";
         output += this.line;
         output += this.baseURL.line;
-        output += this.segmentList.line;
         output += await this.getSegmentsXML();
         output += "			</Representation>\n";
         return output;
@@ -111,6 +110,7 @@ class MPDFile{
 
             if(! await fsutils.exists(mpdFile)){
                 resolve(false);
+                return;
             }
 
             fsutils.readLargeFileByLine2(mpdFile,0,
@@ -186,7 +186,7 @@ class MPDFile{
             var wstream = fs.createWriteStream(fileName,{encoding:'utf8'});
             
             wstream.on('finish', function(){
-                resolve();
+                resolve(true);
             });
 
             wstream.write(self.header);
@@ -253,12 +253,12 @@ class MPDUtils{
 
         if(src_adaptationSet === null){
             console.error("MDP: no adaptationSet in file "+src_mpd_path);
-            return false;
+            return null;
         }
 
         if(src_representationSet === null){
             console.error("MDP: no representation in file "+src_mpd_path);
-            return false;
+            return null;
         }
 
         var matchingAdaptationSet = null;
@@ -276,7 +276,7 @@ class MPDUtils{
 
         }else if(!matchingAdaptationSet){
             //If there are no matching adaptation set, create it
-            src_adaptationSet.setId(maxAdaptationSetId++);
+            //src_adaptationSet.setId(maxAdaptationSetId++);
             await dst_mpd.addAdaptationSet(src_adaptationSet);
         }
 
@@ -292,17 +292,17 @@ class MPDUtils{
         var res = await src_mpd.parse(src_mpd_path,true);
         if(res === null){
             console.log("MDP: Failed to merge unexisting file");
-            return false;
+            return null;
         }
         
         // Find corresponding adaptation set inside dst mpd if any
         res = await dst_mpd.parse(dst_mpd_path,false);//We don't need to parse segment for this one
 
-        if(res === null){
+        if(res === false){
             return src_mpd;
         }
 
-        this.mergeMpd(src_mpd,dst_mpd);
+        return this.mergeMpd(src_mpd,dst_mpd);
     }
 
 

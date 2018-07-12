@@ -19,6 +19,24 @@ CREATE TABLE `bricks` (
   PRIMARY KEY (`id`)
 );
 
+CREATE TABLE `resolutions` (
+  `id` int NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `width` int NOT NULL,
+  `height` int NOT NULL,
+   PRIMARY KEY (`id`),
+   CONSTRAINT UNIQUE (`name`),
+   CONSTRAINT UNIQUE (`width`) 
+);
+
+CREATE TABLE `resolutions_bitrates` (
+  `id` int NOT NULL,
+  `resolution_id` int NOT NULL,
+  `bitrate` int NOT NULL,
+   PRIMARY KEY (`id`),
+   CONSTRAINT UNIQUE (`resolution_id`)
+);
+
 CREATE TABLE `genres_moviedb` (
   `id` int NOT NULL,
   `genre_id` int NOT NULL,
@@ -36,15 +54,6 @@ CREATE TABLE `genres_translations` (
   PRIMARY KEY (`id`),
   FOREIGN KEY (`genre_id`) REFERENCES genres(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`) ON DELETE CASCADE 
-);
-
-CREATE TABLE `videos_resolutions` (
-  `id` int NOT NULL,
-  `name` char(12) CHARACTER SET utf8,
-  `ref_width` int NOT NULL,
-  `ref_height` int NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT UNIQUE (`name`) 
 );
 
 CREATE TABLE `series` (
@@ -137,7 +146,7 @@ CREATE TABLE `series_episodes` (
     `best_resolution_id` int,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`best_resolution_id`) REFERENCES videos_resolutions(`id`),
+    FOREIGN KEY (`best_resolution_id`) REFERENCES resolutions(`id`),
     CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
 );
 
@@ -185,7 +194,7 @@ CREATE TABLE `series_videos` (
   `resolution_id` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`resolution_id`) REFERENCES videos_resolutions(`id`)
+  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
 );
 
 CREATE TABLE `series_audio_langs` (
@@ -258,7 +267,7 @@ CREATE TABLE `films_videos` (
   `resolution_id` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`resolution_id`) REFERENCES videos_resolutions(`id`)
+  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
 );
 
 CREATE TABLE `films_audio_langs` (
@@ -388,24 +397,6 @@ CREATE TABLE `users_settings` (
   FOREIGN KEY (`subtitle_lang`) REFERENCES languages(`id`)
 );
 
-CREATE TABLE `resolutions` (
-  `id` int NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `width` int NOT NULL,
-  `height` int NOT NULL,
-   PRIMARY KEY (`id`),
-   CONSTRAINT UNIQUE (`name`),
-   CONSTRAINT UNIQUE (`width`) 
-);
-
-CREATE TABLE `resolutions_bitrates` (
-  `id` int NOT NULL,
-  `resolution_id` int NOT NULL,
-  `bitrate` int NOT NULL,
-   PRIMARY KEY (`id`),
-   CONSTRAINT UNIQUE (`resolution_id`)
-);
-
 CREATE TABLE `series_transcoding_resolutions` (
   `id` int NOT NULL,
   `resolution_id` int NOT NULL,
@@ -420,6 +411,15 @@ CREATE TABLE `films_transcoding_resolutions` (
    PRIMARY KEY (`id`),
    FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`) ON DELETE CASCADE,
    CONSTRAINT UNIQUE (`resolution_id`)
+);
+
+CREATE TABLE `ffmpeg_workers` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `ipv4` INT UNSIGNED NOT NULL,
+  `port` INT UNSIGNED NOT NULL,
+  `enabled` tinyint(1) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT UNIQUE (`ipv4`,`port`)
 );
 
 CREATE TABLE `value_types` (
@@ -624,3 +624,4 @@ INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');
 INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 2, 'brick_upload','/data/upload');
 UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
 UPDATE `global_settings` SET `int` = 2 WHERE `key` = 'upload_brick' ;
+INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) VALUES (INET_ATON("127.0.0.1"),7000,1);

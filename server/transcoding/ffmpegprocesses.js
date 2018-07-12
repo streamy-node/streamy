@@ -521,6 +521,9 @@ class FfmpegProcessManager{
   }
 
   async ffprobe(file){
+    if(this.workers.length == 0){
+      return null;
+    }
     //For the moment take only last worker to do ffprobe
     var worker = this.workers[this.workers.length-1];
     return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));

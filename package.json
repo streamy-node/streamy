@@ -28,7 +28,7 @@
     "passport-local": "^1.0.0",
     "request": "^2.87.0",
     "shaka-player": "^2.3.3",
-    "uuid": "^3.3.2",
+    "shortid": "^2.2.11",
     "ws": "^5.1.0"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 //const ProcessesMgr = require('./server/transcoding/ffmpegprocesses').FfmpegProcessManager;
-const Uuid = require('uuid/v4');
+const shortId = require('shortid');
 var path = require('path');
 var fsutils = require('../fsutils');
 var Process = require('./ffmpegprocesses').Process;
@@ -8,7 +8,7 @@ var Hardware = require('./ffmpegprocesses').Hardware;
 var MPD = require("./mpdutils").MPDFile;
 var mpdUtils = require("./mpdutils").MPDUtils;
 
-const Semaphore = require("await-semaphore");
+const Semaphore = require("await-semaphore").Semaphore;
 
 class TranscoderManager{
     constructor(processManager,dbMgr, settings){
@@ -35,7 +35,7 @@ class TranscoderManager{
 
         var workingFolder;
         if(!task){
-            workingFolder = Uuid();
+            workingFolder = shortId.generate();
             //Add this file to insert tasks table (in case of shutdown to avoid to download again the file)
             var id = await this.dbMgr.insertAddFileTask(filename,workingFolder,episodeId,filmId);
         }else{
@@ -47,10 +47,7 @@ class TranscoderManager{
         if(! await fsutils.exists(absoluteWorkingFolder)){
             await fsutils.mkdirp(absoluteWorkingFolder);
         }
-
-        // Get files already added to episode or movie folder (if any). Do not transcode again if already done
-        var existingFiles = await this._getProcessedFiles(episodeId,filmId,workingFolder);
-        
+       
         let resolutions;
         if(filmId){
             resolutions = await this.dbMgr.getFilmsTranscodingResolutions();
@@ -58,13 +55,22 @@ class TranscoderManager{
             resolutions = await this.dbMgr.getSeriesTranscodingResolutions();
         }else{
             console.error("TranscodeMgr: cannot transcode video without ids");
+            return null;
         }
         
         if(!id){
             console.error("TranscodeMgr: Cannot add file in db ",file);
+            return null;
         }
 
         var infos = await this.processManager.ffprobe(filename);
+        if(infos === null){
+            console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
+            return null;//return later?
+        }
+
+        // Get files already added to episode or movie folder (if any). Do not transcode again if already done
+        var existingFiles = await this._getProcessedFiles(episodeId,filmId,workingFolder);
 
         if('streams' in infos){
             //Create tasks for each streams
@@ -74,54 +80,22 @@ class TranscoderManager{
                     this._addVideoFile(filename,stream,resolutions,workingFolder,existingFiles,
                         async function(workingdir,cmd,resolution){
                             //This callback is called when the transcoding of one stream succeed
-                            var h264File = self.settings.upload_path+"/"+workingdir+"/"+cmd.targetName;
-                            var dashFile = self.settings.upload_path+"/"+workingdir+"/"+cmd.dashName;
-                            var targetFolder = await self._getTargetFolder(episodeId,filmId);
-                            var targeth264File = targetFolder + "/"+workingdir+"/" + cmd.targetName;
-                            var targethDashFile = targetFolder + "/"+workingdir + "/" + cmd.dashName;
-                            var mergeDashFile = targetFolder + "/"+workingdir+ "/all.mpd";
-                            //Moving file
-                            console.log("Moving file "+h264File+" to "+targeth264File);
-                            await fsutils.rename(h264File,targeth264File);
-                            console.log("Moving file "+dashFile+" to "+targethDashFile);
-                            await fsutils.rename(dashFile,targethDashFile);
-
-                            console.log("Updating mdp");
-
-                            if(await updateMPD(targethDashFile,mergeDashFile)){
-                                // add
-                                var mpdinfos = null
-                                var mpdId = null
-                                if(episodeId){
-                                    mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir);
-                                }else if(filmId){
-                                    mpdinfos = await this.dbMgr.getFilmMpdFile(filmId);
-                                }
-
-                                //If not already in db, add it
-                                if(!mpdinfos){
-                                    if(episodeId){
-                                        mpdId = await this.dbMgr.insertSerieMPDFile(episodeId,workingdir);
-                                    }else if(filmId){
-                                        mpdId = await this.dbMgr.insertFilmMPDFile(episodeId,workingdir);
-                                    }
-                                }
-
-                                if(!mpdId){
-                                    console.error("Failed to create mdp entry in db ",episodeId,workingdir);
-                                    return;
-                                }
-
-                                var id = await this.dbMgr.insertSerieVideo(mpdId,resolution.id);
-                                if(!id){
-                                    console.error("Failed to create video entry in db ",mpdId,resolution.id);
-                                }
-                                
+                            var mpdId = await self.importDashStream(episodeId,filmId,workingdir,cmd.dashName,cmd.targetName);
+                            
+                            if(!mpdId){
+                                console.error("Failed to create mdp entry in db ",workingdir);
+                                return;
                             }
 
-                            console.log("Dash file updated: "+mergeDashFile);
+                            // add video
+                            var id = await self.dbMgr.insertSerieVideo(mpdId,resolution.id);
+                            if(id === null){
+                                console.error("Failed to create video entry in db ",mpdId,resolution.id);
+                            }
+                                
+                            console.log("Dash file updated: "+mpdId);
                     },async function(err){
-                        console.log("Failed to add video file: "+mergeDashFile);
+                        console.log("Failed to add video file: "+err);
                     });
 
                 }else if(stream.codec_type === "audio"){
@@ -138,21 +112,90 @@ class TranscoderManager{
         }
     }
 
-    async updateMPD(targethDashFile,mergeDashFile){
+
+    /**
+     * Import dash files to streamy and return global mdp file id associated
+     * @param {*} workingdir 
+     * @param {*} cmd 
+     */
+    async importDashStream(episodeId,filmId,workingdir,dashName,dataFileName){
+        var dataFile = this.settings.upload_path+"/"+workingdir+"/"+dataFileName;
+        var dashFile = this.settings.upload_path+"/"+workingdir+"/"+dashName;
+        var targetFolder = await this._getTargetFolder(episodeId,filmId);
+        var targetDataFile = targetFolder + "/"+workingdir+"/" + dataFileName;
+        var targethDashFile = targetFolder + "/"+workingdir + "/" + dashName;
+        var mergeDashFile = targetFolder + "/"+workingdir+ "/all.mpd";
+
+        //create dir
+        await fsutils.mkdirp(targetFolder+"/"+workingdir);
+
+        //Moving file
+        console.log("Moving file "+dataFile+" to "+targetDataFile);
+        await fsutils.rename(dataFile,targetDataFile);
+        console.log("Moving file "+dashFile+" to "+targethDashFile);
+        await fsutils.rename(dashFile,targethDashFile);
+
+        if(await this.updateMPDFile(targethDashFile,mergeDashFile)){
+            console.log("Merge "+targethDashFile+" and "+mergeDashFile+" succeed");
+
+            // add infos to db
+            var mpdinfos = await this.getMPD(episodeId,filmId,workingdir);
+            var mpdId = null
+
+            //If not already in db, add it
+            if(!mpdinfos){
+                mpdId = await this.addMPD(episodeId,filmId,workingdir);
+            }else{
+                mpdId = mpdinfos.id;
+            }
+
+            return mpdId;
+            
+        }else{
+            console.error("Failed to merge mdp files ",targethDashFile,mergeDashFile);
+            return null;
+        }
+    }
+
+    async updateMPDFile(targethDashFile,mergeDashFile){
         //To prevent multiple concurent update (due to awaits) of the same mpd file, use mutex
         var release = null;
         if(!this.mpdSemaphores.has(mergeDashFile)){
-            this.mpdSemaphores.add(new Semaphore(1));
+            this.mpdSemaphores.set(mergeDashFile,new Semaphore(1));
         }
         release = await this.mpdSemaphores.get(mergeDashFile).acquire();
         //Moving file
-        var mergedMpd = await mpdUtils.mergeMpd(targethDashFile,mergeDashFile);
+        var mergedMpd = await mpdUtils.mergeMpdFiles(targethDashFile,mergeDashFile);
         var saved = await mergedMpd.save(mergeDashFile+".tmp");
         if(saved){
             await fsutils.rename(mergeDashFile+".tmp",mergeDashFile);
+            release();
+            return true;
+        }else{
+            release();
+            return false;
         }
-        release();
         //TODO remove semaphore if not used
+    }
+
+    async getMPD(episodeId,filmId,workingdir){
+        var mpdinfos = null;
+        if(episodeId){
+            mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir);
+        }else if(filmId){
+            mpdinfos = await this.dbMgr.getFilmMpdFile(filmId,workingdir);
+        }
+        return mpdinfos;
+    }
+
+    async addMPD(episodeId,filmId,workingdir){
+        var mpdId = null;
+        if(episodeId){
+            mpdId = await this.dbMgr.insertSerieMPDFile(episodeId,workingdir);
+        }else if(filmId){
+            mpdId = await this.dbMgr.insertFilmMPDFile(filmId,workingdir);
+        }
+        return mpdId;
     }
     //bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, series_seasons.season_number,  series_episodes.episode_number
 
@@ -194,6 +237,7 @@ class TranscoderManager{
     /////
     async _addVideoFile(file,video_stream, target_resolutions,workingDir,existingFiles,onSuccess,onError){
         var original_resolution = await this._getResolution(video_stream.width);
+ 
 
         //Filter achievable resolution
         var validResolutions = [];
@@ -246,7 +290,7 @@ class TranscoderManager{
         //Width determine resolution category
         //width*height induce bitrate
         let original_resolution = await this._getResolution(stream.width);
-        let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.resolution_id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
+        let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
 
         var segmentduration = this.settings.global.segment_duration;
         var framerate = this._getFramerate(stream);
@@ -304,10 +348,6 @@ class TranscoderManager{
         var scaled_video_height = video_height*resolutionBr.width/video_width;
         var ratio_resolution = scaled_video_width*scaled_video_height/(resolutionBr.width*resolutionBr.height);
         return Math.floor(resolutionBr.bitrate*ratio_resolution);
-    }
-
-    async mergeMpd(src_mpd, dst_mpd){
-        
     }
 
     async _getResolution(width){
