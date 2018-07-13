@@ -255,6 +255,70 @@ class DBStructure{
         }
     }
 
+    async getSeriesMdpFiles(episodeId){
+        if(!this.checkId(episodeId)){
+            console.error("getEpisodeStreams: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_mpd_files` AS mdp "+
+        " WHERE mdp.episode_id = "+episodeId;
+        var results = await this.query(sql);
+
+        return results;
+    }
+
+    async getSeriesVideos(mdpId){
+        if(!this.checkId(mdpId)){
+            console.error("getSeriesVideos: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_videos` AS videos "+
+        " WHERE videos.mpd_id = "+mdpId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }
+
+    async getSeriesAudioLangs(mdpId){
+        if(!this.checkId(mdpId)){
+            console.error("getSeriesVideos: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_audio_langs` AS s "+
+        " WHERE s.mpd_id = "+mdpId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }  
+
+    async getSeriesSrtLangs(mdpId){
+        if(!this.checkId(mdpId)){
+            console.error("getSeriesSrtLangs: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_srt_langs` AS s "+
+        " WHERE s.mpd_id = "+mdpId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }   
+
     async getSerieMpdFileFromEpisode(episodeId,workingDir){
         if(!this.checkId(episodeId) && workingDir.length > 0 ){
             console.error("getSerieMpdFileFromEpisode: Invalid entries ");

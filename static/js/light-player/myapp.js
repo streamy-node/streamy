@@ -2,7 +2,10 @@
 
 var lightDemo = lightDemo || {};  // eslint-disable-line no-var
 
-var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
+console.log("uri: ");
+
+var manifestUri = null;
+//var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
 //var manifestUri = "http://192.168.1.69:80/videos/fftest/video1.mpd"
 //var manifestUri = "http://192.168.1.69:80/videos/fftest/all.mpd"
 //var manifestUri = "http://192.168.1.69:80/videos/mp4boxvid/output.mpd"
@@ -18,6 +21,7 @@ var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
 //var manifestUri = '//storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd'
 /**
  * The registered ID of the v2.3 Chromecast receiver demo.
+ * https://developers.google.com/cast/docs/registration
  * @const {string}
  * @private
  */
@@ -38,6 +42,19 @@ lightDemo.player_ = null;
 /** @private {ShakaControls} */
 lightDemo.controls_ = null;
 
+lightDemo.getURLParameter_ = function(sParam){
+  var sPageURL = window.location.search.substring(1);
+  var sURLVariables = sPageURL.split('&');
+  for (var i = 0; i < sURLVariables.length; i++){
+      var sParameterName = sURLVariables[i].split('=');
+      if (sParameterName[0] == sParam)
+      {
+          return sParameterName[1];
+      }
+  }
+}
+
+manifestUri = decodeURIComponent(lightDemo.getURLParameter_("mdp"));
 
 lightDemo.init = function() {
   // Install built-in polyfills to patch browser incompatibilities.

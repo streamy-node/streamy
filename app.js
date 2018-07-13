@@ -241,6 +241,11 @@ app.get('/addvideo.html', function (req, res) {
   res.sendFile(__dirname + '/views/templates/addvideo.html');
 })
 
+//static files from node_modules
+app.get('/js/shaka/*', function (req, res) {
+  res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
+})
+
 // API key
 app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);
@@ -320,6 +325,28 @@ app.get('/series/:serieId/data/*', async function (req, res) {
   var path = brick.path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
   res.sendFile(path);
 })
+
+app.get('/series/:serieId/data/*', async function (req, res) {
+  //TODO improve performances by caching requests
+  var serieId = req.params.serieId;
+  var serie = await dbMgr.getSerie(serieId);
+  var brick = await dbMgr.getBrick(serie.brick_id);
+  var path = brick.path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+  res.sendFile(path);
+})
+
+app.get('/episodes/streams/:episodeId', async function (req, res) {
+  var episodeId = parseInt(req.params.episodeId);
+  let infos = await serieMgr.getEpisodeStreamInfos(episodeId);
+
+  if(!infos){
+    res.status(404).send('No streams found');
+  }else{
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(infos));
+  }
+})
+
 
 // Upload files
 app.post('/upload/:type', async function(req,res){

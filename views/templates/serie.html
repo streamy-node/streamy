@@ -28,27 +28,7 @@
 
     </div>
 
-    <!-- episode trial -->
-    <div>
-        <form class="box episodeBox" method="post" action="upload/series" enctype="multipart/form-data" id="box-1">
-            <div class="box__input" id="input-1" >
-                <input class="box__file  inputfile" type="file" name="files[]" id="file-1" data-multiple-caption="{count} files selected" multiple />
-                <br>
-            </div>
-            <div class="box__uploading">Uploading&hellip;</div>
-            <div class="box__success">Done!</div>
-            <div class="box__error">Error! <span></span>.</div>
-        </form>
-        <div>
-            <label for="file-1" class="content centered d-inline">
-                    <img src="img/download.png"/>
-            </label>
-            <div class="d-inline">
-                <img src="img/parameters24.png" />
-            </div>
-        </div>
-    </div>
-    
+      
     <!-- <form class="box episodeBox" method="post" action="upload/series" enctype="multipart/form-data" id="box-1">
         <div class="box__input episodeBox" id="input-1" >
             <input class="box__file  inputfile" type="file" name="files[]" id="file-1" data-multiple-caption="{count} files selected" multiple />
@@ -69,7 +49,7 @@
 </div>
 
 <!-- Templates -->
-<div id="serie_season_tpl">
+<div id="serie_season_tpl" class="hidden">
     <div class="panel-group">
         <div class="panel panel-default">
             <div class="panel-heading">
@@ -90,7 +70,7 @@
     <!-- </ul> -->
 </div>
 
-<div id="serie_episode_tpl">
+<div id="serie_episode_tpl" class="hidden">
     <li class="list-group-item episode-item">
         <!-- <div class="pull-left gap-right">
                 <img id="poster" class="episode-image" src=""/>
@@ -98,7 +78,7 @@
 
         <div class="pull-left gap-right episode-bloc">
             <form class="box episodeBox" method="post" action="upload/series" enctype="multipart/form-data" id="box-1">
-                <img id="poster" class="episode-image" src=""/>
+                <img id="poster" class="episode-image bloc-image" src=""/>
                 <div class="box__input" id="input-1" >
                     <input class="box__file  inputfile" type="file" name="files[]" id="file-1" data-multiple-caption="{count} files selected" multiple />
                     <br>

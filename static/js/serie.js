@@ -63,16 +63,19 @@ class SerieController{
         // console.log(template.text());
         console.log("template: ",template);
         template.attr('id','');
+        template.removeClass("hidden");
         template.find(".season_name").attr("href","#collapse_"+seasonInfos.season_number.toString());
         template.find(".season_name").append(seasonInfos.title);
         template.find(".panel-collapse").attr("id","collapse_"+seasonInfos.season_number.toString());
 
         for(var i=0; i<seasonInfos.episodes.length; i++){
-            var episode = seasonInfos.episodes[i];
+            let episode = seasonInfos.episodes[i];
             let ep_tpl = $("#serie_episode_tpl").clone();
+            let data_path = "series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString();
+            ep_tpl.removeClass("hidden");
             ep_tpl.find(".box").attr("video_id",episode.id.toString());
             //ep_tpl.find("img").attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
-            ep_tpl.find('.episode-image').attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
+            ep_tpl.find('.bloc-image').attr("src",data_path+"/fanart/img200.jpg");
             //ep_tpl.find('.episode-image').css('background-image', 'url(' + '"series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg"' + ')');
             ep_tpl.find(".episode_number").append(episode.episode_number.toString()+" - ");
             ep_tpl.find(".episode_title").append(episode.title);
@@ -81,8 +84,14 @@ class SerieController{
             console.log("ep_tpl.html():",ep_tpl.html());
             template.find(".list-group").append(ep_tpl);
 
-            var videoBock = new VideoBlock();
-            videoBock.setup(template);
+            let videoBock = new VideoBlock();
+            videoBock.getStreamsInfos = function(onResult){
+                $.getJSON( "episodes/streams/"+episode.id, function( data ) {
+                    console.log("Stream infos "+episode.id,data);
+                    onResult(data,data_path);
+                });
+            }
+            videoBock.setup(ep_tpl);
             this.blocks.push(videoBock);
 
         }
@@ -117,12 +126,7 @@ class SerieController{
             $("#overview").text(data.language.overview);
             $("#poster").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img500.jpg");
             //$("#poster2").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img300.jpg");
-            $('#box-1').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
-            //$('.episode-image').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
-            
-            
-            //$("#serie_id").val(serieId);
-            //$('#input-1').css('background-repeat', 'no-repeat');
+            //$('#box-1').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
         });
 
         //Render seasons and episodes

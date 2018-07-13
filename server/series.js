@@ -76,6 +76,21 @@ class SeriesMgr{
 
     }
 
+    async getEpisodeStreamInfos(episode_id){
+        var results = [];
+        let mdpFiles = await this.con.getSeriesMdpFiles(episode_id);
+
+        for(var i=0; i<mdpFiles.length; i++){
+            let infos = {};
+            infos.mdp = mdpFiles[i];
+            infos.videos = await this.con.getSeriesVideos(infos.mdp.id);
+            infos.audios = await this.con.getSeriesAudioLangs(infos.mdp.id);
+            infos.srts = await this.con.getSeriesSrtLangs(infos.mdp.id);
+            results.push(infos);
+        }
+        return results;
+    }
+
     async _getSeriePathById(serieId){
         var serie = await this.con.getSerie(serieId);
         return _getSeriePath(serie);
