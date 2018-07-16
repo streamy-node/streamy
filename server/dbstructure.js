@@ -285,13 +285,13 @@ class DBStructure{
         }
     }
 
-    async getSeriesAudioLangs(mdpId){
+    async getSeriesAudios(mdpId){
         if(!this.checkId(mdpId)){
-            console.error("getSeriesVideos: Invalid entries ");
+            console.error("getSeriesAudios: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_audio_langs` AS s "+
+        var sql = "SELECT * FROM `series_audios` AS s "+
         " WHERE s.mpd_id = "+mdpId;
         var results = await this.query(sql);
 
@@ -302,13 +302,13 @@ class DBStructure{
         }
     }  
 
-    async getSeriesSrtLangs(mdpId){
+    async getSeriesSrts(mdpId){
         if(!this.checkId(mdpId)){
-            console.error("getSeriesSrtLangs: Invalid entries ");
+            console.error("getSeriesSrts: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_srt_langs` AS s "+
+        var sql = "SELECT * FROM `series_srts` AS s "+
         " WHERE s.mpd_id = "+mdpId;
         var results = await this.query(sql);
 
@@ -338,7 +338,7 @@ class DBStructure{
 
     async insertSerieMPDFile(episode_id,folder){
         if( (!this.checkId(episode_id) && folder.length > 0)){
-            console.error("insertSerieVideo: Invalid entries ");
+            console.error("insertSerieMPDFile: Invalid entries ");
             return null;
         }
         var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`) "
@@ -355,6 +355,18 @@ class DBStructure{
         }
         var sql = "INSERT INTO `series_videos` (`mpd_id`,`resolution_id`) "
         + " VALUES("+mpd_id+", "+resolution_id+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async insertSerieAudio(mpd_id,lang_id,channels){
+        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
+            console.error("insertSerieVideo: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `series_audios` (`mpd_id`,`lang_id`,`channels`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+channels+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -407,6 +419,75 @@ class DBStructure{
         return id;
     }
 
+    async insertFilmVideo(mpd_id,resolution_id){
+        if( (!this.checkId(mpd_id) && !this.checkId(resolution_id))){
+            console.error("insertFilmVideo: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `films_videos` (`mpd_id`,`resolution_id`) "
+        + " VALUES("+mpd_id+", "+resolution_id+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async getFilmsAudios(mdpId){
+        if(!this.checkId(mdpId)){
+            console.error("getFilmsAudios: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `films_audios` AS s "+
+        " WHERE s.mpd_id = "+mdpId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }
+    
+    async insertFilmAudio(mpd_id,lang_id,channels){
+        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
+            console.error("insertFilmAudio: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `films_audios` (`mpd_id`,`lang_id`,`channels`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+channels+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async getFilmsSrts(mdpId){
+        if(!this.checkId(mdpId)){
+            console.error("getFilmsSrts: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `films_srts` AS s "+
+        " WHERE s.mpd_id = "+mdpId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }
+
+    async getAudioBitrate(target_channels){
+        var sql = "SELECT * FROM `audio_bitrates` "+
+        " WHERE channels = "+target_channels.toString();
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].bitrate;
+        }
+    }
 
     /// Transcoding part
     async insertAddFileTask(file,target_folder,episode_id,film_id){
