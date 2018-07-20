@@ -84,7 +84,7 @@ MP4Box -dash 2000 -rap -frag-rap  -bs-switching no -profile "dashavc264:live" "o
     ffmpeg -i "${fe}" -ss 00:00:00 -vframes 1  -qscale:v 10 -n -f image2 - | mozcjpeg -progressive -quality 2,35 -quant-table 2 -outfile "${f}"/"${f}".jpg
 
 
-#New approach ffmpeg only
+#ffmpeg only single file
 # only video convert
 /opt/ffmpeg/bin/ffmpeg -re -i ../output.mp4 -an -sn -c:v libx264 \
 -b:v:0 4800k -profile main -bf 1 -keyint_min 120 -g 120 -sc_threshold 0 \
@@ -105,6 +105,16 @@ MP4Box -dash 2000 -rap -frag-rap  -bs-switching no -profile "dashavc264:live" "o
 -use_timeline 1 -use_template 1 -single_file 1 -single_file_name audio1.mp4 \
 -f dash ./audio1.mpd
 
+#ffmpeg templates
+ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -y -an -sn -c:v libx264 -b:v:0 500K -profile main -preset veryfast -keyint_min 48 -g 48 -b_strategy 0 -sc_threshold 0 -use_timeline 1 -min_seg_duration 4000 -use_template 1 -f dash video_only/video.mpd
+
+ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -y -vn -sn -c:a:0 libfdk_aac -ac 2 -ab 384K -use_timeline 1 -min_seg_duration 4000 -use_template 1 -f dash audio_only/audio.mpd
+
+both
+ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -y -sn -c:v libx264 -b:v:0 500K -profile main -preset veryfast -keyint_min 48 -g 48 -b_strategy 0 -sc_threshold 0 -c:a:0 libfdk_aac -ac 2 -ab 384K  -use_timeline 1 -min_seg_duration 4000 -use_template 1 -f dash video_audio/video_audio.mpd
+
+or
+ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -y -sn -c:v libx264 -b:v:0 500K -profile main -preset veryfast -keyint_min 48 -g 48 -b_strategy 0 -sc_threshold 0 -c:a:0 libfdk_aac -ac 2 -ab 384K  -use_timeline 0 -min_seg_duration 4000 -use_template 1 -f dash video_audio_notime/video_audio.mpd
 # libx264 options
 https://sites.google.com/site/linuxencoding/x264-ffmpeg-mapping
 

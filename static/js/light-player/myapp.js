@@ -5,6 +5,7 @@ var lightDemo = lightDemo || {};  // eslint-disable-line no-var
 console.log("uri: ");
 
 var manifestUri = null;
+//manifestUri = "http://192.168.1.69:8080/videos/template/video_only/video.mpd"
 //var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
 //var manifestUri = "http://192.168.1.69:80/videos/fftest/video1.mpd"
 //var manifestUri = "http://192.168.1.69:80/videos/fftest/all.mpd"
@@ -15,7 +16,7 @@ var manifestUri = null;
 //var manifestUri = 'http://192.168.1.69:80/videos/out_copy4.mpd';
 ///var manifestUri = 'http://192.168.1.69:80/videos/outputdash_video_sub/output.mpd'
 //var manifestUri = 'http://192.168.1.69:80/videos/outputdash_video/output.mpd'
-//var manifestUri = 'http://192.168.1.69:80/videos/outputdash/output.mpd'
+//var manifestUri = 'http://192.168.1.69:8080/videos/outputdash/output.mpd'
 //var manifestUri = '/videos/car/car-20120827-manifest.mpd'
 //var manifestUri = '//bitmovin-a.akamaihd.net/content/sintel/sintel.mpd'
 //var manifestUri = '//storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd'

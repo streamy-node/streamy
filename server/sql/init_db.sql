@@ -4,17 +4,17 @@ CREATE TABLE `languages` (
   `iso_639_1` char(2) CHARACTER SET utf8 DEFAULT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT UNIQUE (`iso_639_1`)
-) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=136 ;
+) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=137 ;
 
 -- ffmpeg use 639_2
 CREATE TABLE `languages_iso_639_2` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `language_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `language_id` int(10) unsigned NOT NULL,
   `iso_639_2` char(3) CHARACTER SET utf8 DEFAULT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT UNIQUE (`iso_639_2`),
   FOREIGN KEY (`language_id`) REFERENCES languages(`id`) ON DELETE CASCADE
-) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=136 ;
+) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=500 ;
 
 CREATE TABLE `genres` (
   `id` int NOT NULL,
@@ -218,7 +218,7 @@ CREATE TABLE `series_videos` (
   FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
 );
 
-CREATE TABLE `series_audio` (
+CREATE TABLE `series_audios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned NOT NULL,
@@ -470,9 +470,9 @@ INSERT INTO `global_settings` VALUES(2, 'upload_brick', 2,NULL,NULL,NULL);
 INSERT INTO `global_settings` VALUES(3, 'segment_duration', 2,NULL,2,NULL);
 INSERT INTO `global_settings` VALUES(5, 'encoder_h264_profile', 1,"main",NULL,NULL);
 INSERT INTO `global_settings` VALUES(6, 'encoder_h264_preset', 1,"slow",NULL,NULL);
+INSERT INTO `global_settings` VALUES(7, 'audio_offline_encoder', 1,"libfdk_aac",NULL,NULL);
 
 -- Languages --
-INSERT INTO `languages` VALUES(0, 'Native', NULL);
 INSERT INTO `languages` VALUES(1, 'English', 'en');
 INSERT INTO `languages` VALUES(2, 'Afar', 'aa');
 INSERT INTO `languages` VALUES(3, 'Abkhazian', 'ab');
@@ -521,13 +521,13 @@ INSERT INTO `languages` VALUES(45, 'Armenian', 'hy');
 INSERT INTO `languages` VALUES(46, 'Interlingua', 'ia');
 INSERT INTO `languages` VALUES(47, 'Interlingue', 'ie');
 INSERT INTO `languages` VALUES(48, 'Inupiak', 'ik');
-INSERT INTO `languages` VALUES(49, 'Indonesian', 'in');
+INSERT INTO `languages` VALUES(49, 'Indonesian', 'id');
 INSERT INTO `languages` VALUES(50, 'Icelandic', 'is');
 INSERT INTO `languages` VALUES(51, 'Italian', 'it');
-INSERT INTO `languages` VALUES(52, 'Hebrew', 'iw');
+INSERT INTO `languages` VALUES(52, 'Hebrew', 'he');
 INSERT INTO `languages` VALUES(53, 'Japanese', 'ja');
-INSERT INTO `languages` VALUES(54, 'Yiddish', 'ji');
-INSERT INTO `languages` VALUES(55, 'Javanese', 'jw');
+INSERT INTO `languages` VALUES(54, 'Yiddish', 'yi');
+INSERT INTO `languages` VALUES(55, 'Javanese', 'jv');
 INSERT INTO `languages` VALUES(56, 'Georgian', 'ka');
 INSERT INTO `languages` VALUES(57, 'Kazakh', 'kk');
 INSERT INTO `languages` VALUES(58, 'Greenlandic', 'kl');
@@ -608,9 +608,8 @@ INSERT INTO `languages` VALUES(132, 'Xhosa', 'xh');
 INSERT INTO `languages` VALUES(133, 'Yoruba', 'yo');
 INSERT INTO `languages` VALUES(134, 'Chinese', 'zh');
 INSERT INTO `languages` VALUES(135, 'Zulu', 'zu');
+INSERT INTO `languages` VALUES(136, 'Tahitian', 'ty');
 
-
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(0, NULL);
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(1, 'eng');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(2, 'aar');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(3, 'abk');
@@ -660,101 +659,114 @@ INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(38, 'glg');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(39, 'grn');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(40, 'guj');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(41, 'hau');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(42, 'heb'); -- --
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(43, 'hin');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(44, 'hr');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(45, 'hu');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(46, 'hy');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(46, 'ia');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(47, 'ie');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(48, 'ik');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(49, 'in');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(50, 'is');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(51, 'it');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(52, 'iw');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(53, 'ja');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(54, 'ji');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(55, 'jw');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(56, 'ka');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(57, 'kk');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(58, 'kl');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(59, 'km');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(60, 'kn');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(61, 'ko');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(62, 'ks');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(63, 'ku');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(64, 'ky');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(65, 'la');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(66, 'ln');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(67, 'lo');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(68, 'lt');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(69, 'lv');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(70, 'mg');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(71, 'mi');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(72, 'mk');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(73, 'ml');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(74, 'mn');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(75, 'mo');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(76, 'mr');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(77, 'ms');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(78, 'mt');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(79, 'my');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(80, 'na');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(81, 'ne');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(82, 'nl');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(83, 'no');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(84, 'oc');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(85, 'om');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(86, 'pa');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(87, 'pl');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(88, 'ps');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(89, 'pt');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(90, 'qu');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(91, 'rm');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(92, 'rn');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(93, 'ro');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(94, 'ru');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(95, 'rw');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(96, 'sa');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(97, 'sd');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(98, 'sg');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(99, 'sh');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(100, 'si');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(42, 'hin');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(43, 'hrv');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(44, 'hun');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(45, 'hye');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(45, 'arm');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(46, 'ina');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(47, 'ile');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(48, 'ipk');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(49, 'ind');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(50, 'isl');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(50, 'ice');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(51, 'ita');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(52, 'heb');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(53, 'jpn');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(54, 'yid');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(55, 'jav');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(56, 'kat');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(56, 'geo');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(57, 'kaz');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(58, 'kal');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(59, 'khm');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(60, 'kan');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(61, 'kor');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(62, 'kas');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(63, 'kur');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(64, 'kir');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(65, 'lat');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(66, 'lin');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(67, 'lao');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(68, 'lit');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(69, 'lav');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(70, 'mlg');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(71, 'mri');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(71, 'mao');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(72, 'mkd');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(72, 'mac');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(73, 'mal');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(74, 'mon');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(75, 'mol');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(76, 'mar');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(77, 'msa');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(77, 'may');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(78, 'mlt');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(79, 'mya');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(79, 'bur');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(80, 'nau');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(81, 'nep');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(82, 'nld');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(82, 'dut');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(83, 'nor');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(84, 'oci');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(85, 'orm');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(86, 'pan');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(87, 'pol');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(88, 'pus');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(89, 'por');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(90, 'que');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(91, 'roh');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(92, 'run');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(93, 'ron');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(93, 'rum');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(94, 'rus');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(95, 'kin');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(96, 'san');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(97, 'snd');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(98, 'sag');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(99, 'hbs');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(100, 'sin');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(101, 'sk');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(102, 'sl');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(103, 'sm');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(104, 'sn');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(105, 'so');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(106, 'sq');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(107, 'sr');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(108, 'ss');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(109, 'st');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(110, 'su');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(111, 'sv');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(112, 'sw');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(113, 'ta');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(114, 'te');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(115, 'tg');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(116, 'th');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(117, 'ti');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(118, 'tk');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(119, 'tl');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(120, 'tn');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(121, 'to');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(122, 'tr');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(123, 'ts');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(124, 'tt');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(125, 'tw');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(126, 'uk');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(127, 'ur');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(128, 'uz');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(129, 'vi');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(130, 'vo');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(131, 'wo');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(132, 'xh');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(133, 'yo');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(134, 'zh');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(135, 'zu');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(102, 'slo');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(102, 'slk');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(103, 'smo');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(104, 'sna');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(105, 'som');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(106, 'sqi');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(106, 'alb');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(107, 'srp');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(107, 'scc');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(108, 'ssw');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(109, 'sot');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(110, 'sun');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(111, 'swe');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(112, 'swa');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(113, 'tam');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(114, 'tel');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(115, 'tgk');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(116, 'tha');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(117, 'tir');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(118, 'tuk');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(119, 'tgl');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(120, 'tsn');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(121, 'ton');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(122, 'tur');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(123, 'tso');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(124, 'tat');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(125, 'twi');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(126, 'ukr');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(127, 'urd');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(128, 'uzb');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(129, 'vie');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(130, 'vol');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(131, 'wol');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(132, 'xho');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(133, 'yor');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(134, 'zho');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(134, 'chi');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(135, 'zul');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(136, 'tah');
 
 -- roles
 INSERT INTO `roles` VALUES(1, 'admin');
@@ -797,4 +809,5 @@ INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');
 INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 2, 'brick_upload','/data/upload');
 UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
 UPDATE `global_settings` SET `int` = 2 WHERE `key` = 'upload_brick' ;
+
 INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) VALUES (INET_ATON("127.0.0.1"),7000,1);

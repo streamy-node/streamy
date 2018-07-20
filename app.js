@@ -2,7 +2,7 @@
 // netq.download("https://image.tmdb.org/t/p/w300/kqjL17yufvn9OVLyXYpvtyrFfak.jpg","./plop/fanart.jpg")
 
 var express = require('express')
-var cors = require('cors'); // Chrome cast
+//var cors = require('cors'); // Chrome cast
 var session = require('express-session');
 var formidable = require('formidable');
 var MySQLStore = require('express-mysql-session')(session);
@@ -159,13 +159,21 @@ if (app.get('env') === 'production') {
   sess.cookie.secure = true // serve secure cookies
 }
 
+//The following commented block is for mpd quick tests
+app.get('/videos/*', function (req, res) {
+  // Website you wish to allow to connect
+  res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
+  res.sendFile(__dirname + '/static/videos/'+req.params[0]);
+})
 
+///app.use(cors());
 app.use(express.static('static'));
-app.use(cors());
+
 app.use(session(sess));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 //Setup lang
 app.engine('html', consolidate.mustache); // Assign html to mustache engine
@@ -184,8 +192,25 @@ app.use(function (req, res, next) {
     };
   };
 
+  //if(req.)
+
+  // Website you wish to allow to connect
+  //res.setHeader('Access-Control-Allow-Origin', 'http://192.168.1.69:8080');
+
+  // Request methods you wish to allow
+  //res.setHeader('Access-Control-Allow-Methods', 'GET');
+
+  // Request headers you wish to allow
+  //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+
+  // Set to true if you need the website to include cookies in the requests sent
+  // to the API (e.g. in case you use sessions)
+  //res.setHeader('Access-Control-Allow-Credentials', true);
+
   next();
 });
+
+
 
 function loggedIn(req, res, next) {
   if (req.user) {
@@ -323,15 +348,7 @@ app.get('/series/:serieId/data/*', async function (req, res) {
   var serie = await dbMgr.getSerie(serieId);
   var brick = await dbMgr.getBrick(serie.brick_id);
   var path = brick.path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
-  res.sendFile(path);
-})
-
-app.get('/series/:serieId/data/*', async function (req, res) {
-  //TODO improve performances by caching requests
-  var serieId = req.params.serieId;
-  var serie = await dbMgr.getSerie(serieId);
-  var brick = await dbMgr.getBrick(serie.brick_id);
-  var path = brick.path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+  res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
   res.sendFile(path);
 })
 

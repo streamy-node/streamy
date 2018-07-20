@@ -37,6 +37,18 @@ class DBStructure{
         }
     }
 
+    async getLangFromIso639_2(langCode){
+        var sql = "SELECT * FROM `languages`,`languages_iso_639_2` WHERE languages.id = languages_iso_639_2.language_id AND iso_639_2 = '"+langCode+"'";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            console.error("Cannot lang from 639_2 norme ",langCode);
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
     getConnection(){
         return this.con;
     }

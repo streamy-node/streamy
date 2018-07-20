@@ -283,6 +283,29 @@ class TranscoderManager{
         }
     }
 
+    async _generateX264Part(stream,target_resolution){
+        let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
+        var segmentduration = this.settings.global.segment_duration;
+        var framerate = this._getFramerate(stream);
+        var key_int = Math.floor(framerate * segmentduration);
+
+        return [
+            '-c:v:'+stream.video_index,
+            'libx264',
+            '-b:v:'+stream.video_index,
+            bitrate.toString()+"K",
+            '-profile',
+            this.settings.global.encoder_h264_profile,
+            '-preset',
+            this.settings.global.encoder_h264_preset,
+            '-keyint_min',
+            key_int.toString(),
+            '-g',
+            key_int.toString(),
+            '-b_strategy',
+            '0'
+        ];
+    }
     async _generateX264Command(inputfile,stream,target_resolution,workingDir){
         var output = {};
         //Width determine resolution category
@@ -317,13 +340,15 @@ class TranscoderManager{
             '-b_strategy',
             '0',
             '-use_timeline',
-            '1',
+            '0',
             '-use_template',
-            '1',
+            '0',
             '-single_file',
             '1',
             '-single_file_name',
             output.targetName,
+            '-min_seg_duration',
+            segmentduration,
             '-f',
             'dash',
             workingDir+"/"+output.dashName
@@ -372,7 +397,7 @@ class TranscoderManager{
     }
 
     async _addAudioStream(file,audio_stream,targetChannelsList,workingDir,existingFiles,episodeId,filmId){
-        
+        var self = this;
         //Send transcoding commands
         for(var i=0; i<targetChannelsList.length; i++){
             let targetChannels = targetChannelsList[i];
@@ -381,6 +406,7 @@ class TranscoderManager{
             //Check if command will produce already existing file in target folder
             // If it the case, skip this file
             if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
+                console.log("Skipping already done transcoding for episode ",episodeId," file: ",cmd.targetName);
                 continue;
             }
 
@@ -393,6 +419,15 @@ class TranscoderManager{
                      console.error("Failed to create mdp entry in db ",workingDir);
                      return;
                  }
+
+                let langInfos = await self.dbMgr.getLangFromIso639_2(audio_stream.tags.language);
+                let lang_id = null;
+
+                if(!langInfos){
+                    console.log("Unknown audio lang ...",);
+                }else{
+                    lang_id = langInfos.language_id;
+                }
 
                 var id = null;
                 if(episodeId){
@@ -432,18 +467,18 @@ class TranscoderManager{
 
     _getAudiosChannelsByLangs(streams){
         var outputs = new Map();
-        let outputs = new Set();
         for(var i=0; i<streams.length; i++){
             let stream = streams[i];
-            let lang = outputsstream.tags.language;
-            if(! ouputs.has(lang)){
+            let lang = stream.tags.language;
+            if(! outputs.has(lang)){
                 if(!lang){
                     lang = "unknown";
                 }
-                ouputs.set(lang,new Set());
+                outputs.set(lang,new Set());
             }
             outputs.get(lang).add(stream.channels);
         }
+        return outputs;
     }
 
     _getLowerChannelByLang(stream,audios_channels){
@@ -454,16 +489,35 @@ class TranscoderManager{
         return Math.min.apply(null, channels);
     }
 
+    async _generateFdkaacPart(stream,target_channels){
+        return[
+        '-c:a:'+stream.audio_index,
+        'libfdk_aac',
+        '-ac',
+        target_channels.toString(),
+        '-ab'
+        ];
+    }
+
     async _generateFdkaacCommand(inputfile,stream,target_channels,workingDir){
         var output = {};
+
         //Width determine resolution category
         //width*height induce bitrate
         let bitrate = await this.dbMgr.getAudioBitrate(target_channels);
         
-        // var segmentduration = this.settings.global.segment_duration;
+        var segmentduration = this.settings.global.segment_duration;
+        let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
+        let lang_639_1 = "unknown";
 
-        output.targetName = "audio_fdkaac_ch"+target_channels.toString()+".mp4";
-        output.dashName = "audio_fdkaac_ch"+target_channels.toString()+".mpd";
+        if(!langInfos){
+            console.log("Unknown lang ",stream.tags.language);
+        }else{
+            lang_639_1 = langInfos.iso_639_1;
+        }
+
+        output.targetName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mp4";
+        output.dashName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mpd";
         output.args = [
             '-i',
             inputfile,
@@ -477,13 +531,15 @@ class TranscoderManager{
             '-ab',
             bitrate.toString()+"K",
             '-use_timeline',
-            '1',
+            '0',
             '-use_template',
-            '1',
+            '0',
             '-single_file',
             '1',
             '-single_file_name',
             output.targetName,
+            '-min_seg_duration',
+            segmentduration,
             '-f',
             'dash',
             workingDir+"/"+output.dashName
@@ -494,12 +550,6 @@ class TranscoderManager{
 // -f dash ./audio1.mpd
 
         //-preset slow
-
-        //Scale video if needed
-        if(original_resolution.id !== target_resolution.id){
-            output.args.splice(2,0,'-vf');
-            output.args.splice(3,0,'scale='+target_resolution.width.toString()+":-1");
-        }
 
         return output;
     }
