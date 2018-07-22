@@ -271,6 +271,10 @@ app.get('/js/shaka/*', function (req, res) {
   res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
 })
 
+app.get('/css/material-icons/*', function (req, res) {
+  res.sendFile(__dirname + '/node_modules/material-icons/css/' + req.params[0]);
+})
+
 // API key
 app.get('/moviedb/key', function (req, res) {
   res.send(MovieDB_KEY);
@@ -409,17 +413,17 @@ app.post('/upload/:type', async function(req,res){
     //One ulpoad done
     form.on('file', async function(name, file) {
       console.log('File uploaded ',name,file);
-
-      //var fileType = "video";//TODO parse extension
+      //TODO parse extension
 
       //If file has no name delete it
       if(file.name === ""){
         fsUtils.unlink(file.path);
       }else{
+        var filename = path.basename(file.path);
         if(type === "series"){
-          transcodeMgr.addEpisode(file,parseInt(uploadInfos.id));
+          transcodeMgr.addEpisode(filename,parseInt(uploadInfos.id));
         }else if(type === "films"){
-          transcodeMgr.addFilm(file,parseInt(uploadInfos.id));;
+          transcodeMgr.addFilm(filename,parseInt(uploadInfos.id));;
         }
       }
     });
@@ -483,7 +487,12 @@ var server = app.listen(8080, function () {
   var port = server.address().port
   
 	console.log("Streamy node listening at http://%s:%s", host, port)
-})
+});
 
+// Restart failed or not finished add file tasks
+// as soon as there is a ffmpeg worker available
+processesMgr.on('workerAvailable', function(){
+  transcodeMgr.loadAddFileTasks();
+});
 // TODO properly shutdown
 // sessionStore.close();

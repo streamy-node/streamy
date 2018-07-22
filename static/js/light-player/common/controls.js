@@ -531,7 +531,7 @@ ShakaControls.prototype.onTracksChange_ = function() {
   // TS content might have captions embedded in video stream, we can't know
   // until we start transmuxing. So, always show caption button if we're
   // playing TS content.
-  if (ShakaDemoUtils.isTsContent(this.player_)) {
+  if (lightDemoUtils.isTsContent(this.player_)) {
     this.captionButton_.style.display = 'inherit';
   } else {
     let hasText = this.player_.getTextTracks().length;
@@ -558,7 +558,7 @@ ShakaControls.prototype.onFullscreenClick_ = function() {
   if (document.fullscreenElement) {
     document.exitFullscreen();
   } else {
-    this.videoContainer_.requestFullscreen();
+    this.videoContainer_.requestFullscreen();//requestFullscreen();
   }
 };
 
@@ -707,6 +707,7 @@ ShakaControls.prototype.isOpaque_ = function() {
  * @private
  */
 ShakaControls.prototype.updateTimeAndSeekRange_ = function() {
+  console.log("Video duration: ",this.video_.duration);
   // Suppress updates if the controls are hidden.
   if (!this.isOpaque_()) {
     return;

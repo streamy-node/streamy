@@ -1,26 +1,53 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
+    <meta name="description" content="Shaka Player Demo">
+    <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff">
+
+    <title>Streamy player</title>
+    <!--If you are always connected to internet, the uncomment this for icons-->
+      <!--link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"-->
+
+      <link rel="stylesheet" type="text/css" href="/css/material-design.css">
+      
+
+
     <!-- Shaka Player compiled library: -->
 		<!--script src="/js/shaka/shaka-player.uncompiled.js"></script-->
-		<!-- script src="/js/shaka/dist/shaka-player.compiled.js"></script-->
-		<script src="/js/shaka/dist/shaka-player.compiled.debug.js"></script>
+    <!-- script src="/js/shaka/dist/shaka-player.compiled.js"></script-->
+    <link rel="stylesheet" type="text/css" href="/css/player.css">
+    <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
+    <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
+    <script src="/js/light-player/assets.js"></script>
+    <script src="/js/shaka/dist/shaka-player.compiled.debug.js"></script>
+    <script src="/js/light-player/demo_utils.js"></script>
 		<script defer src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
     <script src="/js/light-player/common/controls.js"></script>
+    <script src="/js/light-player/info_section.js"></script>
+    <script src="/js/light-player/asset_section.js"></script>
+    <script src="/js/light-player/offline_section.js"></script>
+
+
     
-		
-		
-		<!-- script src="/js/shaka/third_party/closure/base.js"></script>
-		<script src="/js/shaka/third_party/closure/uri/uri.js"></script>
-		<script src="/js/shaka/third_party/closure/uri/utils.js"></script>
-		<script src="/js/shaka/lib/debug/log.js"></script-->
-    <!-- Your application source: -->
+    <!-- IE11 support is enabled by including this: -->
+    <!-- <script defer src="../shaka/node_modules/es6-promise-polyfill/promise.min.js"></script>
+    <script src="/js/shaka/third_party/closure/goog/base.js"></script>
+    <script src="/js/shaka/dist/deps.js"></script>
+    <script src="/js/shaka/lib/polyfill/fullscreen.js"></script> -->
+    <!--link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto+Condensed">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"-->
+
     <script src="myapp.js"></script>
   </head>
   <body>
-
+    <div id="container">
       <div id="videoContainer" class="overlay-parent">
-        <video id="video" width="640" 
+        <video id="video" autoplay 
 					poster="//shaka-player-demo.appspot.com/assets/poster.jpg" autoplay></video>
         <div id="giantPlayButtonContainer" class="overlay">
           <button id="giantPlayButton" class="material-icons">play_arrow</button>
@@ -47,5 +74,60 @@
           <button id="fullscreenButton" class="material-icons">fullscreen</button>
         </div></div>
       </div>
+
+      <div class="flex">
+        <label for="assetList">Asset:</label>
+        <select id="assetList" class="flex-grow"></select>
+      </div>
+      
+      <details class="input">
+        <summary>Infob</summary>
+        <div class="flex">
+          <label for="audioLanguages">Audio languages:</label>
+          <select id="audioLanguages" class="flex-grow"></select>
+        </div>
+
+        <div class="flex">
+          <label for="variantTracks">Video+audio track combinations:</label>
+          <select id="variantTracks" class="flex-grow"></select>
+        </div>
+
+        <div class="flex">
+          <label for="textLanguages">Text languages:</label>
+          <select id="textLanguages" class="flex-grow"></select>
+        </div>
+
+        <div class="flex">
+          <label for="textTracks">Text tracks:</label>
+          <select id="textTracks" class="flex-grow"></select>
+        </div>
+
+        <div>
+          <span class="label">Active resolution:</span>
+          <span id="videoResDebug"></span>
+        </div>
+
+        <div>
+          <span class="label">Buffered:</span>
+          <span id="bufferedDebug"></span>
+        </div>
+      </details>
+  
+      <details id="offlineSection" class="input">
+        <summary>Offline</summary>
+        <div>
+          <button id="storeDeleteButton">Store</button>
+          <span id="storeDeleteHelpText"></span>
+        </div>
+        <div id="progressDiv">
+          <span class="label">Progress:</span>
+          <span id="progress">0</span>%
+        </div>
+        <div id="offlineNameDiv">
+          <label for="offlineName">Name:</label>
+          <input id="offlineName" class="flex-grow" type="text">
+        </div>
+      </details>
+    </div>
   </body>
 </html>

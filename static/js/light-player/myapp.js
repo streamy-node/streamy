@@ -5,21 +5,7 @@ var lightDemo = lightDemo || {};  // eslint-disable-line no-var
 console.log("uri: ");
 
 var manifestUri = null;
-//manifestUri = "http://192.168.1.69:8080/videos/template/video_only/video.mpd"
-//var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
-//var manifestUri = "http://192.168.1.69:80/videos/fftest/video1.mpd"
-//var manifestUri = "http://192.168.1.69:80/videos/fftest/all.mpd"
-//var manifestUri = "http://192.168.1.69:80/videos/mp4boxvid/output.mpd"
-//var manifestUri = 'http://192.168.1.69:80/videos/outputdash_one_file/output.mpd';
-//var manifestUri = 'http://192.168.1.69:80/videos/outputdash5min/video.mpd';
-//var manifestUri = 'http://192.168.1.69:80/videos/Money/video.mpd';
-//var manifestUri = 'http://192.168.1.69:80/videos/out_copy4.mpd';
-///var manifestUri = 'http://192.168.1.69:80/videos/outputdash_video_sub/output.mpd'
-//var manifestUri = 'http://192.168.1.69:80/videos/outputdash_video/output.mpd'
-//var manifestUri = 'http://192.168.1.69:8080/videos/outputdash/output.mpd'
-//var manifestUri = '/videos/car/car-20120827-manifest.mpd'
-//var manifestUri = '//bitmovin-a.akamaihd.net/content/sintel/sintel.mpd'
-//var manifestUri = '//storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd'
+
 /**
  * The registered ID of the v2.3 Chromecast receiver demo.
  * https://developers.google.com/cast/docs/registration
@@ -71,40 +57,129 @@ lightDemo.init = function() {
   }
 }
 
+shakaAssets.testAssets.push({
+  name: 'Money (multicodec)',
+  manifestUri: manifestUri,
+  encoder: shakaAssets.Encoder.STREAMY,
+  source: shakaAssets.Source.UNKNOWN,
+  drm: [],
+  features: [
+    shakaAssets.Feature.HIGH_DEFINITION,
+    shakaAssets.Feature.MP4,
+    shakaAssets.Feature.SEGMENT_BASE,
+    shakaAssets.Feature.SUBTITLES,
+    shakaAssets.Feature.ULTRA_HIGH_DEFINITION
+  ]
+});
+
 lightDemo.initPlayer = function() {
-  // Create a Player instance.
-  let localVideo = document.getElementById('video');
-  let localPlayer = new shaka.Player(video);
-	shaka.log.setLevel(shaka.log.Level.V2)
 
-  lightDemo.castProxy_ =  new shaka.cast.CastProxy(
-          localVideo, localPlayer, lightDemo.CC_APP_ID_);
+  //Check support (highlight only compatible streams)
+  shaka.Player.probeSupport().then(function(support) {
+  lightDemo.support_ = support;
 
-  lightDemo.video_ = lightDemo.castProxy_.getVideo();
-  lightDemo.player_ = lightDemo.castProxy_.getPlayer();
-  lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
-  lightDemo.localVideo_ = localVideo;
-  lightDemo.localPlayer_ = localPlayer;
+    // Create a Player instance.
+    let localVideo = document.getElementById('video');
+    let localPlayer = new shaka.Player(video);
+    shaka.log.setLevel(shaka.log.Level.V2);//V2
 
-  // Set the default poster.
-  //shakaDemo.localVideo_.poster = shakaDemo.mainPoster_;
+    lightDemo.castProxy_ =  new shaka.cast.CastProxy(
+            localVideo, localPlayer, lightDemo.CC_APP_ID_);
 
-  // Attach player to the window to make it easy to access in the JS console.
-  //window.player = player;
+    lightDemo.video_ = lightDemo.castProxy_.getVideo();
+    lightDemo.player_ = lightDemo.castProxy_.getPlayer();
+    lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
+    lightDemo.localVideo_ = localVideo;
+    lightDemo.localPlayer_ = localPlayer;
 
-  // Listen for error events.
-  lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
+    // Set the default poster.
+    //shakaDemo.localVideo_.poster = shakaDemo.mainPoster_;
 
-	lightDemo.controls_ = new ShakaControls();
-	lightDemo.controls_.init(lightDemo.castProxy_, lightDemo.onError,
-                               lightDemo.onCastStatusChange_);
-  // Try to load a manifest.
-  // This is an asynchronous process.
-	lightDemo.player_.load(manifestUri).then(function() {
-    // This runs if the asynchronous load is successful.
-    console.log('The video has now been loaded!');
-  }).catch(lightDemo.onError);  // onError is executed if the asynchronous load fails.
+    // Attach player to the window to make it easy to access in the JS console.
+    //window.player = player;
+
+    // Listen for error events.
+    lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
+
+    let asyncSetup = lightDemo.setupAssets_();
+    lightDemo.setupOffline_();
+    //lightDemo.setupConfiguration_();
+    lightDemo.setupInfo_();
+
+    lightDemo.controls_ = new ShakaControls();
+    lightDemo.controls_.init(lightDemo.castProxy_, lightDemo.onError,
+                                lightDemo.onCastStatusChange_);
+
+    asyncSetup.catch(function(error) {
+      // shakaDemo.setupOfflineAssets_ errored while trying to
+      // load the offline assets. Notify the user of this.
+      lightDemo.onError_(/** @type {!shaka.util.Error} */ (error));
+    }).then(function() {
+      //lightDemo.postBrowserCheckParams_(params);
+      window.addEventListener('hashchange', lightDemo.updateFromHash_);
+    });
+
+    lightDemo.load();
+
+    // Try to load a manifest.
+    // This is an asynchronous process.
+    // lightDemo.player_.load(manifestUri).then(function() {
+    //   // This runs if the asynchronous load is successful.
+    //   console.log('The video has now been loaded!');
+    // }).catch(lightDemo.onError);  // onError is executed if the asynchronous load fails.
+  }).catch(function(error) {
+    // Some part of the setup of the demo app threw an error.
+    // Notify the user of this.
+    console.error("Player error",error);
+    //shakaDemo.onError_(/** @type {!shaka.util.Error} */ (error));
+  });
 }
+
+/** @private */
+lightDemo.hashShouldChange_ = function() {
+  if (!lightDemo.hashCanChange_) {
+    return;
+  }
+
+  let params = [];
+  let oldParams = shakaDemo.getParams_();
+
+  // Save the current asset.
+  let assetUri;
+  let licenseServerUri;
+  if (lightDemo.player_) {
+    assetUri = lightDemo.player_.getManifestUri();
+    let drmInfo = lightDemo.player_.drmInfo();
+    if (drmInfo) {
+      licenseServerUri = drmInfo.licenseServerUri;
+    }
+  }
+  let assetList = document.getElementById('assetList');
+  if (assetUri) {
+    // Store the currently playing asset URI.
+    params.push('asset=' + assetUri);
+
+    // Is the asset a default asset?
+    let isDefault = false;
+    // Check all options except the last, which is 'custom asset'.
+    for (let index = 0; index < assetList.options.length - 1; index++) {
+      if (assetList[index].asset.manifestUri == assetUri) {
+        isDefault = true;
+        break;
+      }
+    }
+
+    // If it's a custom asset we should store whatever the license
+    // server URI is.
+    if (!isDefault && licenseServerUri) {
+      params.push('license=' + licenseServerUri);
+    }
+  } else {
+      // It's a default asset.
+      params.push('asset=' +
+          assetList[assetList.selectedIndex].asset.manifestUri);
+  }
+};
 
 lightDemo.onCastStatusChange_ = function(isRunning){
 	if(isRunning){
@@ -116,15 +191,33 @@ lightDemo.onCastStatusChange_ = function(isRunning){
 
 lightDemo.onErrorEvent = function(event) {
   // Extract the shaka.util.Error object from the event.
-  lightDemo.onError(event.detail);
+  lightDemo.onError_(event.detail);
 }
 
-lightDemo.onError = function(error) {
+lightDemo.onError_ = function(error) {
   // Log the error.
   console.error('Player error', error.message);
   console.error('Error code', error.code, 'object', error);
 	console.error('error.data', error.data[0]);
 }
 
+/**
+ * Closes the error bar.
+ */
+lightDemo.closeError = function() {
+  // document.getElementById('errorDisplay').style.display = 'none';
+  // let link = document.getElementById('errorDisplayLink');
+  // link.href = '';
+  // link.textContent = '';
+  // link.severity = null; 
+};
+
+//TODO poster
+lightDemo.mainPoster_ = "poster";
+
+shaka.polyfill.installAll();
+//shaka.polyfill.Fullscreen.install();
+//shaka.polyfill.PatchedMediaKeysMs.install();
+//shaka.polyfill.PatchedMediaKeysWebkit.install();
 
 document.addEventListener('DOMContentLoaded', lightDemo.initPlayer);

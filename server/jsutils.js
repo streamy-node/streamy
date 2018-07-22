@@ -19,5 +19,9 @@ const removeFromList = function(process,list){
   }
 }
 
+const clone = function (a) {
+  return JSON.parse(JSON.stringify(a));
+}
 module.exports.moveFromToArray = moveFromToArray
 module.exports.removeFromList = removeFromList
+module.exports.clone = clone

@@ -41,12 +41,14 @@ shakaAssets.Encoder = {
   AZURE_MEDIA_SERVICES: 'Azure Media Services',
   MP4BOX: 'MP4Box',
   APPLE: 'Apple',
-  UPLYNK: 'Verizon Digital Media Services'
+  UPLYNK: 'Verizon Digital Media Services',
+  STREAMY: 'Streamy :)'
 };
 
 
 /** @enum {string} */
 shakaAssets.Source = {
+  UNKNOWN: 'Unknown',
   SHAKA: 'Shaka',
   AXINOM: 'Axinom',
   UNIFIED_STREAMING: 'Unified Streaming',
@@ -1199,3 +1201,4 @@ shakaAssets.testAssets = [
   // }}}
 ];
 
+//shakaAssets.testAssets = [];

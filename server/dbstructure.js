@@ -348,20 +348,31 @@ class DBStructure{
         }
     }
 
-    async insertSerieMPDFile(episode_id,folder){
-        if( (!this.checkId(episode_id) && folder.length > 0)){
+    async insertSerieMPDFile(episode_id,folder,complete){
+        if( (!this.checkId(episode_id) || folder.length && 0)){
             console.error("insertSerieMPDFile: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`) "
-        + " VALUES("+episode_id+", '"+folder+"')";
+        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`,`complete`) "
+        + " VALUES("+episode_id+", '"+folder+"', "+complete.toString()+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async setSerieMPDFileComplete(mpd_id,complete){
+        if( (!this.checkId(mpd_id))){
+            console.error("setSerieMPDFileComplete: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `series_mpd_files` SET `complete` = "+complete.toString()+" WHERE `id` = "+mpd_id.toString();
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
     }
 
     async insertSerieVideo(mpd_id,resolution_id){
-        if( (!this.checkId(mpd_id) && !this.checkId(resolution_id))){
+        if( (!this.checkId(mpd_id) || !this.checkId(resolution_id))){
             console.error("insertSerieVideo: Invalid entries ");
             return null;
         }
@@ -419,13 +430,24 @@ class DBStructure{
         }
     }
 
-    async insertFilmMPDFile(film_id,folder){
+    async insertFilmMPDFile(film_id,folder,complete){
         if( (!this.checkId(film_id) && folder.length > 0)){
-            console.error("insertSerieVideo: Invalid entries ");
+            console.error("insertFilmMpd: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`folder`) "
-        + " VALUES("+film_id+", '"+folder+"')";
+        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`folder`,`complete`) "
+        + " VALUES("+film_id+", '"+folder+"',"+complete.toString()+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async setFilmMPDFileComplete(mpd_id,complete){
+        if( (!this.checkId(mpd_id))){
+            console.error("setFilmMPDFileComplete: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `films_mpd_files` SET `complete` = "+complete.toString()+" WHERE `id` = "+mpd_id.toString();
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -502,13 +524,13 @@ class DBStructure{
     }
 
     /// Transcoding part
-    async insertAddFileTask(file,target_folder,episode_id,film_id){
-        if( (!this.checkId(episode_id) && !this.checkId(film_id)) || target_folder.length == 0 || file.length == 0 ){
+    async insertAddFileTask(file,working_folder,episode_id,film_id){
+        if( (!this.checkId(episode_id) && !this.checkId(film_id)) || working_folder.length == 0 || file.length == 0 ){
             console.error("insertAddFileTask: Invalid entries ");
             return null;
         }
         var sql = "INSERT INTO `add_file_tasks` (`file`,`working_folder`,`episode_id`,`film_id`) "
-        + " VALUES('"+file+"', '"+target_folder+"', "+episode_id+", "+film_id+")";
+        + " VALUES('"+file+"', '"+working_folder+"', "+episode_id+", "+film_id+")";
         var sqlres = await this.query(sql);
         var taskId = sqlres.insertId;
 
@@ -517,8 +539,8 @@ class DBStructure{
 
 
     async getAddFileTask(fileName){
-        var sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"'";
-        var result = await this.query(sql);
+        let sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"'";
+        let result = await this.query(sql);
 
         if(result.length == 0 ){
             return null;
@@ -527,10 +549,16 @@ class DBStructure{
         }
     }
 
+    async getAddFileTasks(){
+        let sql = "SELECT * FROM `add_file_tasks`";
+        let results = await this.query(sql);
+        return results;
+    }
+
     async removeAddFileTask(id){
-        var sql = "DELETE FROM `add_file_tasks`  "
-        + " WHERE id = "+id+")";
-        var sqlres = await this.query(sql);
+        let sql = "DELETE FROM `add_file_tasks`  "
+        + " WHERE id = "+id;
+        let sqlres = await this.query(sql);
         return sqlres;
     }
 

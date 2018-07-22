@@ -204,6 +204,7 @@ CREATE TABLE `series_mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `episode_id` int NOT NULL,
   `folder` VARCHAR(255) NOT NULL,
+  `complete`  TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`episode_id`,`folder`) 
@@ -277,6 +278,7 @@ CREATE TABLE `films_mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `film_id` int NOT NULL,
   `folder` VARCHAR(255) NOT NULL,
+  `complete`  TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`film_id`,`folder`) 

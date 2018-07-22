@@ -1,0 +1,43 @@
+#container {
+  margin: 0 auto 0 auto;
+  width: 100%;
+}
+
+#video{
+  width: 100%;
+}
+
+#videoContainer {
+  background-color: transparent;
+}
+
+.overlay-parent {
+  /* Makes this a positioned ancestor of .overlay */
+  position: relative;
+}
+
+.overlay {
+  /* Allows this to be positioned relative to a containing .overlay-parent */
+  position: absolute;
+}
+
+.for-screen-readers {
+  /* Hide the content from sighted users, but not screen readers */
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+#video {
+  /* height and margin needed in fullscreen mode */
+  width: 100%;
+  height: 100%;
+  margin: auto;
+}

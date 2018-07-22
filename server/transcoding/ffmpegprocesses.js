@@ -8,6 +8,7 @@ const sendAsJson = require('../netutils.js').sendAsJson;
 const parseJson = require('../netutils').parseJson
 const moveFromToArray = require('../jsutils.js').moveFromToArray;
 const removeFromList = require('../jsutils.js').removeFromList;
+const EventEmitter = require('events');
 
 class Hardware{
   constructor(core,gpu,vaapi,omx){
@@ -26,7 +27,7 @@ const PROCESS_STATUS = {
   STOPPED: 'STOPPED',
   TERMINATED: 'TERMINATED'
 }
-const EventEmitter = require('events');
+
 class Process extends EventEmitter{
    
   constructor(cmd,args,priority,hw,exclusive, onStart, onStop, onProgression, onFinal){
@@ -94,8 +95,9 @@ class Worker{
   }  
 }
 
-class FfmpegProcessManager{
+class FfmpegProcessManager extends EventEmitter{
   constructor(){
+    super();
     this.workers = [];
     this.processes = [];
     this.waitingProcesses = []; // Processes not yet launched waiting
@@ -115,6 +117,9 @@ class FfmpegProcessManager{
       //hwInfos = {core:1.0,gpu:1.6,vaapi:0.0,omx:0.0};
       var worker = new Worker(ip,port,ffmpegInfos,hwInfos);
       this.workers.push(worker);
+      if(this.workers.length == 1){
+        this.emit('workerAvailable');
+      }
       console.log("Worker added ",ip,port);
       this.fillupWorker(worker);
       return true;
@@ -521,12 +526,17 @@ class FfmpegProcessManager{
   }
 
   async ffprobe(file){
-    if(this.workers.length == 0){
+    try{
+      if(this.workers.length == 0){
+        return null;
+      }
+      //For the moment take only last worker to do ffprobe
+      var worker = this.workers[this.workers.length-1];
+      return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
+    }catch(err){
+      console.error("ffprobe failed with file ",file,err);
       return null;
     }
-    //For the moment take only last worker to do ffprobe
-    var worker = this.workers[this.workers.length-1];
-    return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
   }
 
 }

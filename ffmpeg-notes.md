@@ -115,6 +115,9 @@ ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -
 
 or
 ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -y -sn -c:v libx264 -b:v:0 500K -profile main -preset veryfast -keyint_min 48 -g 48 -b_strategy 0 -sc_threshold 0 -c:a:0 libfdk_aac -ac 2 -ab 384K  -use_timeline 0 -min_seg_duration 4000 -use_template 1 -f dash video_audio_notime/video_audio.mpd
+
+multi resolution
+ffmpeg -i b6fd76b86b20322b0c6a1f5e869a1fac4b34987e896e2ecb26c53d6aabd54e9b.mp4 -map 0:0 -map 0:0 -map 0:1 -y -sn -c:v:0 libx264 -b:v:0 500K -profile:v:0 main -preset:v:0 veryfast -keyint_min:v:0 48 -g 48 -b_strategy:v:0 0 -sc_threshold:v:0 0 -c:v:1 libx264 -b:v:1 300K -filter:v:1 scale=480:-2 -profile:v:1 main -preset:v:1 veryfast -keyint_min 48 -g 48 -b_strategy 0 -sc_threshold 0 -c:a:0 libfdk_aac -ac 2 -ab 384K  -use_timeline 0 -min_seg_duration 4000 -use_template 1 -f dash video_audio_scale/video_audio.mpd
 # libx264 options
 https://sites.google.com/site/linuxencoding/x264-ffmpeg-mapping
 
