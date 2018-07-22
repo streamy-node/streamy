@@ -48,7 +48,10 @@
     <div id="container">
       <div id="videoContainer" class="overlay-parent">
         <video id="video" autoplay 
-					poster="//shaka-player-demo.appspot.com/assets/poster.jpg" autoplay></video>
+          poster="//shaka-player-demo.appspot.com/assets/poster.jpg" autoplay>
+          <track label="English2" kind="subtitles" srclang="en" src="first.vtt" default>
+          
+        </video>
         <div id="giantPlayButtonContainer" class="overlay">
           <button id="giantPlayButton" class="material-icons">play_arrow</button>
         </div>

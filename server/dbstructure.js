@@ -314,13 +314,13 @@ class DBStructure{
         }
     }  
 
-    async getSeriesSrts(mdpId){
+    async getSeriesSubtitles(mdpId){
         if(!this.checkId(mdpId)){
-            console.error("getSeriesSrts: Invalid entries ");
+            console.error("getSeriesSubtitles: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_srts` AS s "+
+        var sql = "SELECT * FROM `series_subtitles` AS s "+
         " WHERE s.mpd_id = "+mdpId;
         var results = await this.query(sql);
 
@@ -390,8 +390,34 @@ class DBStructure{
         }
         var sql = "INSERT INTO `series_audios` (`mpd_id`,`lang_id`,`channels`) "
         + " VALUES("+mpd_id+", "+lang_id+", "+channels+")";
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
+        let id = null;
+        try{
+            var sqlres = await this.query(sql);
+            id = sqlres.insertId;
+        }catch(error){
+            console.warn("Error inserting subtitle in database: "+error);
+            return null;
+        }
+        return id;
+    }
+
+    async insertSerieSubtitle(mpd_id,lang_id,name,filename){
+        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
+            console.error("insertSerieSubtitle: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `series_subtitles` (`mpd_id`,`lang_id`,`name`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+name+")";
+
+        let id = null;
+        try{
+            var sqlres = await this.query(sql);
+            id = sqlres.insertId;
+        }catch(error){
+            console.warn("Error inserting subtitle in database: "+error);
+            return null;
+        }
+
         return id;
     }
 
@@ -489,18 +515,41 @@ class DBStructure{
         }
         var sql = "INSERT INTO `films_audios` (`mpd_id`,`lang_id`,`channels`) "
         + " VALUES("+mpd_id+", "+lang_id+", "+channels+")";
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
+        let id = null;
+        try{
+            var sqlres = await this.query(sql);
+            id = sqlres.insertId;
+        }catch(error){
+            console.warn("Error inserting subtitle in database: "+error);
+            return null;
+        }
         return id;
     }
 
-    async getFilmsSrts(mdpId){
+    async insertFilmSubtitle(mpd_id,lang_id,name){
+        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
+            console.error("insertFilmSubtitle: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `films_subtitles` (`mpd_id`,`lang_id`,`name`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+name+")";
+        try{
+            var sqlres = await this.query(sql);
+            id = sqlres.insertId;
+        }catch(error){
+            console.warn("Error inserting subtitle in database: "+error);
+            return null;
+        }
+        return id;
+    }
+
+    async getFilmsSubtitles(mdpId){
         if(!this.checkId(mdpId)){
-            console.error("getFilmsSrts: Invalid entries ");
+            console.error("getFilmsSubtitles: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `films_srts` AS s "+
+        var sql = "SELECT * FROM `films_subtitles` AS s "+
         " WHERE s.mpd_id = "+mdpId;
         var results = await this.query(sql);
 

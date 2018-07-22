@@ -114,7 +114,7 @@ class TranscoderManager{
                         console.error("Failed to create mdp entry in db ",absoluteWorkingFolder);
                         return;
                     }
-
+                    let subtitles_streams = [];
                     for(var i=0; i<ffmpegCmd.streams.length; i++){
                         let stream = ffmpegCmd.streams[i];
                         
@@ -134,12 +134,23 @@ class TranscoderManager{
                             }else if(filmId){
                                 id = await self.dbMgr.insertFilmAudio(mpdId,langInfos.language_id,stream.channels);
                             }
+                        }else if(stream.codec_type === "subtitle"){
+                            subtitles_streams.push(stream);
+                            let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
+                            if(episodeId){
+                                id = await self.dbMgr.insertSerieSubtitle(mpdId,langInfos.language_id);
+                            }else if(filmId){
+                                id = await self.dbMgr.insertFilmSubtitle(mpdId,lang_id,name);
+                            }
                         }
 
                         if(id === null){
-                            console.error("Failed to create video entry in db ",mpdId,resolution.id);
+                            console.error("Failed to create video entry in db "+absoluteWorkingFolder+" "+stream.codec_type);
                         }
                     }
+
+                    //Add subtitles to mdp file
+                    await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
 
                     //Mark mpd as complete
                     await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
@@ -167,32 +178,36 @@ class TranscoderManager{
             '-y'
         ];
 
+        let subArgs = [];
         let mappingArgs = [];
         
         let streamArgs = [];
 
         let adaptation_sets = 'id=0,streams=v ';
+        let adaptation_index = 1;
 
         //Generate output streams
-        let videoOutputIndex = 0;
-        let audioOutputIndex = 0;
-        let globalIndex = 0;
+        let bestVideoStream = this._getBestVideoStream(infos.streams);
+        //let videoOutputIndex = 0;
+        //let audioOutputIndex = 0;
+        //let audioVideoIndex = 0;
         for(var i=0; i<infos.streams.length; i++){
             let stream = infos.streams[i];
 
-            if(stream.codec_type === "video" && videoOutputIndex == 0){ //Take only first video stream
+            if(stream.codec_type === "video" && bestVideoStream == stream){ //Take the best video stream
                 let valid_resolutions = await this._filterValidResolutions(stream,resolutions);
 
                 for(var j=0; j<valid_resolutions.length; j++){
                     let output_stream = jsutils.clone(stream);
-                    output_stream._video_index = videoOutputIndex;
+                    //output_stream._video_index = videoOutputIndex;
                     output_stream.width = valid_resolutions[j].width;
-                    output_stream.index = globalIndex;
+                    //output_stream.index = audioVideoIndex;
+                    output_stream._src_index = stream.index;
                     output_streams.push(output_stream);
-                    mappingArgs.push('-map');
-                    mappingArgs.push("0:"+stream.index);
-                    videoOutputIndex++;
-                    globalIndex++;
+                    // mappingArgs.push('-map');
+                    // mappingArgs.push("0:"+stream.index);
+                    //videoOutputIndex++;
+                    //audioVideoIndex++;
                 }
             }else if(stream.codec_type === "audio"){
                 //stream._audio_index = audio_idx++;
@@ -206,20 +221,28 @@ class TranscoderManager{
 
                 for(var k=0; k<targetChannels.length; k++){
                     let output_stream = jsutils.clone(stream);
-                    output_stream._audio_index = audioOutputIndex;
-                    output_stream.index = globalIndex;
+                    //output_stream._audio_index = audioOutputIndex;
+                    //output_stream.index = audioVideoIndex;
+                    output_stream._src_index = stream.index;
                     output_stream.channels = targetChannels[k];
                     output_streams.push(output_stream);
-                    adaptation_sets+='id='+stream.index.toString()+",streams="+(mappingArgs.length/2).toString()+" ";
-                    mappingArgs.push('-map');
-                    mappingArgs.push("0:"+stream.index);
+                    adaptation_sets+='id='+stream.index.toString()+",streams="+(adaptation_index).toString()+" ";
+                    adaptation_index++;
+                    // mappingArgs.push('-map');
+                    // mappingArgs.push("0:"+stream.index);
                     
-                    audioOutputIndex++;
-                    globalIndex++;
+                    //audioOutputIndex++;
+                    //audioVideoIndex++;
                 }
 
             }else if(stream.codec_type === "subtitle"){
-
+                //Subtitle are not handled directly by ffmpeg in mpd file. So there is no adaptation set
+                let output_stream = jsutils.clone(stream);
+                output_stream._src_index = stream.index;
+                output_stream.target_folder = targetFolder;
+                output_streams.push(output_stream);
+                    //_generateSubtitlePart
+                    //globalIndex++;
             }
         }
 
@@ -241,7 +264,7 @@ class TranscoderManager{
         streamArgs = await this._generateStreamsArgs(output_streams);
 
         //Build complete command
-        Array.prototype.push.apply(args,mappingArgs);
+        //Array.prototype.push.apply(args,mappingArgs);
         Array.prototype.push.apply(args,streamArgs);
         Array.prototype.push.apply(args,finalArgs);
 
@@ -249,21 +272,47 @@ class TranscoderManager{
     }
 
     async _generateStreamsArgs(streams){
-        let output = [];
+        let video_audio_mapping = [];
+        let video_audio_cmds = [];
+        let subtitle_cmds = [];
+        let global_command = [];
+
+        let video_audio_index = 0;
+        let videoOutputIndex = 0;
+        let audioOutputIndex = 0;
          //Generate output streams
          for(var i=0; i<streams.length; i++){
             let stream = streams[i];
 
             if(stream.codec_type === "video"){ //Take only first video stream
+                stream.index = video_audio_index;
+                stream._video_index = videoOutputIndex;
                 let resolution = await this._getResolution(stream.width);
                 let cmd_part = await this._generateX264Part(stream,resolution);
-                Array.prototype.push.apply(output,cmd_part);
+                Array.prototype.push.apply(video_audio_cmds,cmd_part);
+                video_audio_mapping.push('-map');
+                video_audio_mapping.push("0:"+stream._src_index);
+                video_audio_index++;
+                videoOutputIndex++;
             }else if(stream.codec_type === "audio"){
+                stream.index = audioOutputIndex;
+                stream._audio_index = videoOutputIndex;
                 let cmd_part = await this._generateFdkaacPart(stream);
-                Array.prototype.push.apply(output,cmd_part);
+                Array.prototype.push.apply(video_audio_cmds,cmd_part);
+                video_audio_mapping.push('-map');
+                video_audio_mapping.push("0:"+stream._src_index);
+                video_audio_index++;
+                audioOutputIndex++;
+            }else if(stream.codec_type == "subtitle"){
+                let cmd_part = await this._generateSubtitlePart(stream);
+                Array.prototype.push.apply(subtitle_cmds,cmd_part);
             }
         }
-        return output;
+
+        Array.prototype.push.apply(global_command,subtitle_cmds);
+        Array.prototype.push.apply(global_command,video_audio_mapping);
+        Array.prototype.push.apply(global_command,video_audio_cmds);
+        return global_command;
     }
 
     /**
@@ -388,61 +437,74 @@ class TranscoderManager{
     //   TERMINATED: 'TERMINATED'
     // }
     /////
-    async _addVideoStream(file,video_stream, target_resolutions,workingDir,existingFiles,episodeId,filmId){
-        var original_resolution = await this._getResolution(video_stream.width);
+    // async _addVideoStream(file,video_stream, target_resolutions,workingDir,existingFiles,episodeId,filmId){
+    //     var original_resolution = await this._getResolution(video_stream.width);
 
-        //Filter achievable resolution
-        var validResolutions = [];
-        for(var i=0; i<target_resolutions.length; i++){
-            let target_resolution = target_resolutions[i];
+    //     //Filter achievable resolution
+    //     var validResolutions = [];
+    //     for(var i=0; i<target_resolutions.length; i++){
+    //         let target_resolution = target_resolutions[i];
 
-            if(original_resolution.width >= target_resolution.width){
-                validResolutions.push(target_resolution);
-            }
-        }
+    //         if(original_resolution.width >= target_resolution.width){
+    //             validResolutions.push(target_resolution);
+    //         }
+    //     }
 
-        //If the file has a too low resolution add it anyway (TODO add a setting for this)
-        if(validResolutions.length == 0){
-            validResolutions.push(original_resolution);
-        }
+    //     //If the file has a too low resolution add it anyway (TODO add a setting for this)
+    //     if(validResolutions.length == 0){
+    //         validResolutions.push(original_resolution);
+    //     }
         
-        //Send transcoding commands
-        for(var i=0; i<validResolutions.length; i++){
-            let target_resolution = validResolutions[i];
-            let cmd = await this._generateX264Command(file,video_stream,target_resolution,workingDir);
+    //     //Send transcoding commands
+    //     for(var i=0; i<validResolutions.length; i++){
+    //         let target_resolution = validResolutions[i];
+    //         let cmd = await this._generateX264Command(file,video_stream,target_resolution,workingDir);
 
-            //Check if command will produce already existing file in target folder
-            // If it the case, skip this file
-            if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
-                continue;
-            }
-            this.launchOfflineTranscodingCommand(cmd,workingDir,
-                async function(){
-                    //This callback is called when the transcoding of one stream succeed
-                    var mpdId = await self.importDashStream(episodeId,filmId,workingDir,cmd.dashName,cmd.targetName);
+    //         //Check if command will produce already existing file in target folder
+    //         // If it the case, skip this file
+    //         if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
+    //             continue;
+    //         }
+    //         this.launchOfflineTranscodingCommand(cmd,workingDir,
+    //             async function(){
+    //                 //This callback is called when the transcoding of one stream succeed
+    //                 var mpdId = await self.importDashStream(episodeId,filmId,workingDir,cmd.dashName,cmd.targetName);
 
-                    if(!mpdId){
-                        console.error("Failed to create mdp entry in db ",workingDir);
-                        return;
-                    }
+    //                 if(!mpdId){
+    //                     console.error("Failed to create mdp entry in db ",workingDir);
+    //                     return;
+    //                 }
 
-                    // add video
-                    var id = null;
-                    if(episodeId){
-                        id = await self.dbMgr.insertSerieVideo(mpdId,target_resolution.id);
-                    }else if(filmId){
-                        id = await self.dbMgr.insertFilmVideo(mpdId,target_resolution.id);
-                    }
-                    if(id === null){
-                        console.error("Failed to create video entry in db ",mpdId,target_resolution.id);
-                    }
+    //                 // add video
+    //                 var id = null;
+    //                 if(episodeId){
+    //                     id = await self.dbMgr.insertSerieVideo(mpdId,target_resolution.id);
+    //                 }else if(filmId){
+    //                     id = await self.dbMgr.insertFilmVideo(mpdId,target_resolution.id);
+    //                 }
+    //                 if(id === null){
+    //                     console.error("Failed to create video entry in db ",mpdId,target_resolution.id);
+    //                 }
                         
-                    console.log("Dash file updated: "+mpdId);
+    //                 console.log("Dash file updated: "+mpdId);
 
-            },function(msg){});
-        }
+    //         },function(msg){});
+    //     }
+    // }
+    async _generateSubtitlePart(stream){
+        return[
+        '-map',
+        '0:'+stream.index,
+        '-c:0',
+        'webvtt',
+        '-flush_packets',
+        1,
+        '-f',
+        "webvtt",
+        stream.target_folder+'/srt_'+stream.tags.language+"_"+stream.tags.title+".vtt"
+        ];
+        //'srt_'+stream.tags.language+"_"+stream.tags.title+".vtt"
     }
-
     async _filterValidResolutions(stream,target_resolutions){
         let ouputs = [];
         var original_resolution = await this._getResolution(stream.width);
@@ -454,6 +516,17 @@ class TranscoderManager{
             }
         }
         return ouputs;
+    }
+
+    _getBestVideoStream(streams){
+        let bestStream = null;
+        for(let i=0; i<streams.length; i++){
+            let stream = streams[i];
+            if(stream.codec_type === "video" && (!bestStream || bestStream.width < stream.width)){
+                bestStream = stream;
+            }
+        }
+        return bestStream;
     }
     
     async _generateX264Parts(stream,target_resolutions){

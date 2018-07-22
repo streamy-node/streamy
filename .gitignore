@@ -71,7 +71,9 @@ node_modules/
 *.vscode
 *.swp
 *.m4s
+*.vtt
 
 static/js/shaka/
 static/videos/
 static/js/demo-player/
+

@@ -5,14 +5,30 @@ class MPDData{
     constructor(){
         this.line = "";
         this.attrs = new Map();
+
+        //Content stored in file (usefull with big dash manifests)
         this.fileIndex = -1;
         this.fileSize = 0;
         this.fileSrc = "";
+
+        //Content stored in ram
+        this.content = "";
     }
 
     replaceId(newId){
         var regex2 = /id="([^> ]*)"/i;
         this.line = this.line.replace(regex2,'id="'+newId+'"');
+    }
+
+    async _getContent(){
+        if(this.content.length > 0){
+            return this.content; 
+        }else if(this.fileSrc.length > 0){
+            let content = await fsutils.readPart(this.fileSrc,this.fileIndex, this.fileSize);
+            return content.toString();
+        }else{
+            return "";
+        }
     }
 }
 
@@ -20,11 +36,16 @@ class AdaptationSet extends MPDData {
     constructor(){
         super();
         this.representations = [];
+        this.idOffset = 0;
     }
 
     setId(newId){
-        this.replaceId(this.line,newId);
+        this.replaceId(newId);
 
+    }
+
+    setRepresentationFirstId(newId){
+        this.idOffset = newId;
     }
 
     async getXML(){
@@ -32,7 +53,7 @@ class AdaptationSet extends MPDData {
         output += this.line;
 
         for(var i=0; i<this.representations.length; i++){
-            this.representations[i].replaceId(i);
+            this.representations[i].replaceId(i+this.idOffset);
             output += await this.representations[i].getXML();
             output += "\n";
         }
@@ -45,8 +66,9 @@ class AdaptationSet extends MPDData {
 class Representation extends MPDData {
     constructor(){
         super();
-        this.baseURL = new MPDData();
-        this.segmentList = new MPDData();
+        this.baseURL = "";
+        this.segments = new MPDData();
+        this.fileBased = false;
 
     }
 
@@ -58,17 +80,10 @@ class Representation extends MPDData {
     async getXML(){
         var output = "";
         output += this.line;
-        output += this.baseURL.line;
-        output += await this.getSegmentsXML();
+        output += this.baseURL;
+        output += await this.segments._getContent();
         output += "			</Representation>\n";
         return output;
-    }
-
-    async getSegmentsXML(){
-        var segment = await fsutils.readPart(this.segmentList.fileSrc,this.segmentList.fileIndex, this.segmentList.fileSize);
-        var str = segment.toString();
-        console.log("str lengg",str.length);
-        return str;
     }
 }
 //Class to parse mdfiles (without using xml parser for memory reasons)
@@ -122,7 +137,7 @@ class MPDFile{
                         adapatationSet.line = line;
                         adapatationSet.attrs = self.parseAttrs(line);
                         adapatationSet.fileIndex = byteIndex;
-                        adapatationSet.file = mpdFile;
+                        adapatationSet.fileSrc = mpdFile;
                         adaptationSets.push(adapatationSet);
                         lastAdaptationSet = adapatationSet;
                         lastRepresentation = null;
@@ -136,17 +151,17 @@ class MPDFile{
                         lastRepresentation = representation;
 
                     }else if(line.indexOf("<BaseURL") >= 0 && lastRepresentation != null ){
-                        lastRepresentation.baseURL.line = line;
-                    }if(line.indexOf("<SegmentList") >= 0 && lastRepresentation != null ){
-                        lastRepresentation.segmentList.line = line;
-                        lastRepresentation.segmentList.fileIndex = byteIndex;
-                        lastRepresentation.segmentList.fileSrc = mpdFile;
-                        lastRepresentation.segmentList.attrs = self.parseAttrs(line);
-                        lastRepresentation.segmentList.fileSize = line.length;
+                        lastRepresentation.baseURL = line;
+                    }if(line.indexOf("<Segment") >= 0 && lastRepresentation != null ){
+                        lastRepresentation.segments.line = line;
+                        lastRepresentation.segments.fileIndex = byteIndex;
+                        lastRepresentation.segments.fileSrc = mpdFile;
+                        lastRepresentation.segments.attrs = self.parseAttrs(line);
+                        lastRepresentation.segments.fileSize = line.length;
                         segmentCapture = true;
-                    }else if(segmentCapture && lastRepresentation && lastRepresentation.segmentList){
-                        lastRepresentation.segmentList.fileSize += line.length;
-                        if(line.indexOf("/SegmentList") >= 0){
+                    }else if(segmentCapture && lastRepresentation && lastRepresentation.segments){
+                        lastRepresentation.segments.fileSize += line.length;
+                        if(line.indexOf("/Segment") >= 0){
                             segmentCapture = false;
                         }
                     }else if(!headerDone){
@@ -160,7 +175,21 @@ class MPDFile{
         });
     }
 
-    async addAdaptationSet(adaptationSet){
+    addAdaptationSet(adaptationSet){
+        this.adaptationSets.push(adaptationSet);
+    }
+
+    addSubtitleAdaptationSet(lang,baseUrl){
+        let adaptationSet = new AdaptationSet();
+        adaptationSet.line = '\t\t<AdaptationSet id="2" contentType="text" lang="'+lang+'" subsegmentAlignment="true">\n';
+
+        let representation = new Representation();
+        representation.line = '\t\t\t<Representation id="3" bandwidth="256" mimeType="text/vtt">\n';
+        representation.baseURL = '\t\t\t<BaseURL>'+baseUrl+'</BaseURL>\n';
+        representation.segments.content = "";
+
+        adaptationSet.representations.push(representation); 
+
         this.adaptationSets.push(adaptationSet);
     }
 
@@ -179,6 +208,10 @@ class MPDFile{
     }
 
     async save(fileName){
+        // let fileName = fileName_;
+        // if(!fileName || fileName.length == 0){
+        //     fileName = this.mpdFile;
+        // }
         var self = this;
         return new Promise(async function(resolve, reject) {
             //Create the file if it doesn't exists
@@ -190,9 +223,12 @@ class MPDFile{
             });
 
             wstream.write(self.header);
-
+            let representations = 0;
             for(var i=0; i<self.adaptationSets.length; i++){
                 self.adaptationSets[i].setId(i);
+                self.adaptationSets[i].setRepresentationFirstId(representations);
+                representations+=self.adaptationSets[i].representations.length;
+
                 let data = await self.adaptationSets[i].getXML();
                 wstream.write(data);
             }
@@ -277,11 +313,27 @@ class MPDUtils{
         }else if(!matchingAdaptationSet){
             //If there are no matching adaptation set, create it
             //src_adaptationSet.setId(maxAdaptationSetId++);
-            await dst_mpd.addAdaptationSet(src_adaptationSet);
+            dst_mpd.addAdaptationSet(src_adaptationSet);
         }
 
         //Find
         return dst_mpd;
+    }
+
+    async addStreamsToMpd(src_mpd_path, streams, destination){
+        var src_mpd = new MPDFile();
+
+        var res = await src_mpd.parse(src_mpd_path,true);
+        if(res === null){
+            console.log("MDP: Failed to merge unexisting file");
+            return null;
+        }
+
+        for(let i=0; i<streams.length; i++){
+            let stream = streams[i];
+            src_mpd.addSubtitleAdaptationSet(stream.tags.language,'srt_'+stream.tags.language+"_"+stream.tags.title+".vtt");
+        }
+        await src_mpd.save(destination);
     }
 
     //Merge only the first representation of src into dst 
@@ -344,12 +396,12 @@ class MPDUtils{
                         output.representation = line;
                     }else if(!output.baseUrl && line.indexOf("BaseURL") >= 0){
                         output.baseUrl = line;
-                    }if(!output.segementList && line.indexOf("SegmentList") >= 0){
-                        output.segementList = line;
+                    }if(!output.segements && line.indexOf("Segment") >= 0){
+                        output.segements = line;
                         segmentCapture = true;
                     }else if(segmentCapture){
-                        output.segementList += line;
-                        if(line.indexOf("/SegmentList")){
+                        output.segements += line;
+                        if(line.indexOf("/Segmen")){
                             resolve();
                         }
                     }
