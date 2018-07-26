@@ -4,10 +4,10 @@
         
     <a id="add_serie_btn" class="btn btn-primary" href="#addserie">{{AddSerie}}</a>
     
-    <div class="container" id="all_series">
-        <div class="row">
+    <div class="d-flex  flex-wrap  mb-2 mt-2" id="all_series">
+        <!-- <div class="row">
 
-        </div>
+        </div> -->
     </div>
 
 
@@ -48,11 +48,15 @@
 
 <!--<template>-->
     <div id="poster_tpl" class="hidden">
-        <div>
-            <a class="series_link" href="#serie">
-                <img class="img-responsive smallPoster" src=""/>
-                <div class="series_rating right">0</div>
-                <div class="series_titles left">Title 1970</div>
+        <div class="poster-list-item pr-auto position-relative">
+            <div class="series_rating d-flex position-absolute">0</div>    
+            <a class="series_link  " href="#serie">
+                <img class="img-fluid smallPoster" src=""/>
+                
+                <!-- <div class="d-flex ">
+                    <div class="series_titles ">Title 1970</div>
+                    <div class="series_rating overlay ml-auto">0</div>
+                 </div> -->
             </a>       
         </div>
     </div>

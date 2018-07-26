@@ -68,14 +68,37 @@ class SeriesContent{
         template.find(".series_titles").html(serieInfos.language.title+" ("+serieInfos.release_date.substr(0,4)+")");
         template.find(".series_rating").html(serieInfos.rating);
         template.find(".series_link").attr("href","#serie_"+serieInfos.id);
+        template.find(".series_link").css("href","#serie_"+serieInfos.id);
         
         return template.html();
     }
 
     renderSeries_elements(seriesInfos){
-        for(var i=0; i<seriesInfos.length; i++){ 
-            this.addToContainer("#all_series",this.renderSeries_element(seriesInfos[i]));
-        } 
+        let width = $("#all_series").innerWidth();
+        let imageWidth = 300;
+        if(width > 576){
+            imageWidth = 300;
+        }else{
+            imageWidth = 150;
+        }
+        let imagesByLine = (width-4)/(imageWidth);
+        let lines = seriesInfos.length/imagesByLine;
+
+        let row = '';
+       // for(let l=0; l<lines; l++){
+            //let $row = $("#all_series").append('<div class="row"></div>');
+       //     let row = '<div class="row">';
+            for(let i=0; i<seriesInfos.length; i++){ 
+                row += this.renderSeries_element(seriesInfos[i]);
+                //row += "<div class=\"col-sm-3 col-s-6\">"+this.renderSeries_element(seriesInfos[i])+"</div>";
+                //$row.append("<div class=\"col-sm-3 col-s-6\">"+this.renderSeries_element(seriesInfos[i])+"</div>");
+                //this.addToContainer("#all_series",this.renderSeries_element(seriesInfos[i]));
+            }
+       //     row += '</div>';
+            $("#all_series").append(row);
+        //}
+
+        //$("#all_series").first().after('</div>');
     }
 
     // serie.html

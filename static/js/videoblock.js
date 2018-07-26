@@ -14,7 +14,7 @@ class VideoBlock{
             if(results.length == 1){
                 let res = results[0];
                 console.log("Result ",results[0],dataPath);
-                self.launchVideo("/"+dataPath+"/"+res.mdp.folder+"/all.mpd");
+                self.launchVideo("/"+dataPath+"/"+res.mdp.folder+"/allsub.mpd");
                 //var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
             }else if(results.length > 0){
                 alert("TODO open a window");

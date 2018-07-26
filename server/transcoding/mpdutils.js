@@ -323,7 +323,7 @@ class MPDUtils{
     async addStreamsToMpd(src_mpd_path, streams, destination){
         var src_mpd = new MPDFile();
 
-        var res = await src_mpd.parse(src_mpd_path,true);
+        var res = await src_mpd.bparse(src_mpd_path,true);
         if(res === null){
             console.log("MDP: Failed to merge unexisting file");
             return null;

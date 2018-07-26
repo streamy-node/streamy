@@ -82,7 +82,7 @@ class TranscoderManager{
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
-
+        
         // Get files already added to episode or movie folder (if any). Do not transcode again if already done
         //var existingFiles = await this._getProcessedFiles(episodeId,filmId,workingFolder);
 
@@ -94,7 +94,8 @@ class TranscoderManager{
             let dashName = "all.mpd";
 
             var ffmpegCmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels);
-
+            
+            let mdpFileUpdated = false;
             this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
                 async function(){
                     //This callback is called when the transcoding of one stream succeed
@@ -162,7 +163,14 @@ class TranscoderManager{
                         
                     console.log("Offline transcoding done for: "+absoluteWorkingFolder);
 
-            },function(msg){});
+            },
+            function(msg){},//OnError
+            async function(msg){//On Progress
+                if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
+                    await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
+                    mdpFileUpdated = true;
+                }
+            });
 
         }else{
             console.error("Cannot split uploadded file: ",file.path);
@@ -709,12 +717,15 @@ class TranscoderManager{
         }
     }
 
-    launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError){//TODO 
+    launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError,onProgressions){//TODO 
         var hw = new Hardware(1,0,0,0);
         var process = new Process("ffmpeg",cmd.args,10,hw,true)
         .on('start',()=>{console.log("on start "+workingDir+" "+cmd.targetName);})
         .on('stop',(restart)=>{console.log("on stop "+workingDir+" "+cmd.targetName,restart);})
-        .on('progression',(msg)=>{console.log("on progression "+workingDir+" "+cmd.targetName,msg);})
+        .on('progression',(msg)=>{
+            console.log("on progression "+workingDir+" "+cmd.targetName,msg);
+            if(onProgressions) onProgressions(msg);
+        })
         .on('final',(msg)=>{
             console.log("on final",msg);
             if(msg.code == 0){

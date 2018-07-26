@@ -85,7 +85,7 @@ class SeriesMgr{
             infos.mdp = mdpFiles[i];
             infos.videos = await this.con.getSeriesVideos(infos.mdp.id);
             infos.audios = await this.con.getSeriesAudios(infos.mdp.id);
-            infos.srts = await this.con.getSeriesSrts(infos.mdp.id);
+            infos.srts = await this.con.getSeriesSubtitles(infos.mdp.id);
             results.push(infos);
         }
         return results;
