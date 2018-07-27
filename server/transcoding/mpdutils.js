@@ -224,7 +224,7 @@ class MPDFile{
 
             wstream.write(self.header);
             let representations = 0;
-            for(var i=0; i<self.adaptationSets.length; i++){
+            for(let i=0; i<self.adaptationSets.length; i++){
                 self.adaptationSets[i].setId(i);
                 self.adaptationSets[i].setRepresentationFirstId(representations);
                 representations+=self.adaptationSets[i].representations.length;
@@ -323,7 +323,7 @@ class MPDUtils{
     async addStreamsToMpd(src_mpd_path, streams, destination){
         var src_mpd = new MPDFile();
 
-        var res = await src_mpd.bparse(src_mpd_path,true);
+        var res = await src_mpd.parse(src_mpd_path,true);
         if(res === null){
             console.log("MDP: Failed to merge unexisting file");
             return null;

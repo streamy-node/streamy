@@ -83,7 +83,7 @@ class SerieController{
 
             ep_tpl.find(".overview-expand").attr("href","#collapse_overview_"+episode.episode_number.toString());
             ep_tpl.find(".episode_overview").attr("id","collapse_overview_"+episode.episode_number.toString());
-            
+
             console.log("ep_tpl.html():",ep_tpl.html());
             template.find(".list-group").append(ep_tpl);
 
@@ -95,6 +95,7 @@ class SerieController{
                 });
             }
             videoBock.setup(ep_tpl);
+            videoBock.setBroken(episode.has_mpd);
             this.blocks.push(videoBock);
 
         }

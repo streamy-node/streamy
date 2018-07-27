@@ -96,6 +96,8 @@ class TranscoderManager{
             var ffmpegCmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels);
             
             let mdpFileUpdated = false;
+
+            let subtitles_streams = [];
             this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
                 async function(){
                     //This callback is called when the transcoding of one stream succeed
@@ -115,7 +117,6 @@ class TranscoderManager{
                         console.error("Failed to create mdp entry in db ",absoluteWorkingFolder);
                         return;
                     }
-                    let subtitles_streams = [];
                     for(var i=0; i<ffmpegCmd.streams.length; i++){
                         let stream = ffmpegCmd.streams[i];
                         
@@ -155,6 +156,8 @@ class TranscoderManager{
 
                     //Mark mpd as complete
                     await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
+                    await self.setVideoMpdStatus(episodeId,filmId,1);
+
                     //Remove add file task
                     await self.dbMgr.removeAddFileTask(task_id);
 
@@ -167,8 +170,11 @@ class TranscoderManager{
             function(msg){},//OnError
             async function(msg){//On Progress
                 if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
-                    await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
-                    mdpFileUpdated = true;
+                    // if(subtitles_streams.length > 0){
+                    //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
+                    //     mdpFileUpdated = true;
+                    // }
+                    
                 }
             });
 
@@ -406,6 +412,18 @@ class TranscoderManager{
             mpdId = await this.dbMgr.insertFilmMPDFile(filmId,workingdir,complete);
         }
         return mpdId;
+    }
+
+    async setVideoMpdStatus(episodeId,filmId,hasMpd){
+        let serieId = await this.dbMgr.getSerieIdFromEpisode(episodeId);
+        let videoId = null;
+        if(episodeId){
+            videoId = await this.dbMgr.setSerieEpisodeHasMPD(episodeId,hasMpd);
+            await this.dbMgr.setSerieHasMPD(serieId,hasMpd);
+        }else if(filmId){
+            videoId = await this.dbMgr.setFilmHasMPD(filmId,hasMpd);
+        }
+        return videoId;
     }
     //bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, series_seasons.season_number,  series_episodes.episode_number
 
@@ -834,6 +852,11 @@ class TranscoderManager{
 
         return output;
     }
+
+    // sync checkHasMpd(){
+
+    //     await self.setVideoMpdStatus(episodeId,filmId,1);
+    // }
 }
 
 module.exports = TranscoderManager;

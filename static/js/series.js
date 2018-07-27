@@ -69,6 +69,10 @@ class SeriesContent{
         template.find(".series_rating").html(serieInfos.rating);
         template.find(".series_link").attr("href","#serie_"+serieInfos.id);
         template.find(".series_link").css("href","#serie_"+serieInfos.id);
+        if(serieInfos.has_mpd){
+            template.find(".video_broken").addClass("invisible");
+        }
+        
         
         return template.html();
     }

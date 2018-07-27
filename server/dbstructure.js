@@ -164,6 +164,55 @@ class DBStructure{
         }
     }
 
+    async getSerieIdFromEpisode(episodeId){
+        var sql = "SELECT * FROM `series_episodes` AS ep, `series_seasons` AS saison"+
+        " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            console.error("Cannot get serie ",serieId);
+            return null;
+        }else{
+            return result[0].serie_id;
+        }
+    }
+    
+    // async getSeriesWithMpd(){
+    //     var sql = "SELECT * FROM `series_episodes` AS s, `series_mpd_files` AS mdp "+
+    //     " WHERE mdp.complete = "+1+
+    //     " AND mdp.episode_id = ";
+    //     var result = await this.query(sql);
+
+    //     if(result.length == 0 ){
+    //         console.error("Cannot get serie ",serieId);
+    //         return null;
+    //     }else{
+    //         return result[0];
+    //     }
+    // }
+
+    async setSerieHasMPD(serieId,hasMpd){
+        if( (!this.checkId(serieId))){
+            console.error("setSerieHasMPD: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `series` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+serieId.toString();
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async setSerieEpisodeHasMPD(episodeId,hasMpd){
+        if( (!this.checkId(episodeId))){
+            console.error("setSerieEpisodeHasMPD: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `series_episodes` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+episodeId.toString();
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
     // async getSeriesLightTranslations(lang){
     //     var sql = "SELECT * FROM `series` AS s "+
     //     "LEFT JOIN `series_translations` AS t  ON s.id = t.lang_id "+
@@ -437,6 +486,17 @@ class DBStructure{
         }else{
             return results[0];
         }
+    }
+
+    async setFilmHasMPD(filmId,hasMpd){
+        if( (!this.checkId(serieId))){
+            console.error("setFilmHasMPD: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `films` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+filmId.toString();
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
     }
 
     async getFilmMpdFile(filmId,workingDir){

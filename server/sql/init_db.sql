@@ -88,11 +88,13 @@ CREATE TABLE `series` (
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `has_mpd` TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
   CONSTRAINT UNIQUE (`release_date`,`original_name`)
 );
+
 
 CREATE TABLE `series_translations` (
     `id` int NOT NULL AUTO_INCREMENT,
@@ -165,6 +167,7 @@ CREATE TABLE `series_episodes` (
     `rating_count` int UNSIGNED DEFAULT '0',
     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
     `best_resolution_id` int,
+    `has_mpd` TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`best_resolution_id`) REFERENCES resolutions(`id`),
@@ -250,6 +253,7 @@ CREATE TABLE `films` (
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `has_mpd` TINYINT(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),

@@ -2,10 +2,20 @@ class VideoBlock{
     constructor(){
         this.droppedFiles = null;
         this.getStreamsInfos = null;
+        this.element = null;
     }
 
     launchVideo(mdpFile){
         var windowObjectReference = window.open("js/light-player/index.html?mdp="+encodeURIComponent(mdpFile), "streamy player");
+    }
+
+    setBroken(value){
+        let $broken = this.element.find('.video_broken');
+        if(!value){
+            $broken.addClass('visible');
+        }else{
+            $broken.addClass('invisible');
+        } 
     }
 
     onPlayClick(){
@@ -31,6 +41,7 @@ class VideoBlock{
      */
     setup(element){
         let self = this;
+        self.element = element;
         let $form = element.find('.box');
 
         let blocs = $form.find('.bloc-image');
