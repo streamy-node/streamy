@@ -199,11 +199,14 @@ class TranscoderManager{
 
     updateProgressions(episodeId,filmId,progression,state_code){
         let id = episodeId == null ? filmId : episodeId;
-        
+        let progressionFilter = progression;
+        if(!progressionFilter){
+            progressionFilter = 0;
+        }
         if(episodeId){
-            this.lastProgressions.series[id] = {progression:progression.toPrecision(3), state_code:state_code};
+            this.lastProgressions.series[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code};
         }else if(filmId){
-            this.lastProgressions.films[id] = {progression:progression.toPrecision(3), state_code:state_code};
+            this.lastProgressions.films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code};
         }
 
         //Clear from lastProgressions after 30 secs

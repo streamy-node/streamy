@@ -66,6 +66,7 @@ class ContentManager{
       //Extract id
       var serieId = parseInt(type.substr(7));
       this.serieMgr.renderSerie(div,serieId);
+      this.updateProgressions();
     }else{
       $(div).html("<div id=\"\">Work in progress</div>");
       //this.emptyMgr.render(div);

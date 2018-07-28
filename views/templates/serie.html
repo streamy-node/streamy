@@ -79,8 +79,9 @@
 
         <div class="float-left gap-right episode-bloc position-relative">
             <div class="video_header container-fluid position-absolute">
-                    <div class="video_broken material-icons float-right">broken_image</div>
-                    <div class="video_progress float-right invisible">0%</div>
+                    <div class="video_broken material-icons float-right" data-toggle="tooltip" title="no video available for this title">broken_image</div>
+                    <div class="video_progress float-right d-none">0%</div>
+                    <div class="video_error material-icons float-right"  data-toggle="tooltip" title="error adding last video file">error</div>
             </div>
             
             <form class="box episodeBox" method="post" action="upload/series" enctype="multipart/form-data" id="box-1">

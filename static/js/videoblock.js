@@ -6,6 +6,14 @@ class VideoBlock{
         this.isBroken = false;
         this.type = type;
         this.id = id;
+        this.hasMpd = false;
+    }
+
+    setHasMpd(val){
+        this.hasMpd = val;
+        this.setBroken(!val);
+        this.hideProgression();
+        this.setError(false);
     }
 
     launchVideoFromMpd(mdpFile){
@@ -23,19 +31,26 @@ class VideoBlock{
         $broken.css("color",status_color);
 
         if(value){
-            $broken.removeClass('invisible');
-            $broken.addClass('visible');
+            $broken.removeClass('d-none');
         }else{
-            this.hideProgression();
-            $broken.removeClass('visible');
-            $broken.addClass('invisible');
+            $broken.addClass('d-none');
         } 
     }
 
+    setError(value,status_color){
+        let $verror = this.element.find('.video_error');
+
+        $verror.css("color",status_color);
+
+        if(value){
+            $verror.removeClass('d-none');
+        }else{
+            $verror.addClass('d-none');
+        } 
+    }
     hideProgression(){
         let $progress = this.element.find('.video_progress');
-        $progress.removeClass('visible');
-        $progress.addClass('invisible');
+        $progress.addClass('d-none');
     }
 
     updateStatus(state,progression){
@@ -43,20 +58,21 @@ class VideoBlock{
         $progress.text(progression+"%");
         if(state == 0){
             this.setBroken(false);
-            $progress.removeClass('visible');
-            $progress.addClass('invisible');
+            $progress.addClass('d-none');
+            this.hideProgression();
+            this.setError(false);
         }else if(state == 1){
-            this.setBroken(true,transcoding_error_color);
-            $progress.removeClass('visible');
-            $progress.addClass('invisible');
+            this.setError(true,transcoding_error_color);
+            if(!this.hasMpd) this.setBroken(true,nofile_color);
+            $progress.addClass('d-none');
         }else if(state == 2){
-            this.setBroken(true,transcoding_color);
-            $progress.removeClass('invisible');
-            $progress.addClass('visible');
+            if(!this.hasMpd) this.setBroken(true,transcoding_color);
+            $progress.removeClass('d-none');
+            this.setError(false);
         }else if(state == 3){
-            this.setBroken(true,waiting_color);
-            $progress.removeClass('invisible');
-            $progress.addClass('visible');
+            if(!this.hasMpd) this.setBroken(true,waiting_color);
+            $progress.removeClass('d-none');
+            this.setError(false);
         }
     }
 

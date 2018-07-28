@@ -96,6 +96,7 @@ class SerieController{
                 });
             }
             videoBock.setup(ep_tpl);
+            videoBock.setHasMpd(episode.has_mpd);
             videoBock.setBroken(!episode.has_mpd);
             this.blocks.set(episode.id,videoBock);
 

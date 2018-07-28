@@ -315,7 +315,7 @@ class FfmpegProcessManager extends EventEmitter{
           errdata.error = error;
           errdata.mesg = data;
           process._onFinal(new FinalMsg(3,"Invalid Json ",errdata));
-          console.err("ffmpegProc: Invalid Json ",error)
+          console.error("ffmpegProc: Invalid Json ",error)
         }
         
       });

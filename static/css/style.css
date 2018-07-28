@@ -415,6 +415,10 @@ a.article, a.article:hover {
     color: rgb(226, 19, 19);
 }
 
+.video_error{
+    color: rgb(226, 19, 19);
+}
+
 
 /* .episode_number,.episode_title {
     display: inline-block;
