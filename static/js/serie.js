@@ -3,7 +3,8 @@ class SerieController{
     constructor(templates,langs){
         this.templates = templates;
         this.langs = langs;
-        this.blocks = [];
+        this.blocks = new Map();
+        this.blocksWithProgression = new Map();
     }
 
 
@@ -95,8 +96,8 @@ class SerieController{
                 });
             }
             videoBock.setup(ep_tpl);
-            videoBock.setBroken(episode.has_mpd);
-            this.blocks.push(videoBock);
+            videoBock.setBroken(!episode.has_mpd);
+            this.blocks.set(episode.id,videoBock);
 
         }
         
@@ -104,7 +105,7 @@ class SerieController{
     }
 
     renderSerie_seasons(serieId,seasonsInfos){
-        this.blocks = [];
+        this.blocks = new Map();
         for(var i=0; i<seasonsInfos.length; i++){ 
             this.appendToContainer("#seasons",this.renderSerie_season(serieId,seasonsInfos[i]));
         } 
@@ -167,6 +168,7 @@ class SerieController{
 
         
     }
+    
     // <div class="container" id="all-series">
     // <div class="row">
     //     <div class="col-sm-3">
@@ -174,6 +176,18 @@ class SerieController{
     //     </div>
     // Series display
 
-
+    updateProgressions(progressions){
+        if(location.hash.includes("#serie_")){
+            for(let items of this.blocks){
+                let videoId = items[0];
+                let videoBlock = items[1];
+                if(progressions[videoId]){
+                    let progressionInfos = progressions[videoId];
+                    videoBlock.updateStatus(progressionInfos.state_code,progressionInfos.progression);
+    
+                }
+            }
+        }
+    }
 
 }

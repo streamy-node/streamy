@@ -12,5 +12,9 @@ class MoviesContent{
 
     }
 
+    updateProgressions(){
+        
+    }
+
     
 }

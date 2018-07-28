@@ -251,37 +251,41 @@ app.get('/session-infos', loggedIn, function (req, res) {
   res.send(sessInfos);
 })
 
+app.get('/progression-infos', loggedIn, function (req, res) {
+  res.send(transcodeMgr.getProgressions());
+})
+
 // templates
 
-app.get('/movies.html', function (req, res) {
+app.get('/movies.html', loggedIn, function (req, res) {
   res.sendFile(__dirname + '/views/templates/movies.html');
 })
-app.get('/series.html', function (req, res) {
+app.get('/series.html', loggedIn, function (req, res) {
   res.sendFile(__dirname + '/views/templates/series.html');
 })
-app.get('/serie.html', function (req, res) {
+app.get('/serie.html', loggedIn, function (req, res) {
   res.sendFile(__dirname + '/views/templates/serie.html');
 })
-app.get('/addvideo.html', function (req, res) {
+app.get('/addvideo.html', loggedIn, function (req, res) {
   res.sendFile(__dirname + '/views/templates/addvideo.html');
 })
 
 //static files from node_modules
-app.get('/js/shaka/*', function (req, res) {
+app.get('/js/shaka/*', loggedIn, function (req, res) {
   res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
 })
 
-app.get('/css/material-icons/*', function (req, res) {
+app.get('/css/material-icons/*', loggedIn, function (req, res) {
   res.sendFile(__dirname + '/node_modules/material-icons/css/' + req.params[0]);
 })
 
 // API key
-app.get('/moviedb/key', function (req, res) {
+app.get('/moviedb/key', loggedIn, function (req, res) {
   res.send(MovieDB_KEY);
 })
 
 // get series
-app.get('/series', async function (req, res) {
+app.get('/series', loggedIn, async function (req, res) {
   if(req.user){ //TODO check rights
     var lang = req.query.lang;
     //Set default lang
@@ -296,7 +300,8 @@ app.get('/series', async function (req, res) {
   }
 });
 
-app.get('/series/:serieId', async function (req, res) {
+
+app.get('/series/:serieId', loggedIn, async function (req, res) {
   var serieId = req.params.serieId;
   var lang = req.query.lang;
 
@@ -338,6 +343,25 @@ app.get('/series/:serieId/seasons', async function (req, res) {
 
   //res.send(MovieDB_KEY);
 });
+
+app.get('/mpd_files/:type/:id', loggedIn, async function (req, res) {
+  let type = req.params.type;
+  let id = req.params.id;
+  let output = {};
+  if(type === "episode"){
+    output = await serieMgr.getEpisodesMpdFiles(parseInt(id));
+  }else if(type == "film"){
+    output = await serieMgr.getFilmsMdpFiles(parseInt(id));
+  }
+
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(output));
+
+  // await dbMgr.getBrick(brickid);
+
+  // res.render('index.html',{UserName:req.user.displayName});
+  //res.sendFile(__dirname + '/views/index.html');
+})
 
 //DEPRECATED use /series/:serieId/data/* instead
 app.get('/data/series/:brickid/*', async function (req, res) {

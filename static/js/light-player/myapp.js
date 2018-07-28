@@ -41,7 +41,40 @@ lightDemo.getURLParameter_ = function(sParam){
   }
 }
 
-manifestUri = decodeURIComponent(lightDemo.getURLParameter_("mdp"));
+let type = lightDemo.getURLParameter_("type");
+let id = lightDemo.getURLParameter_("id");
+
+//TODO prefered language
+// config.preferredAudioLanguage = document.getElementById('preferredAudioLanguage').value;
+// config.preferredTextLanguage = document.getElementById('preferredTextLanguage').value;
+
+lightDemo.loadMpdFiles = function() {
+  $.getJSON( "/mpd_files/"+type+"/"+id, function( mpdfiles ) {
+
+    for(let i=0; i<mpdfiles.length; i++){
+      let mpdfile = mpdfiles[i];
+      shakaAssets.enabledAssets.push({
+        name: i.toString(),//TODO put explicit name
+        manifestUri: mpdfile,
+        encoder: shakaAssets.Encoder.STREAMY,
+        source: shakaAssets.Source.STREAMY,
+        drm: [],
+        features: [
+          shakaAssets.Feature.HIGH_DEFINITION,
+          shakaAssets.Feature.MP4,
+          shakaAssets.Feature.SEGMENT_BASE,
+          shakaAssets.Feature.SUBTITLES
+        ]
+      });
+    }
+
+    lightDemo.startPlayer();
+  });
+}
+// get manifest
+
+
+//manifestUri = decodeURIComponent(lightDemo.getURLParameter_("episode_id"));
 
 lightDemo.init = function() {
   // Install built-in polyfills to patch browser incompatibilities.
@@ -57,20 +90,7 @@ lightDemo.init = function() {
   }
 }
 
-shakaAssets.testAssets.push({
-  name: 'Money (multicodec)',
-  manifestUri: manifestUri,
-  encoder: shakaAssets.Encoder.STREAMY,
-  source: shakaAssets.Source.UNKNOWN,
-  drm: [],
-  features: [
-    shakaAssets.Feature.HIGH_DEFINITION,
-    shakaAssets.Feature.MP4,
-    shakaAssets.Feature.SEGMENT_BASE,
-    shakaAssets.Feature.SUBTITLES,
-    shakaAssets.Feature.ULTRA_HIGH_DEFINITION
-  ]
-});
+
 
 lightDemo.initPlayer = function() {
 
@@ -100,27 +120,8 @@ lightDemo.initPlayer = function() {
 
     // Listen for error events.
     lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
-
-    let asyncSetup = lightDemo.setupAssets_();
-    lightDemo.setupOffline_();
-    //lightDemo.setupConfiguration_();
-    lightDemo.setupInfo_();
-
-    lightDemo.controls_ = new ShakaControls();
-    lightDemo.controls_.init(lightDemo.castProxy_, lightDemo.onError,
-                                lightDemo.onCastStatusChange_);
-
-    asyncSetup.catch(function(error) {
-      // shakaDemo.setupOfflineAssets_ errored while trying to
-      // load the offline assets. Notify the user of this.
-      lightDemo.onError_(/** @type {!shaka.util.Error} */ (error));
-    }).then(function() {
-      //lightDemo.postBrowserCheckParams_(params);
-      window.addEventListener('hashchange', lightDemo.updateFromHash_);
-    });
-
-    lightDemo.load();
-
+    
+    lightDemo.loadMpdFiles();
     // Try to load a manifest.
     // This is an asynchronous process.
     // lightDemo.player_.load(manifestUri).then(function() {
@@ -133,6 +134,29 @@ lightDemo.initPlayer = function() {
     console.error("Player error",error);
     //shakaDemo.onError_(/** @type {!shaka.util.Error} */ (error));
   });
+}
+
+lightDemo.startPlayer = function() {
+  let asyncSetup = lightDemo.setupAssets_();
+  lightDemo.setupOffline_();
+  //lightDemo.setupConfiguration_();
+  lightDemo.setupInfo_();
+
+  lightDemo.controls_ = new ShakaControls();
+  lightDemo.controls_.init(lightDemo.castProxy_, lightDemo.onError,
+                              lightDemo.onCastStatusChange_);
+
+  asyncSetup.catch(function(error) {
+    // shakaDemo.setupOfflineAssets_ errored while trying to
+    // load the offline assets. Notify the user of this.
+    lightDemo.onError_(/** @type {!shaka.util.Error} */ (error));
+  }).then(function() {
+    //lightDemo.postBrowserCheckParams_(params);
+    window.addEventListener('hashchange', lightDemo.updateFromHash_);
+  });
+
+  lightDemo.load();
+
 }
 
 /** @private */

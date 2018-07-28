@@ -707,7 +707,6 @@ ShakaControls.prototype.isOpaque_ = function() {
  * @private
  */
 ShakaControls.prototype.updateTimeAndSeekRange_ = function() {
-  console.log("Video duration: ",this.video_.duration);
   // Suppress updates if the controls are hidden.
   if (!this.isOpaque_()) {
     return;

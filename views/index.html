@@ -92,57 +92,18 @@
         <script src="./js/moviedb/moviedb.js"></script>
 
         <!-- Load streamy js code -->
-        <script src="./js/index.js"></script>
+        <script src="./js/common.js"></script>
         <script src="./js/utils.js"></script>
         <script src="./js/movies.js"></script>
         <script src="./js/series.js"></script>
         <script src="./js/serie.js"></script>
         <script src="./js/upload.js"></script>
         <script src="./js/videoblock.js"></script>
-        <script src="./js/empty.js"></script>
-
+        <script src="./js/index.js"></script>
 
         
         <script type="text/javascript">
-            jQuery(document).ready(function () {
-                $('#sidebarCollapse').on('click', function () {
-                    $('#sidebar').toggleClass('active');
-                    $(this).toggleClass('active');
-                });
-            });
             
-            // Setup content
-            var contentMgr = new ContentManager();
-            contentMgr.load("en",()=>{
-                if(location.hash.length > 0){
-                    contentMgr.setContent("#content",location.hash);
-                }else{
-                    contentMgr.setContent("#content","#dashboard");
-                }
-            });
-
-            // Catch hash changes
-            window.addEventListener("hashchange", function () {
-                    console.log("hash changed ",location.hash);
-                    contentMgr.setContent("#content",location.hash);
-                }, false);
-                
-            // Just make last selected element a bit darker
-            $('.nav-elems li').click(function(e) {
-              $('.nav-elems li').removeClass('active');
-              var $this = $(this);
-              if (!$this.hasClass('active')) {
-                $this.addClass('active');
-              }
-            });
-            
-            // TVDBKey
-            theMovieDb.common.initialize();
-            // Movies handle (todo use push)
-            
-            // Serie handle
-            
-            //
         </script>
         
     </body>

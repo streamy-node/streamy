@@ -17,6 +17,13 @@ class TranscoderManager{
         this.dbMgr = dbMgr;
         this.settings = settings;
         this.mpdSemaphores = new Map();
+        this.lastProgressions = {};
+        this.lastProgressions.series = {};
+        this.lastProgressions.films = {};
+    }
+
+    getProgressions(){
+        return this.lastProgressions;
     }
 
     async addEpisode(file,episodeId){
@@ -98,6 +105,7 @@ class TranscoderManager{
             let mdpFileUpdated = false;
 
             let subtitles_streams = [];
+            self.updateProgressions(episodeId,filmId,0,3);
             this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
                 async function(){
                     //This callback is called when the transcoding of one stream succeed
@@ -164,11 +172,16 @@ class TranscoderManager{
                     //Delete upload file
                     await fsutils.unlink(absoluteSourceFile);
                         
+                    self.updateProgressions(episodeId,filmId,100,0);
                     console.log("Offline transcoding done for: "+absoluteWorkingFolder);
 
             },
-            function(msg){},//OnError
+            function(msg){
+                self.updateProgressions(episodeId,filmId,msg.progression,1);
+            },//OnError
             async function(msg){//On Progress
+
+                self.updateProgressions(episodeId,filmId,msg.progression,2);
                 if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
                     // if(subtitles_streams.length > 0){
                     //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
@@ -182,6 +195,28 @@ class TranscoderManager{
             console.error("Cannot split uploadded file: ",file.path);
         }
 
+    }
+
+    updateProgressions(episodeId,filmId,progression,state_code){
+        let id = episodeId == null ? filmId : episodeId;
+        
+        if(episodeId){
+            this.lastProgressions.series[id] = {progression:progression.toPrecision(3), state_code:state_code};
+        }else if(filmId){
+            this.lastProgressions.films[id] = {progression:progression.toPrecision(3), state_code:state_code};
+        }
+
+        //Clear from lastProgressions after 30 secs
+        var self = this;
+        if(state_code == 0){
+            setTimeout(function(){
+                if(episodeId){
+                    delete self.lastProgressions.series[id];
+                }else if(filmId){
+                    delete this.lastProgressions.films[id];
+                } 
+            },30000);
+        }
     }
 
     async _generateFfmpegCmd(filename,targetFolder,dashName,infos,resolutions,audios_channels){

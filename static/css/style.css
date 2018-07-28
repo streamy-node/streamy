@@ -28,6 +28,10 @@ st_menu{
     
 }
 
+/** video block **/
+.video_progress{
+    color: #39d35a;
+}
 
 /* .relative{
     position:relative;
@@ -270,6 +274,7 @@ a.article, a.article:hover {
     CONTENT STYLE
 ----------------------------------------------------- */
 #content {
+    margin-top: 56;
     padding: 20px;
     min-height: 100vh;
     transition: all 0.3s;
@@ -409,6 +414,8 @@ a.article, a.article:hover {
 .video_broken{
     color: rgb(226, 19, 19);
 }
+
+
 /* .episode_number,.episode_title {
     display: inline-block;
 } */

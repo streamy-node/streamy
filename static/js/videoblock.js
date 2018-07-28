@@ -3,19 +3,55 @@ class VideoBlock{
         this.droppedFiles = null;
         this.getStreamsInfos = null;
         this.element = null;
+        this.isBroken = false;
     }
 
     launchVideo(mdpFile){
         var windowObjectReference = window.open("js/light-player/index.html?mdp="+encodeURIComponent(mdpFile), "streamy player");
     }
 
-    setBroken(value){
+    setBroken(value,status_color = nofile_color){
+        this.isBroken = value;
         let $broken = this.element.find('.video_broken');
-        if(!value){
+
+        $broken.css("color",status_color);
+
+        if(value){
+            $broken.removeClass('invisible');
             $broken.addClass('visible');
         }else{
+            this.hideProgression();
+            $broken.removeClass('visible');
             $broken.addClass('invisible');
         } 
+    }
+
+    hideProgression(){
+        let $progress = this.element.find('.video_progress');
+        $progress.removeClass('visible');
+        $progress.addClass('invisible');
+    }
+
+    updateStatus(state,progression){
+        let $progress = this.element.find('.video_progress');
+        $progress.text(progression+"%");
+        if(state == 0){
+            this.setBroken(false);
+            $progress.removeClass('visible');
+            $progress.addClass('invisible');
+        }else if(state == 1){
+            this.setBroken(true,transcoding_error_color);
+            $progress.removeClass('visible');
+            $progress.addClass('invisible');
+        }else if(state == 2){
+            this.setBroken(true,transcoding_color);
+            $progress.removeClass('invisible');
+            $progress.addClass('visible');
+        }else if(state == 3){
+            this.setBroken(true,waiting_color);
+            $progress.removeClass('invisible');
+            $progress.addClass('visible');
+        }
     }
 
     onPlayClick(){

@@ -22,10 +22,14 @@
     <link rel="stylesheet" type="text/css" href="/css/player.css">
     <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
     <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
+
+    <!-- external dependencies-->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script defer src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+
     <script src="/js/light-player/assets.js"></script>
     <script src="/js/shaka/dist/shaka-player.compiled.debug.js"></script>
     <script src="/js/light-player/demo_utils.js"></script>
-		<script defer src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
     <script src="/js/light-player/common/controls.js"></script>
     <script src="/js/light-player/info_section.js"></script>
     <script src="/js/light-player/asset_section.js"></script>
@@ -49,8 +53,6 @@
       <div id="videoContainer" class="overlay-parent">
         <video id="video" autoplay 
           poster="//shaka-player-demo.appspot.com/assets/poster.jpg" autoplay>
-          <track label="English2" kind="subtitles" srclang="en" src="first.vtt" default>
-          
         </video>
         <div id="giantPlayButtonContainer" class="overlay">
           <button id="giantPlayButton" class="material-icons">play_arrow</button>

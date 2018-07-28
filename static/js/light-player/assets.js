@@ -50,6 +50,7 @@ shakaAssets.Encoder = {
 shakaAssets.Source = {
   UNKNOWN: 'Unknown',
   SHAKA: 'Shaka',
+  STREAMY: 'Streamy',
   AXINOM: 'Axinom',
   UNIFIED_STREAMING: 'Unified Streaming',
   DASH_IF: 'DASH-IF',
@@ -259,6 +260,7 @@ shakaAssets.UplynkRequestFilter = function(type, request) {
 };
 // }}}
 
+shakaAssets.enabledAssets = [];
 
 /** @const {!Array.<shakaAssets.AssetInfo>} */
 shakaAssets.testAssets = [

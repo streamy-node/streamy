@@ -76,6 +76,19 @@ class SeriesMgr{
 
     }
 
+    async getEpisodesMpdFiles(episode_id){
+        let outputFiles = [];
+        let serie = await this.con.getSerieFromEpisode(episode_id);
+        let mpdFiles = await this.con.getSeriesMdpFiles(episode_id);
+        
+        for(var i=0; i<mpdFiles.length; i++){
+            let mpdfile = mpdFiles[i];
+            let path = "/series/"+serie.id+"/data/season_"+serie.season_number.toString()+"/episode_"+episode_id+"/"+mpdfile.folder+"/allsub.mpd";
+            outputFiles.push(path);
+        }
+        return outputFiles;
+    }
+
     async getEpisodeStreamInfos(episode_id){
         var results = [];
         let mdpFiles = await this.con.getSeriesMdpFiles(episode_id);

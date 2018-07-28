@@ -2,10 +2,16 @@ class ContentManager{
   constructor(){
     this.langs = {};
     this.templates = {};
-    this.emptyMgr = new EmptyContent(this.templates,this.langs);
     this.moviesMgr = new MoviesContent(this.templates,this.langs);
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
     this.serieMgr = new SerieController(this.templates,this.langs);
+
+    var self = this;
+    //Pull progressions
+    setInterval(function(){
+      self.updateProgressions();
+    },5000)
+
   }
 
   load(code,onSuccess){
@@ -61,8 +67,68 @@ class ContentManager{
       var serieId = parseInt(type.substr(7));
       this.serieMgr.renderSerie(div,serieId);
     }else{
-      this.emptyMgr.render(div);
+      $(div).html("<div id=\"\">Work in progress</div>");
+      //this.emptyMgr.render(div);
       console.error("Not implemented hash ", type);
     }
   }
+
+  updateProgressions(){
+    var self = this;
+    if(location.hash.includes("serie") || location.hash.includes("films")){
+      $.getJSON("progression-infos",function(data){
+        self.moviesMgr.updateProgressions(data.films);
+        self.seriesMgr.updateProgressions(data.series);
+        self.serieMgr.updateProgressions(data.series);
+      });
+    }
+
+  }
+
+  start(){
+    var self = this;
+    jQuery(document).ready(function () {
+        $('#sidebarCollapse').on('click', function () {
+            $('#sidebar').toggleClass('active');
+            $(this).toggleClass('active');
+        });
+    });
+    
+    // Setup content
+    //var contentMgr = new ContentManager();
+    this.load("en",()=>{
+        if(location.hash.length > 0){
+          self.setContent("#content",location.hash);
+        }else{
+          self.setContent("#content","#dashboard");
+        }
+    });
+
+    // Catch hash changes
+    window.addEventListener("hashchange", function () {
+            console.log("hash changed ",location.hash);
+            self.setContent("#content",location.hash);
+        }, false);
+        
+    // Just make last selected element a bit darker
+    $('.nav-elems li').click(function(e) {
+      $('.nav-elems li').removeClass('active');
+      var $this = $(this);
+      if (!$this.hasClass('active')) {
+        $this.addClass('active');
+      }
+    });
+    
+    // TVDBKey
+    theMovieDb.common.initialize();
+    // Movies handle (todo use push)
+    
+    // Serie handle
+    
+    //
+  }
 }
+
+//Main entry point
+var contentManager = new ContentManager();
+contentManager.start();

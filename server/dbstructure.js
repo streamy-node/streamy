@@ -164,6 +164,19 @@ class DBStructure{
         }
     }
 
+    async getSerieFromEpisode(episodeId){
+        var sql = "SELECT series.*, saison.season_number, ep.episode_number  FROM `series`, `series_episodes` AS ep, `series_seasons` AS saison"+
+        " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id AND saison.serie_id = series.id";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            console.error("Cannot get serie ",serieId);
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
     async getSerieIdFromEpisode(episodeId){
         var sql = "SELECT * FROM `series_episodes` AS ep, `series_seasons` AS saison"+
         " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id";
@@ -497,6 +510,19 @@ class DBStructure{
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
+    }
+
+    async getFilmsMdpFiles(filmId){
+        if(!this.checkId(filmId)){
+            console.error("getFilmsMdpFiles: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `films_mpd_files` AS mdp "+
+        " WHERE mdp.film_id = "+filmId;
+        var results = await this.query(sql);
+
+        return results;
     }
 
     async getFilmMpdFile(filmId,workingDir){

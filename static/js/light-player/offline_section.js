@@ -177,8 +177,8 @@ lightDemo.storeDeleteAsset_ = function() {
 
     // If this is a stored demo asset, we'll need to configure the player with
     // license server authentication so we can delete the offline license.
-    for (let i = 0; i < shakaAssets.testAssets.length; i++) {
-      let originalAsset = shakaAssets.testAssets[i];
+    for (let i = 0; i < shakaAssets.enabledAssets.length; i++) {
+      let originalAsset = shakaAssets.enabledAssets[i];
       if (originalManifestUri == originalAsset.manifestUri) {
         lightDemo.preparePlayer_(originalAsset);
         break;

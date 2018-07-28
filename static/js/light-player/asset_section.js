@@ -41,7 +41,7 @@ lightDemo.setupAssets_ = function() {
   /** @type {!Object.<string, !HTMLOptGroupElement>} */
   let groups = {};
   let first = null;
-  shakaAssets.testAssets.forEach(function(asset) {
+  shakaAssets.enabledAssets.forEach(function(asset) {
     if (asset.disabled) return;
 
     let group = groups[asset.source];
