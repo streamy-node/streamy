@@ -88,7 +88,7 @@ class SerieController{
             console.log("ep_tpl.html():",ep_tpl.html());
             template.find(".list-group").append(ep_tpl);
 
-            let videoBock = new VideoBlock();
+            let videoBock = new VideoBlock("episode",episode.id);
             videoBock.getStreamsInfos = function(onResult){
                 $.getJSON( "episodes/streams/"+episode.id, function( data ) {
                     console.log("Stream infos "+episode.id,data);
@@ -116,8 +116,8 @@ class SerieController{
         //Get serie id
         var serieId = null;
         if(location.hash.substr(0,6) === "#serie" && location.hash.length > 7){//#serie_id
-        //Extract id
-        serieId = parseInt(location.hash.substr(7));
+            //Extract id
+            serieId = parseInt(location.hash.substr(7));
         }else{
             console.error("Invalid data");
         }

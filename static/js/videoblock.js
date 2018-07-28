@@ -1,13 +1,19 @@
 class VideoBlock{
-    constructor(){
+    constructor(type,id){
         this.droppedFiles = null;
         this.getStreamsInfos = null;
         this.element = null;
         this.isBroken = false;
+        this.type = type;
+        this.id = id;
     }
 
-    launchVideo(mdpFile){
+    launchVideoFromMpd(mdpFile){
         var windowObjectReference = window.open("js/light-player/index.html?mdp="+encodeURIComponent(mdpFile), "streamy player");
+    }
+
+    launchVideo(){
+        var windowObjectReference = window.open("js/light-player/index.html?type="+this.type+"&id="+this.id.toString(), "Streamy player");
     }
 
     setBroken(value,status_color = nofile_color){
@@ -56,18 +62,19 @@ class VideoBlock{
 
     onPlayClick(){
         var self = this;
-        this.getStreamsInfos(function(results,dataPath){
-            if(results.length == 1){
-                let res = results[0];
-                console.log("Result ",results[0],dataPath);
-                self.launchVideo("/"+dataPath+"/"+res.mdp.folder+"/allsub.mpd");
-                //var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
-            }else if(results.length > 0){
-                alert("TODO open a window");
-            }else{
-                alert("No streams available");
-            }
-        });
+        self.launchVideo();
+        // this.getStreamsInfos(function(results,dataPath){
+        //     if(results.length == 1){
+        //         let res = results[0];
+        //         console.log("Result ",results[0],dataPath);
+        //         self.launchVideo("/"+dataPath+"/"+res.mdp.folder+"/allsub.mpd");
+        //         //var manifestUri = "http://192.168.1.69:80/videos/fftest/video1-bis.mpd"
+        //     }else if(results.length > 0){
+        //         alert("TODO open a window");
+        //     }else{
+        //         alert("No streams available");
+        //     }
+        // });
     }
 
     /**

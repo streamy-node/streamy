@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta name="description" content="Shaka Player Demo">
+    <meta name="description" content="Streamy player">
     <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#ffffff">
@@ -21,9 +21,9 @@
     <!-- script src="/js/shaka/dist/shaka-player.compiled.js"></script-->
     <link rel="stylesheet" type="text/css" href="/css/player.css">
     <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
-    <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
 
     <!-- external dependencies-->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script defer src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 
@@ -49,8 +49,8 @@
     <script src="myapp.js"></script>
   </head>
   <body>
-    <div id="container">
-      <div id="videoContainer" class="overlay-parent">
+    <div id="container" class="nopad container">
+      <div id="videoContainer" class="overlay-parent nopad">
         <video id="video" autoplay 
           poster="//shaka-player-demo.appspot.com/assets/poster.jpg" autoplay>
         </video>
@@ -86,7 +86,7 @@
       </div>
       
       <details class="input">
-        <summary>Infob</summary>
+        <summary>Infos</summary>
         <div class="flex">
           <label for="audioLanguages">Audio languages:</label>
           <select id="audioLanguages" class="flex-grow"></select>
