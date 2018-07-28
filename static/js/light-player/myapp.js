@@ -54,8 +54,8 @@ lightDemo.loadMpdFiles = function() {
     for(let i=0; i<mpdfiles.length; i++){
       let mpdfile = mpdfiles[i];
       shakaAssets.enabledAssets.push({
-        name: i.toString(),//TODO put explicit name
-        manifestUri: mpdfile,
+        name: mpdfile.title+" ("+i.toString()+")",//TODO put explicit name
+        manifestUri: mpdfile.filename,
         encoder: shakaAssets.Encoder.STREAMY,
         source: shakaAssets.Source.STREAMY,
         drm: [],
