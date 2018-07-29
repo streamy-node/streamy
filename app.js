@@ -122,11 +122,19 @@ function startApp(){
   /// Setup auth
   passport.use(new LocalStrategy(
     function(username, password, done) {
+      
       users.findByUsername( username, function (err, user) {
-        if (err) { return done(err); }
-        if (!user) { return done(null, false); }
-        if (user.password !== password) { return done(null, false); }
-        return done(null, user);
+        if (err || !user || user.password !== password){
+          setTimeout(function(){
+            done(null, false);
+          },3000);
+        }else{
+          return done(null, user);
+        }
+        // if (err) { return done(err); }
+        // if (!user) { return done(null, false); }
+        // if (user.password !== password) { return done(null, false); }
+        // return done(null, user);
       });
     }
   ));
@@ -218,7 +226,11 @@ function startApp(){
     if (req.user) {
         next();
     } else {
+      //res.redirect('/login');
+      setTimeout(function(){
         res.redirect('/login');
+      },4000);
+      
     }
   }
 
