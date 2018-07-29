@@ -260,7 +260,8 @@ shakaAssets.UplynkRequestFilter = function(type, request) {
 };
 // }}}
 
-shakaAssets.enabledAssets = [];
+shakaAssets.enabledAssets = [
+];
 
 /** @const {!Array.<shakaAssets.AssetInfo>} */
 shakaAssets.testAssets = [

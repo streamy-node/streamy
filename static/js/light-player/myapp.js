@@ -44,6 +44,10 @@ lightDemo.getURLParameter_ = function(sParam){
 let type = lightDemo.getURLParameter_("type");
 let id = lightDemo.getURLParameter_("id");
 
+var protocol = location.protocol;
+var slashes = protocol.concat("//");
+var host = slashes.concat(window.location.hostname)+":"+location.port;
+
 //TODO prefered language
 // config.preferredAudioLanguage = document.getElementById('preferredAudioLanguage').value;
 // config.preferredTextLanguage = document.getElementById('preferredTextLanguage').value;
@@ -55,7 +59,7 @@ lightDemo.loadMpdFiles = function() {
       let mpdfile = mpdfiles[i];
       shakaAssets.enabledAssets.push({
         name: mpdfile.title+" ("+i.toString()+")",//TODO put explicit name
-        manifestUri: mpdfile.filename,
+        manifestUri: host+mpdfile.filename,
         encoder: shakaAssets.Encoder.STREAMY,
         source: shakaAssets.Source.STREAMY,
         drm: [],
