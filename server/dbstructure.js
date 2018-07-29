@@ -12,7 +12,13 @@ class DBStructure{
     initialize(dbOptions,onResult){
         var self = this;
         this.dboptions = dbOptions;
-        this.handleDisconnect(()=>{
+
+        this.handleDisconnect((err)=>{
+            if(err){
+                console.error("Cannot connect to db ",err);
+                onResult(err);
+                return;
+            } 
             // Setup dbase
             this.setup_database(function(error){
                 if(error){
@@ -26,6 +32,7 @@ class DBStructure{
         },(error)=>{
             onResult(error);
         });
+            
     }
 
     async loadLangs(){
@@ -82,9 +89,10 @@ class DBStructure{
 
 
     setup_database(onResult){
+        //If the database is available, create tables if necessary
         var sql = fs.readFileSync('server/sql/init_db.sql').toString();
         this.con.query(sql, function (err, result) {
-            if (err){
+                if (err){
                 if(err.errno === 1050){
                     console.log("Database already initialized");
                     if(onResult) onResult(null);
