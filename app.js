@@ -396,7 +396,7 @@ function startApp(){
 
 
   // Upload files
-  app.post('/upload/:type', async function(req,res){
+  app.post('/upload/:type', loggedIn, async function(req,res){
     if(req.user){ //TODO check rights
       var type = req.params.type;
       var form = new formidable.IncomingForm();
@@ -486,7 +486,7 @@ function startApp(){
   });
 
   // Add serie
-  app.post('/series', async function (req, res) {
+  app.post('/series', loggedIn, async function (req, res) {
     if(req.user){ //TODO check rights
       console.log("body",req.body);
 
