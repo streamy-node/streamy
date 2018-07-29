@@ -373,7 +373,7 @@ class TranscoderManager{
         let streamArgs = [];
 
         let adaptation_sets = 'id=0,streams=v ';
-        let adaptation_index = 1;
+        let adaptation_index = 0;
 
         //Generate output streams
         let bestVideoStream = this._getBestVideoStream(infos.streams);
@@ -384,15 +384,18 @@ class TranscoderManager{
             let stream = infos.streams[i];
 
             if(stream.codec_type === "video" && bestVideoStream == stream){ //Take the best video stream
+                let src_width = stream.width;
                 let valid_resolutions = await this._filterValidResolutions(stream,resolutions);
 
                 for(var j=0; j<valid_resolutions.length; j++){
                     let output_stream = jsutils.clone(stream);
                     //output_stream._video_index = videoOutputIndex;
                     output_stream.width = valid_resolutions[j].width;
+                    output_stream.height = output_stream.height*output_stream.width/src_width;
                     //output_stream.index = audioVideoIndex;
                     output_stream._src_index = stream.index;
                     output_streams.push(output_stream);
+                    adaptation_index++;
                     // mappingArgs.push('-map');
                     // mappingArgs.push("0:"+stream.index);
                     //videoOutputIndex++;

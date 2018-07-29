@@ -784,18 +784,22 @@ INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'ad
 
 -- resolutions
 INSERT INTO `resolutions` VALUES(1, 'LOW', 1,1);
-INSERT INTO `resolutions` VALUES(2, 'SD', 720,576);
-INSERT INTO `resolutions` VALUES(3, 'HD', 1280,720);
-INSERT INTO `resolutions` VALUES(4, 'FHD', 1920,1080);
-INSERT INTO `resolutions` VALUES(5, 'UHD', 3840,2160);
-INSERT INTO `resolutions` VALUES(6, '4K', 4096,2160);
+INSERT INTO `resolutions` VALUES(2, '240p ', 426,240);
+INSERT INTO `resolutions` VALUES(3, '360p ', 640,360);
+INSERT INTO `resolutions` VALUES(4, '480p', 854,480);
+INSERT INTO `resolutions` VALUES(5, 'HD', 1280,720);
+INSERT INTO `resolutions` VALUES(6, 'FHD', 1920,1080);
+INSERT INTO `resolutions` VALUES(7, 'UHD', 3840,2160);
+INSERT INTO `resolutions` VALUES(8, '4K', 4096,2160);
 
-INSERT INTO `resolutions_bitrates` VALUES(1, 1,800);
-INSERT INTO `resolutions_bitrates` VALUES(2, 2,1200);
-INSERT INTO `resolutions_bitrates` VALUES(3, 3,2400);
-INSERT INTO `resolutions_bitrates` VALUES(4, 4,4800);
-INSERT INTO `resolutions_bitrates` VALUES(5, 5,16000);
-INSERT INTO `resolutions_bitrates` VALUES(6, 6,16000);
+INSERT INTO `resolutions_bitrates` VALUES(1, 1,250);
+INSERT INTO `resolutions_bitrates` VALUES(2, 2,500);
+INSERT INTO `resolutions_bitrates` VALUES(3, 3,800);
+INSERT INTO `resolutions_bitrates` VALUES(4, 4,1000);
+INSERT INTO `resolutions_bitrates` VALUES(5, 5,2000);
+INSERT INTO `resolutions_bitrates` VALUES(6, 6,4000);
+INSERT INTO `resolutions_bitrates` VALUES(7, 7,12000);
+INSERT INTO `resolutions_bitrates` VALUES(8, 8,13000);
 
 INSERT INTO `audio_bitrates` VALUES(1, 'Mono', 1, 128);
 INSERT INTO `audio_bitrates` VALUES(2, 'Stereo', 2, 384);
@@ -807,9 +811,9 @@ INSERT INTO `audio_bitrates` VALUES(4, '5.1', 6, 512);
 INSERT INTO `films_transcoding_resolutions` VALUES(1, 4);
 INSERT INTO `films_transcoding_resolutions` VALUES(2, 3);
 
-INSERT INTO `series_transcoding_resolutions` VALUES(1, 4);
-INSERT INTO `series_transcoding_resolutions` VALUES(2, 3);
-
+INSERT INTO `series_transcoding_resolutions` VALUES(1, 6);
+INSERT INTO `series_transcoding_resolutions` VALUES(2, 5);
+INSERT INTO `series_transcoding_resolutions` VALUES(3, 4);
 -- dev
 INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');
 INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 2, 'brick_upload','/data/upload');
