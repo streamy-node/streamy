@@ -225,12 +225,11 @@ CREATE TABLE `series_videos` (
 CREATE TABLE `series_audios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned NOT NULL,
+  `lang_id` int(10) unsigned,
   `channels` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`) 
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `series_subtitles` (
@@ -240,8 +239,7 @@ CREATE TABLE `series_subtitles` (
   `name` VARCHAR(255) CHARACTER SET utf8,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`name`) 
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `films` (
@@ -302,23 +300,21 @@ CREATE TABLE `films_videos` (
 CREATE TABLE `films_audios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned NOT NULL,
+  `lang_id` int(10) unsigned,
   `channels` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`) 
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `films_subtitles` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned  NOT NULL,
+  `lang_id` int(10) unsigned,
   `name` VARCHAR(255) CHARACTER SET utf8,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`name`) 
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `films_moviedb` (

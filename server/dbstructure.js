@@ -49,7 +49,7 @@ class DBStructure{
         var result = await this.query(sql);
 
         if(result.length == 0 ){
-            console.error("Cannot lang from 639_2 norme ",langCode);
+            console.error("Cannot get lang from 639_2 norme ",langCode);
             return null;
         }else{
             return result[0];

@@ -171,12 +171,12 @@ class TranscoderManager{
             let mdpFileUpdated = false;
 
             //let subtitles_streams = [];
-            let hasVideoOrAudio = false;
+            var hasVideoOrAudio = false;
             self.updateProgressions(episodeId,filmId,0,3);
             this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
                 async function(){
                     //This callback is called when the transcoding of one stream succeed
-                    
+                   // let hasVideoOrAudio = false;
                     // add MPD file infos to db if not already done
                     var mpdId = null
                     var mpdinfos = await self.getMPD(episodeId,filmId,workingFolder);
@@ -207,6 +207,12 @@ class TranscoderManager{
                             hasVideoOrAudio = true;
                         }else if(stream.codec_type == "audio"){
                             let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
+
+                            if(!langInfos){
+                                console.error("Unknown lang code ",stream.tags.language);
+                                langInfos = {};
+                                langInfos.language_id = null;
+                            }
                             if(episodeId){
                                 id = await self.dbMgr.insertSerieAudio(mpdId,langInfos.language_id,stream.channels);
                             }else if(filmId){
@@ -394,6 +400,13 @@ class TranscoderManager{
                 }
             }else if(stream.codec_type === "audio"){
                 //stream._audio_index = audio_idx++;
+                let tags = null;
+                //If ffbrobe failed to get lang infos
+                if(!stream.tags || !stream.tags.language){
+                    tags = {};
+                    tags.language = null;
+                    tags.title = null;
+                }
 
                 //Check if we need to generate a stereo audio (for compatibility)
                 let targetChannels = [stream.channels];
@@ -408,6 +421,12 @@ class TranscoderManager{
                     //output_stream.index = audioVideoIndex;
                     output_stream._src_index = stream.index;
                     output_stream.channels = targetChannels[k];
+
+                    if(tags){
+                        output_stream.tags = tags;
+                    }
+
+                    
                     output_streams.push(output_stream);
                     adaptation_sets+='id='+stream.index.toString()+",streams="+(adaptation_index).toString()+" ";
                     adaptation_index++;
@@ -432,6 +451,9 @@ class TranscoderManager{
                         output_stream.tags = {};
                         output_stream.tags.language = subInfos.language;
                         output_stream.tags.title = subInfos.title;
+                    }else{
+                        output_stream.tags.language = null;
+                        output_stream.tags.title = null;
                     }
                 }
 
@@ -963,6 +985,9 @@ class TranscoderManager{
             let stream = streams[i];
             if(stream.codec_type !== "audio"){
                 continue;
+            }
+            if(!stream.tags){
+                stream.tags = {};
             }
             let lang = stream.tags.language;
             if(! outputs.has(lang)){
