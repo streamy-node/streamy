@@ -477,7 +477,7 @@ class DBStructure{
             return null;
         }
         var sql = "INSERT INTO `series_subtitles` (`mpd_id`,`lang_id`,`name`) "
-        + " VALUES("+mpd_id+", "+lang_id+", "+name+")";
+        + " VALUES("+mpd_id+", "+lang_id+', "'+name+'")';
 
         let id = null;
         try{

@@ -433,6 +433,20 @@ function startApp(){
         // TODO check if already updating
         // TODO create random folder to avoid colisions
         var uploadPath = form.uploadDir;
+
+        //If it's a subtitle, keep lang info in the name
+        if(path.extname(file.name) == ".srt" && file.name.length > 5){
+          let langIndex = file.name.length - 6;
+          let lang = file.name.substring(langIndex,langIndex+2);
+          let nameIndex = file.name.lastIndexOf('.',langIndex-2);
+          if(nameIndex == -1){
+            nameIndex = 0;
+          }else{
+            nameIndex++;
+          }
+          let description = file.name.substring(nameIndex,langIndex-1);
+          file.path = file.path.substring(0,file.path.length-4)+"_srt_"+lang+ "_"+description+".srt";
+        }
         file.path;
       });
 
@@ -449,7 +463,7 @@ function startApp(){
           if(type === "series"){
             transcodeMgr.addEpisode(filename,parseInt(uploadInfos.id));
           }else if(type === "films"){
-            transcodeMgr.addFilm(filename,parseInt(uploadInfos.id));;
+            transcodeMgr.addFilm(filename,parseInt(uploadInfos.id));
           }
         }
       });

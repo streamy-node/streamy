@@ -83,7 +83,7 @@ class SeriesMgr{
         
         for(var i=0; i<mpdFiles.length; i++){
             let mpdfile = mpdFiles[i];
-            let path = "/series/"+serie.id+"/data/season_"+serie.season_number.toString()+"/episode_"+episode_id+"/"+mpdfile.folder+"/allsub.mpd";
+            let path = "/series/"+serie.id+"/data/season_"+serie.season_number.toString()+"/episode_"+serie.episode_number+"/"+mpdfile.folder+"/allsub.mpd";
             let title = serie.original_name+" S"+serie.season_number+"E"+serie.episode_number.toString();
             outputFiles.push({filename:path,title:title});
         }

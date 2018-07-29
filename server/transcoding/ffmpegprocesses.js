@@ -307,7 +307,7 @@ class FfmpegProcessManager extends EventEmitter{
           }else if(typeof jsonContent.code !== 'undefined'){
             process._onFinal(jsonContent);
           }else{
-            process._onFinal(new FinalMsg(3,"Unknown message",error));
+            process._onFinal(new FinalMsg(3,"Unknown message",data));
             console.err("Invalid message received ",data);
           }
         }catch(error){

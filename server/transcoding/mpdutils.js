@@ -1,5 +1,6 @@
 //var fs = require('fs');
 var fsutils = require('../fsutils');
+const Semaphore = require("await-semaphore").Semaphore;
 
 class MPDData{
     constructor(){
@@ -93,6 +94,7 @@ class MPDFile{
         this.header = "";
         this.mpdFile = null;
         this.foot = "\n	</Period>\n</MPD>";//TODO get them from header parsing
+        
     }
 
     eraseBaseURLDuplicates(){
@@ -273,7 +275,7 @@ class MPDFile{
 
 class MPDUtils{
     constructor(){
-
+        this.mpdSemaphores = new Map();
     }
 
     async mergeMpd(src_mpd, dst_mpd){
@@ -323,17 +325,28 @@ class MPDUtils{
     async addStreamsToMpd(src_mpd_path, streams, destination){
         var src_mpd = new MPDFile();
 
+        //Critical section, prevent from multiples parallel merges
+        let release = null;
+        if(!this.mpdSemaphores.has(src_mpd_path)){
+            this.mpdSemaphores.set(src_mpd_path,new Semaphore(1));
+        }
+        release = await this.mpdSemaphores.get(src_mpd_path).acquire();
+
         var res = await src_mpd.parse(src_mpd_path,true);
         if(res === null){
             console.log("MDP: Failed to merge unexisting file");
+            release();
             return null;
         }
 
         for(let i=0; i<streams.length; i++){
             let stream = streams[i];
-            src_mpd.addSubtitleAdaptationSet(stream.tags.language,'srt_'+stream.tags.language+"_"+stream.tags.title+".vtt");
+            if(stream.codec_type == "subtitle"){
+                src_mpd.addSubtitleAdaptationSet(stream.tags.language,'subs/srt_'+stream.tags.language+"_"+stream.tags.title+".vtt");
+            }
         }
         await src_mpd.save(destination);
+        release();
     }
 
     //Merge only the first representation of src into dst 

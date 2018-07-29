@@ -8,7 +8,7 @@ var Hardware = require('./ffmpegprocesses').Hardware;
 var MPD = require("./mpdutils").MPDFile;
 var mpdUtils = require("./mpdutils").MPDUtils;
 
-const Semaphore = require("await-semaphore").Semaphore;
+const Semaphore = require("await-semaphore").Semaphore;//TODO remove
 var jsutils = require("../jsutils");
 
 class TranscoderManager{
@@ -27,32 +27,51 @@ class TranscoderManager{
     }
 
     async addEpisode(file,episodeId){
-        this.addVideoFile(file,episodeId,null);
+        this.addFile(file,episodeId,null);
     }
 
     async addFilm(file,film_id){
-        this.addVideoFile(file,null,film_id);
+        this.addFile(file,null,film_id);
     }
 
     async loadAddFileTasks(){
         let tasks = await this.dbMgr.getAddFileTasks();
         for(let i=0; i<tasks.length; i++){
             let task = tasks[i];
-            this.addVideoFile(task.file,task.episode_id,task.film_id);
+            this.addFile(task.file,task.episode_id,task.film_id);
         }
     }
 
-    async addVideoFile(filename,episodeId,filmId){
-        var self = this;
+    async addFile(filename,episodeId,filmId,workingFolderHint = null){
 
         //Check if a task for this file is not already added
         let task = await this.dbMgr.getAddFileTask(filename);
+
+        //if it's a subtitle, take the last video folder (todo make a popup client side)
+        let ext = path.extname(filename);
+        if(ext === ".srt" || ext === ".vtt"){
+            if(!workingFolderHint){
+                let mpds = [];
+                if(episodeId){
+                    mpds = await this.dbMgr.getSeriesMdpFiles(episodeId);
+                }else if(filmId){
+                    mpds = await this.dbMgr.getFilmsMdpFiles(filmId);
+                }
+                if(mpds.length > 0){
+                    workingFolderHint = mpds[0].folder;
+                }
+            } 
+        }
 
         //If task not existing, create and id
         let task_id = null;
         var workingFolder;
         if(!task){
-            workingFolder = shortId.generate();
+            if(workingFolderHint && workingFolderHint.length>0){
+                workingFolder = workingFolderHint;
+            }else{
+                workingFolder = shortId.generate();
+            }
             //Add this file to insert tasks table (in case of shutdown to avoid to download again the file)
             task_id = await this.dbMgr.insertAddFileTask(filename,workingFolder,episodeId,filmId);
         }else{
@@ -61,17 +80,64 @@ class TranscoderManager{
         }
 
         if(!task_id){
-            console.error("TranscodeMgr: Cannot add file in db ",filename);
+            console.error("TranscodeMgr: Cannot add task in db ",filename);
             return null;
         }
 
+        // let extension = path.extname(path.extnametask.file);
+        // if(extension == ".srt"){
+        //     this.addSubtitleFile(filename,episodeId,filmId,task_id);
+        // }else{
+        this.addVideoFile(filename,episodeId,filmId,task_id,workingFolder);
+        // }
+    }
+
+    // async addSubtitleFile(filename,episodeId,filmId,task_id){
+
+    // }
+
+    async addVideoFile(filename,episodeId,filmId,task_id,workingFolder){
+        var self = this;
+
+        // //Check if a task for this file is not already added
+        // let task = await this.dbMgr.getAddFileTask(filename);
+
+        // //If task not existing, create and id
+        // let task_id = null;
+        // var workingFolder;
+        // if(!task){
+        //     workingFolder = shortId.generate();
+        //     //Add this file to insert tasks table (in case of shutdown to avoid to download again the file)
+        //     task_id = await this.dbMgr.insertAddFileTask(filename,workingFolder,episodeId,filmId);
+        // }else{
+        //     workingFolder = task.working_folder;
+        //     task_id = task.id;
+        // }
+
+        // if(!task_id){
+        //     console.error("TranscodeMgr: Cannot add file in db ",filename);
+        //     return null;
+        // }
+
+        // // Create target folder if not already done
+        // var targetFolder = await this._getTargetFolder(episodeId,filmId);
+        // var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
+        // if(! await fsutils.exists(absoluteWorkingFolder)){
+        //     await fsutils.mkdirp(absoluteWorkingFolder);
+        // }
         // Create target folder if not already done
         var targetFolder = await this._getTargetFolder(episodeId,filmId);
         var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
         if(! await fsutils.exists(absoluteWorkingFolder)){
             await fsutils.mkdirp(absoluteWorkingFolder);
         }
+
+        //Create subtitles folders
+        if(! await fsutils.exists(absoluteWorkingFolder+"/subs")){
+            await fsutils.mkdirp(absoluteWorkingFolder+"/subs");
+        }
        
+        //Get video resolutions
         let resolutions;
         if(filmId){
             resolutions = await this.dbMgr.getFilmsTranscodingResolutions();
@@ -104,7 +170,8 @@ class TranscoderManager{
             
             let mdpFileUpdated = false;
 
-            let subtitles_streams = [];
+            //let subtitles_streams = [];
+            let hasVideoOrAudio = false;
             self.updateProgressions(episodeId,filmId,0,3);
             this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
                 async function(){
@@ -137,6 +204,7 @@ class TranscoderManager{
                             }else if(filmId){
                                 id = await self.dbMgr.insertFilmVideo(mpdId,resolution.id);
                             }
+                            hasVideoOrAudio = true;
                         }else if(stream.codec_type == "audio"){
                             let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
                             if(episodeId){
@@ -144,11 +212,28 @@ class TranscoderManager{
                             }else if(filmId){
                                 id = await self.dbMgr.insertFilmAudio(mpdId,langInfos.language_id,stream.channels);
                             }
+                            hasVideoOrAudio = true;
                         }else if(stream.codec_type === "subtitle"){
-                            subtitles_streams.push(stream);
-                            let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
+                            //subtitles_streams.push(stream);
+                            let langid = null;
+                            if(stream.tags.language.length === 3){
+                                let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
+                                if(!langInfos){
+                                    console.error("Unknown lang code ",stream.tags.language);
+                                }else{
+                                    langid = langInfos.language_id;
+                                }
+                            }else{
+                                langid = await self.dbMgr.getLangsId(stream.tags.language);
+                            }
+
+                            let name = stream.tags.title;
+                            if(!name){
+                                name = "";
+                            }
+
                             if(episodeId){
-                                id = await self.dbMgr.insertSerieSubtitle(mpdId,langInfos.language_id);
+                                id = await self.dbMgr.insertSerieSubtitle(mpdId,langid,name);
                             }else if(filmId){
                                 id = await self.dbMgr.insertFilmSubtitle(mpdId,lang_id,name);
                             }
@@ -160,11 +245,14 @@ class TranscoderManager{
                     }
 
                     //Add subtitles to mdp file
-                    await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
+                    let subtitle_streams = await self.getAvailableVttStreams(absoluteWorkingFolder);
+                    await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitle_streams,absoluteWorkingFolder+"/allsub.mpd");
 
-                    //Mark mpd as complete
-                    await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
-                    await self.setVideoMpdStatus(episodeId,filmId,1);
+                    //Mark mpd as complete if audio or video stream added
+                    if(hasVideoOrAudio){
+                        await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
+                        await self.setVideoMpdStatus(episodeId,filmId,1);
+                    }
 
                     //Remove add file task
                     await self.dbMgr.removeAddFileTask(task_id);
@@ -195,6 +283,49 @@ class TranscoderManager{
             console.error("Cannot split uploadded file: ",file.path);
         }
 
+    }
+
+    extractUploadedSubtitleinfos(filename){
+        let infos = null;
+        let index = filename.indexOf("srt_");
+        if(path.extname(filename) === ".vtt" || path.extname(filename) === ".srt" && index >= 0){
+            let processableFilename = filename.substring(index);
+            return this.extractProcessedSubtitleinfos(processableFilename);
+        }else{
+            console.error("extractUploadedSubtitleinfos failed: invalid extension ",filename)
+        }
+        return infos;
+    }
+
+    extractProcessedSubtitleinfos(filename){
+        let infos = null;
+        infos = {};
+        //TODO use regexp
+        infos.language = filename.substring(4,6);
+        infos.title = filename.substring(7,filename.length-4);
+        return infos;
+    }
+
+    async getAvailableVttStreams(absoluteWorkingFolder){
+        let outputs = [];
+        
+        let files = await fsutils.readir(absoluteWorkingFolder+"/subs");
+        for(let i=0; i<files.length; i++){
+            let file = files[i];
+            if(path.extname(file) === ".vtt"){
+                let tags = this.extractProcessedSubtitleinfos(file);
+                let stream = {};
+                stream.tags = {};
+                //TODO use regexp
+                stream.codec_type = "subtitle";
+                stream.tags.language = tags.language;
+                stream.tags.title = tags.title;
+                outputs.push(stream);
+            }else{
+                console.error("extractProcessedSubtitleinfos failed: invalid extension ",filename)
+            }
+        }
+        return outputs;
     }
 
     updateProgressions(episodeId,filmId,progression,state_code){
@@ -292,6 +423,18 @@ class TranscoderManager{
                 let output_stream = jsutils.clone(stream);
                 output_stream._src_index = stream.index;
                 output_stream.target_folder = targetFolder;
+
+                //If ffbrobe failed to get lang infos
+                if(!output_stream.tags || !output_stream.tags.language){
+                    //If the input is only a subtitle file, use filename to get lang
+                    let subInfos = this.extractUploadedSubtitleinfos(filename);
+                    if(subInfos){
+                        output_stream.tags = {};
+                        output_stream.tags.language = subInfos.language;
+                        output_stream.tags.title = subInfos.title;
+                    }
+                }
+
                 output_streams.push(output_stream);
                     //_generateSubtitlePart
                     //globalIndex++;
@@ -318,8 +461,12 @@ class TranscoderManager{
         //Build complete command
         //Array.prototype.push.apply(args,mappingArgs);
         Array.prototype.push.apply(args,streamArgs);
-        Array.prototype.push.apply(args,finalArgs);
 
+        //If there is a video create mpd otherwise do not
+        if(bestVideoStream){
+            Array.prototype.push.apply(args,finalArgs);
+        }
+        
         return { args:args, streams:output_streams, targetName:targetFolder+"/"+dashName};
     }
 
@@ -556,6 +703,19 @@ class TranscoderManager{
     //     }
     // }
     async _generateSubtitlePart(stream){
+        let lang = "00";
+
+        if(stream.tags.language.length === 3){
+            let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
+            if(langInfos){
+                lang = langInfos.iso_639_1
+            }else{
+                console.error("_generateSubtitlePart unknown lang code: ",stream.tags.language);
+            }
+        }else if(stream.tags.language.length === 2){
+            lang = stream.tags.language;
+        }
+
         return[
         '-map',
         '0:'+stream.index,
@@ -565,7 +725,7 @@ class TranscoderManager{
         1,
         '-f',
         "webvtt",
-        stream.target_folder+'/srt_'+stream.tags.language+"_"+stream.tags.title+".vtt"
+        stream.target_folder+'/subs/srt_'+lang+"_"+stream.tags.title+".vtt"
         ];
         //'srt_'+stream.tags.language+"_"+stream.tags.title+".vtt"
     }
