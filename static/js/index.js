@@ -55,7 +55,8 @@ class ContentManager{
 
   setContent(div,type){
     if(type === "#movies"){
-      this.moviesMgr.render(div);
+      $(div).html("<div id=\"\">Work in progress</div>");
+      /*this.moviesMgr.render(div);*/
     }else if(type === "#series"){
       this.seriesMgr.renderSeries(div);
     }else if(type === "#addserie"){
