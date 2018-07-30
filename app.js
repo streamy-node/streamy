@@ -120,11 +120,14 @@ function startApp(){
   };
 
   /// Setup auth
+  var failedConnectionAttempt = 0;
   passport.use(new LocalStrategy(
     function(username, password, done) {
       
       users.findByUsername( username, function (err, user) {
         if (err || !user || user.password !== password){
+          failedConnectionAttempt++;
+          console.warn("Failed connection attempts! "+failedConnectionAttempt);
           setTimeout(function(){
             done(null, false);
           },3000);
