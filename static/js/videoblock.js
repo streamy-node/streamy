@@ -37,12 +37,18 @@ class VideoBlock{
         } 
     }
 
-    setError(value,status_color){
+    setError(value,status_color,message = null){
         let $verror = this.element.find('.video_error');
 
         $verror.css("color",status_color);
 
         if(value){
+            if(message){
+                $verror.attr("title","failed to add last file: "+message);
+            }else{
+                $verror.attr("title","failed to add last file");
+            }
+            
             $verror.removeClass('d-none');
         }else{
             $verror.addClass('d-none');
@@ -53,7 +59,7 @@ class VideoBlock{
         $progress.addClass('d-none');
     }
 
-    updateStatus(state,progression){
+    updateStatus(state,progression,msg = null){
         let $progress = this.element.find('.video_progress');
         $progress.text(progression+"%");
         if(state == 0){
@@ -62,7 +68,7 @@ class VideoBlock{
             this.hideProgression();
             this.setError(false);
         }else if(state == 1){
-            this.setError(true,transcoding_error_color);
+            this.setError(true,transcoding_error_color,msg);
             if(!this.hasMpd) this.setBroken(true,nofile_color);
             $progress.addClass('d-none');
         }else if(state == 2){

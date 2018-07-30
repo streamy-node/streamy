@@ -184,7 +184,7 @@ class SerieController{
                 let videoBlock = items[1];
                 if(progressions[videoId]){
                     let progressionInfos = progressions[videoId];
-                    videoBlock.updateStatus(progressionInfos.state_code,progressionInfos.progression);
+                    videoBlock.updateStatus(progressionInfos.state_code,progressionInfos.progression,progressionInfos.msg);
     
                 }
             }

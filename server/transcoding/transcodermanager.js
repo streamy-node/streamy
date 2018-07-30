@@ -152,6 +152,7 @@ class TranscoderManager{
 
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
         if(infos === null){
+            self.updateProgressions(episodeId,filmId,0,1,"no worker available");
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
@@ -270,9 +271,13 @@ class TranscoderManager{
                     console.log("Offline transcoding done for: "+absoluteWorkingFolder);
 
             },
-            function(msg){
-                self.updateProgressions(episodeId,filmId,msg.progression,1);
-            },//OnError
+            function(msg){//OnError
+                let error_msg = msg.msg;
+                if(!error_msg){
+                    error_msg = null;
+                }
+                self.updateProgressions(episodeId,filmId,msg.progression,1,error_msg);
+            },
             async function(msg){//On Progress
 
                 self.updateProgressions(episodeId,filmId,msg.progression,2);
@@ -334,16 +339,16 @@ class TranscoderManager{
         return outputs;
     }
 
-    updateProgressions(episodeId,filmId,progression,state_code){
+    updateProgressions(episodeId,filmId,progression,state_code,message = null){
         let id = episodeId == null ? filmId : episodeId;
         let progressionFilter = progression;
         if(!progressionFilter){
             progressionFilter = 0;
         }
         if(episodeId){
-            this.lastProgressions.series[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code};
+            this.lastProgressions.series[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
         }else if(filmId){
-            this.lastProgressions.films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code};
+            this.lastProgressions.films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
         }
 
         //Clear from lastProgressions after 30 secs
