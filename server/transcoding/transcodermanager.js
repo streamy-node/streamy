@@ -815,6 +815,8 @@ class TranscoderManager{
             key_int.toString(),
             '-g:v:'+stream._video_index,
             key_int.toString(),
+            '-pix_fmt:v:'+stream._video_index,
+            'yuv420p',
             '-b_strategy:v:'+stream._video_index,
             '0',
             '-sc_threshold:v:'+stream._video_index,

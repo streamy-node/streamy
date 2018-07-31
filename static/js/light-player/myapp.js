@@ -105,7 +105,7 @@ lightDemo.initPlayer = function() {
     // Create a Player instance.
     let localVideo = document.getElementById('video');
     let localPlayer = new shaka.Player(video);
-    shaka.log.setLevel(shaka.log.Level.V2);//V2
+    //shaka.log.setLevel(shaka.log.Level.V2);//V2
 
     lightDemo.castProxy_ =  new shaka.cast.CastProxy(
             localVideo, localPlayer, lightDemo.CC_APP_ID_);

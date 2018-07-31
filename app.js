@@ -54,13 +54,16 @@ var dbOptions = {
 //var dbConnection = mysql.createConnection(dbOptions).on;
 var dbMgr = new DBStructure();
 var settings = new Settings(dbMgr);
+var appstarted = false;
 
 dbMgr.initialize(dbOptions,function(err) {
   if (err) {
     process.exit(1);
   }else{
     settings.pullSettings();
-    startApp();
+    if(!appstarted){
+      startApp();
+    }
   }
 });
 
@@ -549,6 +552,8 @@ function startApp(){
   processesMgr.on('workerAvailable', function(){
     transcodeMgr.loadAddFileTasks();
   });
+
+  appstarted = true;
   // TODO properly shutdown
   // sessionStore.close();
 }
