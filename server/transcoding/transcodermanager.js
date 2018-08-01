@@ -38,7 +38,7 @@ class TranscoderManager{
         let tasks = await this.dbMgr.getAddFileTasks();
         for(let i=0; i<tasks.length; i++){
             let task = tasks[i];
-            this.addFile(task.file,task.episode_id,task.film_id);
+            await this.addFile(task.file,task.episode_id,task.film_id);
         }
     }
 
@@ -88,7 +88,7 @@ class TranscoderManager{
         // if(extension == ".srt"){
         //     this.addSubtitleFile(filename,episodeId,filmId,task_id);
         // }else{
-        this.addVideoFile(filename,episodeId,filmId,task_id,workingFolder);
+        await this.addVideoFile(filename,episodeId,filmId,task_id,workingFolder);
         // }
     }
 
