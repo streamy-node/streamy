@@ -524,8 +524,8 @@ class TranscoderManager{
                 video_audio_index++;
                 videoOutputIndex++;
             }else if(stream.codec_type === "audio"){
-                stream.index = audioOutputIndex;
-                stream._audio_index = videoOutputIndex;
+                stream.index = video_audio_index;
+                stream._audio_index = audioOutputIndex;
                 let cmd_part = await this._generateFdkaacPart(stream);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
