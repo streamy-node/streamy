@@ -682,7 +682,7 @@ class DBStructure{
 
 
     async getAddFileTask(fileName){
-        let sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"'";
+        let sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"' ORDER BY creation_time";
         let result = await this.query(sql);
 
         if(result.length == 0 ){
@@ -693,7 +693,7 @@ class DBStructure{
     }
 
     async getAddFileTasks(){
-        let sql = "SELECT * FROM `add_file_tasks`";
+        let sql = "SELECT * FROM `add_file_tasks` ";
         let results = await this.query(sql);
         return results;
     }
