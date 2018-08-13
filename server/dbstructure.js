@@ -350,6 +350,20 @@ class DBStructure{
         return results;
     }
 
+    async getSeriesLiveMdpFiles(episodeId){
+        if(!this.checkId(episodeId)){
+            console.error("getEpisodeStreams: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_live_mpd_files` AS mdp "+
+        " WHERE mdp.episode_id = "+episodeId;
+        var results = await this.query(sql);
+
+        return results;
+    }
+    
+
     async getSeriesVideos(mdpId){
         if(!this.checkId(mdpId)){
             console.error("getSeriesVideos: Invalid entries ");
@@ -401,14 +415,14 @@ class DBStructure{
         }
     }   
 
-    async getSerieMpdFileFromEpisode(episodeId,workingDir){
+    async getSerieMpdFileFromEpisode(episodeId,workingDir,type){
         if(!this.checkId(episodeId) && workingDir.length > 0 ){
             console.error("getSerieMpdFileFromEpisode: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
         +" FROM `series_mpd_files` "
-        +" WHERE series_mpd_files.episode_id = "+episodeId+" AND folder = '"+workingDir+"'";
+        +" WHERE series_mpd_files.episode_id = "+episodeId+" AND folder = '"+workingDir+"' AND type = "+type;
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -418,13 +432,13 @@ class DBStructure{
         }
     }
 
-    async insertSerieMPDFile(episode_id,folder,complete){
+    async insertSerieMPDFile(episode_id,folder,complete,type=0){
         if( (!this.checkId(episode_id) || folder.length && 0)){
             console.error("insertSerieMPDFile: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`,`complete`) "
-        + " VALUES("+episode_id+", '"+folder+"', "+complete.toString()+")";
+        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`,`complete`,`type`) "
+        + " VALUES("+episode_id+", '"+folder+"', "+complete.toString()+", "+type.toString()+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -533,14 +547,14 @@ class DBStructure{
         return results;
     }
 
-    async getFilmMpdFile(filmId,workingDir){
+    async getFilmMpdFile(filmId,workingDir,type=0){
         if(!this.checkId(filmId) && workingDir.length > 0){
             console.error("getFilmMpdFile: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
         +" FROM `films_mpd_files` "
-        +" WHERE films_mpd_files.film_id = "+filmId+" AND films_mpd_files.folder = '"+workingDir+"'";
+        +" WHERE films_mpd_files.film_id = "+filmId+" AND films_mpd_files.folder = '"+workingDir+"' AND type = "+type.toString();
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -550,13 +564,13 @@ class DBStructure{
         }
     }
 
-    async insertFilmMPDFile(film_id,folder,complete){
+    async insertFilmMPDFile(film_id,folder,complete,type=0){
         if( (!this.checkId(film_id) && folder.length > 0)){
             console.error("insertFilmMpd: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`folder`,`complete`) "
-        + " VALUES("+film_id+", '"+folder+"',"+complete.toString()+")";
+        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`folder`,`complete`,`type`) "
+        + " VALUES("+film_id+", '"+folder+"',"+complete.toString()+", "+type.toString()+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -690,6 +704,12 @@ class DBStructure{
         }else{
             return result[0];
         }
+    }
+
+    async getAddFileTaskByVideoId(episode_id,film_id){
+        let sql = "SELECT * FROM `add_file_tasks` WHERE episode_id = "+episode_id+" OR film_id = "+film_id+" ORDER BY creation_time";
+        let results = await this.query(sql);
+        return results;
     }
 
     async getAddFileTasks(){

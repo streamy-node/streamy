@@ -17,9 +17,11 @@ class TranscoderManager{
         this.dbMgr = dbMgr;
         this.settings = settings;
         this.mpdSemaphores = new Map();
-        this.lastProgressions = {};
-        this.lastProgressions.series = {};
-        this.lastProgressions.films = {};
+        this.lastProgressions = {offline={},live={}};
+        this.lastProgressions.offline.series = {};
+        this.lastProgressions.offline.films = {};
+        this.lastProgressions.live.series = {};
+        this.lastProgressions.live.films = {};
     }
 
     getProgressions(){
@@ -27,22 +29,22 @@ class TranscoderManager{
     }
 
     async addEpisode(file,episodeId){
-        this.addFile(file,episodeId,null);
+        this.convertFileToOfflineMpd(file,episodeId,null);
     }
 
     async addFilm(file,film_id){
-        this.addFile(file,null,film_id);
+        this.convertFileToOfflineMpd(file,null,film_id);
     }
 
     async loadAddFileTasks(){
         let tasks = await this.dbMgr.getAddFileTasks();
         for(let i=0; i<tasks.length; i++){
             let task = tasks[i];
-            await this.addFile(task.file,task.episode_id,task.film_id);
+            await this.convertFileToOfflineMpd(task.file,task.episode_id,task.film_id);
         }
     }
 
-    async addFile(filename,episodeId,filmId,workingFolderHint = null){
+    async convertFileToOfflineMpd(filename,episodeId,filmId,workingFolderHint = null, isLive = false){
 
         //Check if a task for this file is not already added
         let task = await this.dbMgr.getAddFileTask(filename);
@@ -88,15 +90,48 @@ class TranscoderManager{
         // if(extension == ".srt"){
         //     this.addSubtitleFile(filename,episodeId,filmId,task_id);
         // }else{
-        await this.addVideoFile(filename,episodeId,filmId,task_id,workingFolder);
+        await this.convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder);
         // }
+    }
+
+    async generateLiveMpd(episodeId,filmId,workingFolder = null){
+
+        //Get uploaded files to use for live transcoding
+        let tasks = await this.dbMgr.getAddFileTaskByVideoId(filename);
+
+        if(tasks.length == 0){
+            console.error("Cannot generate live mpd without files");
+            return false;
+        }
+
+         //For the moment take the first video file task
+        let filename = null;
+        for(let i=0; i<tasks.length; i++){
+            let task = tasks[i];
+
+            //check if it's not a video
+            let ext = path.extname(task.file);
+            if(ext === ".srt" || ext === ".vtt"){
+                continue;
+            }
+
+            workingFolder = task.working_folder;
+            filename = task.file;
+        }
+
+        if(filename === null){
+            console.error("Cannot generate live mpd without video file");
+            return false;
+        }
+
+        await this.convertFileToMpd(filename,episodeId,filmId,null,workingFolder);
     }
 
     // async addSubtitleFile(filename,episodeId,filmId,task_id){
 
     // }
 
-    async addVideoFile(filename,episodeId,filmId,task_id,workingFolder){
+    async convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder,live = false){
         var self = this;
 
         // //Check if a task for this file is not already added
@@ -128,6 +163,17 @@ class TranscoderManager{
         // Create target folder if not already done
         var targetFolder = await this._getTargetFolder(episodeId,filmId);
         var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
+
+        let type = "offline";
+        if(live){
+            type = "live";
+        }
+
+        //use a separate folder for live content
+        if(live){
+            absoluteWorkingFolder+="/live";
+        }
+
         if(! await fsutils.exists(absoluteWorkingFolder)){
             await fsutils.mkdirp(absoluteWorkingFolder);
         }
@@ -148,11 +194,13 @@ class TranscoderManager{
             return null;
         }
 
+
         let absoluteSourceFile = this.settings.upload_path+"/"+filename;
 
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
         if(infos === null){
-            self.updateProgressions(episodeId,filmId,0,1,"no worker available");
+
+            self.updateProgressions(episodeId,filmId,0,1,"no worker available",type);
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
@@ -171,9 +219,8 @@ class TranscoderManager{
             
             let mdpFileUpdated = false;
 
-            //let subtitles_streams = [];
             var hasVideoOrAudio = false;
-            self.updateProgressions(episodeId,filmId,0,3);
+            self.updateProgressions(episodeId,filmId,0,3,type);
             this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
                 async function(){
                     //This callback is called when the transcoding of one stream succeed
@@ -262,12 +309,14 @@ class TranscoderManager{
                     }
 
                     //Remove add file task
-                    await self.dbMgr.removeAddFileTask(task_id);
+                    if(task_id){
+                        await self.dbMgr.removeAddFileTask(task_id);
+                    }
 
                     //Delete upload file
                     await fsutils.unlink(absoluteSourceFile);
                         
-                    self.updateProgressions(episodeId,filmId,100,0);
+                    self.updateProgressions(episodeId,filmId,100,0,type);
                     console.log("Offline transcoding done for: "+absoluteWorkingFolder);
 
             },
@@ -276,11 +325,11 @@ class TranscoderManager{
                 if(!error_msg){
                     error_msg = null;
                 }
-                self.updateProgressions(episodeId,filmId,msg.progression,1,error_msg);
+                self.updateProgressions(episodeId,filmId,msg.progression,1,type,error_msg);
             },
             async function(msg){//On Progress
 
-                self.updateProgressions(episodeId,filmId,msg.progression,2);
+                self.updateProgressions(episodeId,filmId,msg.progression,2,type);
                 if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
                     // if(subtitles_streams.length > 0){
                     //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
@@ -339,16 +388,16 @@ class TranscoderManager{
         return outputs;
     }
 
-    updateProgressions(episodeId,filmId,progression,state_code,message = null){
+    updateProgressions(episodeId,filmId,progression,state_code,type = "offline",message = null){
         let id = episodeId == null ? filmId : episodeId;
         let progressionFilter = progression;
         if(!progressionFilter){
             progressionFilter = 0;
         }
         if(episodeId){
-            this.lastProgressions.series[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
+            this.lastProgressions[type].series[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
         }else if(filmId){
-            this.lastProgressions.films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
+            this.lastProgressions[type].films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
         }
 
         //Clear from lastProgressions after 30 secs
@@ -356,9 +405,9 @@ class TranscoderManager{
         if(state_code == 0){
             setTimeout(function(){
                 if(episodeId){
-                    delete self.lastProgressions.series[id];
+                    delete self.lastProgressions[type].series[id];
                 }else if(filmId){
-                    delete this.lastProgressions.films[id];
+                    delete this.lastProgressions[type].films[id];
                 } 
             },30000);
         }
@@ -609,22 +658,22 @@ class TranscoderManager{
         //TODO remove semaphore if not used
     }
 
-    async getMPD(episodeId,filmId,workingdir){
+    async getMPD(episodeId,filmId,workingdir,type=0){
         var mpdinfos = null;
         if(episodeId){
-            mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir);
+            mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir,type);
         }else if(filmId){
-            mpdinfos = await this.dbMgr.getFilmMpdFile(filmId,workingdir);
+            mpdinfos = await this.dbMgr.getFilmMpdFile(filmId,workingdir,type);
         }
         return mpdinfos;
     }
 
-    async addMPD(episodeId,filmId,workingdir,complete){
+    async addMPD(episodeId,filmId,workingdir,complete,type=0){
         var mpdId = null;
         if(episodeId){
-            mpdId = await this.dbMgr.insertSerieMPDFile(episodeId,workingdir,complete);
+            mpdId = await this.dbMgr.insertSerieMPDFile(episodeId,workingdir,complete,type);
         }else if(filmId){
-            mpdId = await this.dbMgr.insertFilmMPDFile(filmId,workingdir,complete);
+            mpdId = await this.dbMgr.insertFilmMPDFile(filmId,workingdir,complete,type);
         }
         return mpdId;
     }

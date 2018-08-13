@@ -167,7 +167,8 @@ CREATE TABLE `series_episodes` (
     `rating_count` int UNSIGNED DEFAULT '0',
     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
     `best_resolution_id` int,
-    `has_mpd` TINYINT(1) NOT NULL DEFAULT 0,
+    `has_offline_mpd` TINYINT(1) NOT NULL DEFAULT 0,
+    `has_live_mpd` TINYINT(1) NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`best_resolution_id`) REFERENCES resolutions(`id`),
@@ -208,6 +209,7 @@ CREATE TABLE `series_mpd_files` (
   `episode_id` int NOT NULL,
   `folder` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `complete`  TINYINT(1) NOT NULL DEFAULT 0,
+  `type`  TINYINT(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`episode_id`,`folder`) 
@@ -283,6 +285,7 @@ CREATE TABLE `films_mpd_files` (
   `film_id` int NOT NULL,
   `folder` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `complete`  TINYINT(1) NOT NULL DEFAULT 0,
+  `type`  TINYINT(4) NOT NULL DEFAULT 0, 
   PRIMARY KEY (`id`),
   FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`film_id`,`folder`) 
