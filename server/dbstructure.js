@@ -694,6 +694,18 @@ class DBStructure{
         return taskId;
     }
 
+    async insertAddFileSubTask(task_id,command,done){
+        if( (!this.checkId(episode_id) && !this.checkId(film_id)) || target_folder.length == 0 || file.length == 0 ){
+            console.error("insertAddFileTask: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `add_file_subtasks` (`task_id`,`command`,`done`) "
+        + " VALUES('"+task_id+"', '"+command+"', "+done+")";
+        var sqlres = await this.query(sql);
+        var subtaskId = sqlres.insertId;
+
+        return subtaskId;
+    }
 
     async getAddFileTask(fileName){
         let sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"' ORDER BY creation_time";
@@ -721,6 +733,27 @@ class DBStructure{
     async removeAddFileTask(id){
         let sql = "DELETE FROM `add_file_tasks`  "
         + " WHERE id = "+id;
+        let sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+    async getAddFileSubTasks(task_id){
+        var sql = "SELECT * FROM `add_file_subtasks` WHERE task_id = '"+task_id+"'";
+        var results = await this.query(sql);
+        return results;
+    }
+
+    async setAddFileSubTaskDone(id){
+        var sql = "UPDATE `add_file_subtasks`  "
+        + " SET done = 1"
+        + " WHERE id = "+id+")";
+        var sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+    async removeAddFileSubTasks(task_id){
+        let sql = "DELETE FROM `add_file_subtasks`  "
+        + " WHERE task_id = "+task_id;
         let sqlres = await this.query(sql);
         return sqlres;
     }

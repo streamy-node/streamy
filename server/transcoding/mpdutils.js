@@ -177,6 +177,29 @@ class MPDFile{
         });
     }
 
+    merge(othermpd){
+        //merge only video adaptations sets ignoring lang, appends other types
+
+        for(oaset in othermpd.adaptationSets){
+            let ctype = oaset.attrs.get("contentType");
+            let lang = oaset.attrs.get("lang");
+            if( ctype === "video" ){
+                let aset = this.getFirstAdaptationSetByContentType(ctype);
+                if(aset){
+                    for(orep in oaset.representations){
+                        this.addRepresentation(aset,orep);
+                    }
+                }else{
+                    //No video set found
+                    this.addAdaptationSet(oaset);
+                }
+            }else{
+                this.addAdaptationSet(oaset);
+            }
+        }
+
+    }
+
     addAdaptationSet(adaptationSet){
         this.adaptationSets.push(adaptationSet);
     }
@@ -197,16 +220,17 @@ class MPDFile{
 
 
 
-    async addRepresentation(adaptType,representation){
-        var matchingAdaptationSet = null;
-        for(var i=0; i<this.adaptationSets.length; i++){
-            let adaptationSet = this.adaptationSets[i];
-            if(adaptationSet.attrs.get("contentType") === adaptType){
-                matchingAdaptationSet = adaptationSet;
+    addRepresentation(adaptationSet,representation){
+        adaptationSet.representations.push(representation);
+    }
+
+    getFirstAdaptationSetByContentType(ctype){
+        for(let adaptSet in this.adaptationSets){
+            if(adaptSet.attrs.get("contentType") === ctype){
+                return adaptSet;
             }
         }
-
-        matchingAdaptationSet.representations.push(representation);
+        return null;
     }
 
     async save(fileName){
@@ -278,48 +302,24 @@ class MPDUtils{
         this.mpdSemaphores = new Map();
     }
 
-    async mergeMpd(src_mpd, dst_mpd){
-        //For the moment merge only the first representation (streamy usecase)
-        var src_adaptationSet = null;
-        var src_representationSet = null;
-        if(src_mpd.adaptationSets.length > 0){
-            src_adaptationSet = src_mpd.adaptationSets[0];
-            if(src_adaptationSet.representations.length > 0){
-                src_representationSet = src_adaptationSet.representations[0];
+    async mergeMpdsToMpd(dst_mpd_path, mpdList){
+        let dst_mpd = null;
+        for(let i=0; i<mpdList.length; i++){
+            let src_mpd = new MPDFile();
+            let fileName = mpdList[i];
+            var res = await src_mpd.parse(fileName,true);
+            if(res === null){
+                console.error("MDP: Failed to merge unexisting file: ",fileName);
+            }else{
+                if(dst_mpd){
+                    dst_mpd.merge(src_mpd);
+                }else{
+                    dst_mpd = src_mpd;
+                }
             }
         }
-
-        if(src_adaptationSet === null){
-            console.error("MDP: no adaptationSet in file "+src_mpd_path);
-            return null;
-        }
-
-        if(src_representationSet === null){
-            console.error("MDP: no representation in file "+src_mpd_path);
-            return null;
-        }
-
-        var matchingAdaptationSet = null;
-        //var maxAdaptationSetId = -1;
-        for(var i=0; i<dst_mpd.adaptationSets.length; i++){
-            let dst_adaptationSet = dst_mpd.adaptationSets[i];
-            if(dst_adaptationSet.attrs.get("contentType") == src_adaptationSet.attrs.get("contentType")){
-                matchingAdaptationSet = dst_adaptationSet;
-            }
-        }
-
-        var maxRepresentationId = -1;
-        if(matchingAdaptationSet){
-            await dst_mpd.addRepresentation(src_adaptationSet.attrs.get("contentType"),src_representationSet);
-
-        }else if(!matchingAdaptationSet){
-            //If there are no matching adaptation set, create it
-            //src_adaptationSet.setId(maxAdaptationSetId++);
-            dst_mpd.addAdaptationSet(src_adaptationSet);
-        }
-
-        //Find
-        return dst_mpd;
+        
+        dst_mpd.save(dst_mpd_path);
     }
 
     async addStreamsToMpd(src_mpd_path, streams, destination){
@@ -389,7 +389,7 @@ class MPDUtils{
          
     }
 
-    
+
 
     async extractFirstRepresentation(file){
         return new Promise((resolve, reject) => {

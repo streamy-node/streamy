@@ -17,7 +17,9 @@ class TranscoderManager{
         this.dbMgr = dbMgr;
         this.settings = settings;
         this.mpdSemaphores = new Map();
-        this.lastProgressions = {offline={},live={}};
+        this.lastProgressions = {};
+        this.lastProgressions.offline={};
+        this.lastProgressions.live={};
         this.lastProgressions.offline.series = {};
         this.lastProgressions.offline.films = {};
         this.lastProgressions.live.series = {};
@@ -131,9 +133,28 @@ class TranscoderManager{
 
     // }
 
-    async convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder,live = false){
+    async convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder,live = false,splitProcessing = false){
         var self = this;
 
+        //Check if there are sub tasks
+        let subTasks = this.dbMgr.getAddFileSubTasks(task_id);
+
+        //Check if task partially done
+        let isPartiallyDone = false;
+        for(subtask in subTasks){
+            if(subtask.done === 1){
+                isPartiallyDone = true;
+            }
+        }
+
+        //If none of the tasks have been done, remove subtasks
+        if(!isPartiallyDone){
+            this.dbMgr.removeAddFileSubTasks(task_id);
+        }
+
+        //insertAddFileSubTask(task_id,command,done)
+       
+       
         // //Check if a task for this file is not already added
         // let task = await this.dbMgr.getAddFileTask(filename);
 
@@ -196,8 +217,8 @@ class TranscoderManager{
 
 
         let absoluteSourceFile = this.settings.upload_path+"/"+filename;
-
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
+
         if(infos === null){
 
             self.updateProgressions(episodeId,filmId,0,1,"no worker available",type);
@@ -212,133 +233,200 @@ class TranscoderManager{
             //Retreive global stream infos before creating tasks
             let audios_channels = this._getAudiosChannelsByLangs(infos.streams);
 
-            //command
-            let dashName = "all.mpd";
+            let ffmpegCmds = [];
+            let subTasksIds = [];
+            let dashPartFiles = [];
 
-            var ffmpegCmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels);
+            if(isPartiallyDone){ // Continue processing updating working folder and file src in command
+                for(subtask in subTasks){
+                    if(subtask.done === 0){
+                        let command = subtask.command.replace(/_WORKING_FOLDER_/g,absoluteWorkingFolder);
+                        ffmpegCmds.push(command.replace(/_FILE_SRC_/g,absoluteSourceFile));
+                        subTasksIds.push(subtask.id);
+                    }
+                }
+            }else if(splitProcessing){ // Split command into subtasks
+                let audioDone = false;
+                let idx = 0;
+                let audios_channels_;
+                for(resolution in resolutions){
+                    let dashName;
+                    let resolutions_ = [resolution];
+                    if(!audioDone){
+                        dashName = "all.mpd";
+                        audios_channels_ = audios_channels;
+                    }else{
+                        dashName = "p"+idx.toString()+".mpd";
+                        audios_channels_ = [];
+                    }
+                    dashPartFiles.push(dashName);
+
+                    let cmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_);
+                    let subtask = await this.dbMgr.insertAddFileSubTask(task_id,cmd,false)
+                    ffmpegCmds.push(cmd);
+                    subTasksIds.push(subtask.id);   
+                    idx++;
+                }
+            }else{ // Send as a single command
+                //command
+                let dashName = "all.mpd";
+                //insertAddFileSubTask(task_id,command,done)
+                ffmpegCmds.push(await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels));    
+            }
+            //command
+            ///let dashName = "all.mpd";
+
+            //insertAddFileSubTask(task_id,command,done)
+            ///var ffmpegCmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels);
             
             let mdpFileUpdated = false;
-
             var hasVideoOrAudio = false;
             self.updateProgressions(episodeId,filmId,0,3,type);
-            this.launchOfflineTranscodingCommand(ffmpegCmd,absoluteWorkingFolder,
-                async function(){
-                    //This callback is called when the transcoding of one stream succeed
-                   // let hasVideoOrAudio = false;
-                    // add MPD file infos to db if not already done
-                    var mpdId = null
-                    var mpdinfos = await self.getMPD(episodeId,filmId,workingFolder);
-                   
-                    //If not already in db, add it
-                    if(!mpdinfos){
-                        mpdId = await self.addMPD(episodeId,filmId,workingFolder,0);
-                    }else{
-                        mpdId = mpdinfos.id;
-                    }
 
-                    if(!mpdId){
-                        console.error("Failed to create mdp entry in db ",absoluteWorkingFolder);
-                        return;
-                    }
-                    for(var i=0; i<ffmpegCmd.streams.length; i++){
-                        let stream = ffmpegCmd.streams[i];
+            let remainingCommands = ffmpegCmds.length;
+            let hasError = false;
+            let progressions = [];
+            for(let i=0; i<ffmpegCmds.length; i++){
+                progressions.push(0);
+                this.launchOfflineTranscodingCommand(ffmpegCmds[i],absoluteWorkingFolder,
+                    async function(){
+                        //This callback is called when the transcoding of one stream succeed
+                        remainingCommands--;
+
+                        //Set subtask done
+                        if(subTasksIds.length > 0){
+                            await this.dbMgr.setAddFileSubTaskDone(subTasksIds[i]);
+                        }
+
+                        //If it's the last command
+                        if(remainingCommands === 0){
+                            //Parse main mpd file
+                            //Merge subtask if needed
+                            if(dashPartFiles.length > 1){
+                                await mpdUtils.mergeMpdsToMpd("all.mpd",dashPartFiles);
+                            }
+
+                            //TODO remove part mpd
+
+                            // add MPD file infos to db if not already done
+                            var mpdId = null
+                            var mpdinfos = await self.getMPD(episodeId,filmId,workingFolder);
                         
-                        // add video
-                        var id = null;
-                        if(stream.codec_type == "video"){
-                            let resolution = await self._getResolution(stream.width);
-                            if(episodeId){
-                                id = await self.dbMgr.insertSerieVideo(mpdId,resolution.id);
-                            }else if(filmId){
-                                id = await self.dbMgr.insertFilmVideo(mpdId,resolution.id);
-                            }
-                            hasVideoOrAudio = true;
-                        }else if(stream.codec_type == "audio"){
-                            let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
-
-                            if(!langInfos){
-                                console.error("Unknown lang code ",stream.tags.language);
-                                langInfos = {};
-                                langInfos.language_id = null;
-                            }
-                            if(episodeId){
-                                id = await self.dbMgr.insertSerieAudio(mpdId,langInfos.language_id,stream.channels);
-                            }else if(filmId){
-                                id = await self.dbMgr.insertFilmAudio(mpdId,langInfos.language_id,stream.channels);
-                            }
-                            hasVideoOrAudio = true;
-                        }else if(stream.codec_type === "subtitle"){
-                            //subtitles_streams.push(stream);
-                            let langid = null;
-                            if(stream.tags.language.length === 3){
-                                let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
-                                if(!langInfos){
-                                    console.error("Unknown lang code ",stream.tags.language);
-                                }else{
-                                    langid = langInfos.language_id;
-                                }
+                            //If not already in db, add it
+                            if(!mpdinfos){
+                                mpdId = await self.addMPD(episodeId,filmId,workingFolder,0);
                             }else{
-                                langid = await self.dbMgr.getLangsId(stream.tags.language);
+                                mpdId = mpdinfos.id;
                             }
-
-                            let name = stream.tags.title;
-                            if(!name){
-                                name = "";
+        
+                            if(!mpdId){
+                                console.error("Failed to create mdp entry in db ",absoluteWorkingFolder);
+                                return;
                             }
-
-                            if(episodeId){
-                                id = await self.dbMgr.insertSerieSubtitle(mpdId,langid,name);
-                            }else if(filmId){
-                                id = await self.dbMgr.insertFilmSubtitle(mpdId,lang_id,name);
+                            for(var j=0; j<ffmpegCmds[i].streams.length; j++){
+                                let stream = ffmpegCmds[i].streams[j];
+                                
+                                // add video
+                                var id = null;
+                                if(stream.codec_type == "video"){
+                                    let resolution = await self._getResolution(stream.width);
+                                    if(episodeId){
+                                        id = await self.dbMgr.insertSerieVideo(mpdId,resolution.id);
+                                    }else if(filmId){
+                                        id = await self.dbMgr.insertFilmVideo(mpdId,resolution.id);
+                                    }
+                                    hasVideoOrAudio = true;
+                                }else if(stream.codec_type == "audio"){
+                                    let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
+        
+                                    if(!langInfos){
+                                        console.error("Unknown lang code ",stream.tags.language);
+                                        langInfos = {};
+                                        langInfos.language_id = null;
+                                    }
+                                    if(episodeId){
+                                        id = await self.dbMgr.insertSerieAudio(mpdId,langInfos.language_id,stream.channels);
+                                    }else if(filmId){
+                                        id = await self.dbMgr.insertFilmAudio(mpdId,langInfos.language_id,stream.channels);
+                                    }
+                                    hasVideoOrAudio = true;
+                                }else if(stream.codec_type === "subtitle"){
+                                    //subtitles_streams.push(stream);
+                                    let langid = null;
+                                    if(stream.tags.language.length === 3){
+                                        let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
+                                        if(!langInfos){
+                                            console.error("Unknown lang code ",stream.tags.language);
+                                        }else{
+                                            langid = langInfos.language_id;
+                                        }
+                                    }else{
+                                        langid = await self.dbMgr.getLangsId(stream.tags.language);
+                                    }
+        
+                                    let name = stream.tags.title;
+                                    if(!name){
+                                        name = "";
+                                    }
+        
+                                    if(episodeId){
+                                        id = await self.dbMgr.insertSerieSubtitle(mpdId,langid,name);
+                                    }else if(filmId){
+                                        id = await self.dbMgr.insertFilmSubtitle(mpdId,lang_id,name);
+                                    }
+                                }
+        
+                                if(id === null){
+                                    console.error("Failed to create video entry in db "+absoluteWorkingFolder+" "+stream.codec_type);
+                                }
                             }
+        
+                            //Add subtitles to mdp file
+                            let subtitle_streams = await self.getAvailableVttStreams(absoluteWorkingFolder);
+                            await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitle_streams,absoluteWorkingFolder+"/allsub.mpd");
+        
+                            //Mark mpd as complete if audio or video stream added
+                            if(hasVideoOrAudio){
+                                await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
+                                await self.setVideoMpdStatus(episodeId,filmId,1);
+                            }
+        
+                            //Remove add file task
+                            if(task_id){
+                                await self.dbMgr.removeAddFileTask(task_id);
+                            }
+        
+                            //Delete upload file
+                            await fsutils.unlink(absoluteSourceFile);
+                                
+                            progressions[i] = 100;
+                            self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),0,type);
+                            console.log("Offline transcoding done for: "+absoluteWorkingFolder);
+        
                         }
-
-                        if(id === null){
-                            console.error("Failed to create video entry in db "+absoluteWorkingFolder+" "+stream.codec_type);
-                        }
+                },
+                function(msg){//OnError
+                    remainingCommands--;
+                    hasError = true;
+                    let error_msg = msg.msg;
+                    if(!error_msg){
+                        error_msg = null;
                     }
-
-                    //Add subtitles to mdp file
-                    let subtitle_streams = await self.getAvailableVttStreams(absoluteWorkingFolder);
-                    await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitle_streams,absoluteWorkingFolder+"/allsub.mpd");
-
-                    //Mark mpd as complete if audio or video stream added
-                    if(hasVideoOrAudio){
-                        await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
-                        await self.setVideoMpdStatus(episodeId,filmId,1);
-                    }
-
-                    //Remove add file task
-                    if(task_id){
-                        await self.dbMgr.removeAddFileTask(task_id);
-                    }
-
-                    //Delete upload file
-                    await fsutils.unlink(absoluteSourceFile);
+                    progressions[i] = msg.progression;
+                    self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),1,type,error_msg);
+                },
+                async function(msg){//On Progress
+                    progressions[i] = msg.progression;
+                    self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),2,type);
+                    if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
+                        // if(subtitles_streams.length > 0){
+                        //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
+                        //     mdpFileUpdated = true;
+                        // }
                         
-                    self.updateProgressions(episodeId,filmId,100,0,type);
-                    console.log("Offline transcoding done for: "+absoluteWorkingFolder);
-
-            },
-            function(msg){//OnError
-                let error_msg = msg.msg;
-                if(!error_msg){
-                    error_msg = null;
-                }
-                self.updateProgressions(episodeId,filmId,msg.progression,1,type,error_msg);
-            },
-            async function(msg){//On Progress
-
-                self.updateProgressions(episodeId,filmId,msg.progression,2,type);
-                if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
-                    // if(subtitles_streams.length > 0){
-                    //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
-                    //     mdpFileUpdated = true;
-                    // }
-                    
-                }
-            });
-
+                    }
+                });
+            }
         }else{
             console.error("Cannot split uploadded file: ",file.path);
         }
@@ -520,6 +608,8 @@ class TranscoderManager{
             }
         }
 
+        let dashBaseName = dashName.slice(0,-4);
+
         let finalArgs = [
             '-adaptation_sets',
             adaptation_sets,
@@ -529,6 +619,10 @@ class TranscoderManager{
             '1',
             '-min_seg_duration',
             this.settings.global.segment_duration,
+            '-init_seg_name',
+            "init-"+dashBaseName+"-$RepresentationID$.m4s",
+            '-media_seg_name',
+            "chunk-"+dashBaseName+"-$RepresentationID$-$Number%05d$.m4s",
             '-f',
             'dash',
             targetFolder+"/"+dashName
@@ -558,6 +652,7 @@ class TranscoderManager{
         let video_audio_index = 0;
         let videoOutputIndex = 0;
         let audioOutputIndex = 0;
+
          //Generate output streams
          for(var i=0; i<streams.length; i++){
             let stream = streams[i];
@@ -873,9 +968,8 @@ class TranscoderManager{
             '-filter:v:'+stream._video_index,
             'scale='+target_resolution.width.toString()+":-2"
         ];
-
-        
     }
+
     async _generateX264Command(inputfile,stream,target_resolution,workingDir){
         var output = {};
         //Width determine resolution category

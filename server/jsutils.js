@@ -22,6 +22,21 @@ const removeFromList = function(process,list){
 const clone = function (a) {
   return JSON.parse(JSON.stringify(a));
 }
+
+function getSum(total, num) {
+  return total + num;
+}
+
+function arrayGetSum(array) {
+  array.reduce(getSum);
+}
+
+function arrayGetMean(array) {
+  return array.reduce(getSum)/array.length;
+}
+
 module.exports.moveFromToArray = moveFromToArray
 module.exports.removeFromList = removeFromList
 module.exports.clone = clone
+module.exports.arrayGetSum = arrayGetSum
+module.exports.arrayGetMean = arrayGetMean
