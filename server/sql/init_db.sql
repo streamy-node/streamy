@@ -9,11 +9,20 @@ CREATE TABLE `languages` (
 -- ffmpeg use 639_2
 CREATE TABLE `languages_iso_639_2` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `language_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `language_id` int(10) unsigned NOT NULL,
   `iso_639_2` char(3) CHARACTER SET utf8 DEFAULT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT UNIQUE (`iso_639_2`),
   FOREIGN KEY (`language_id`) REFERENCES languages(`id`) ON DELETE CASCADE
+) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=136 ;
+
+-- IETF language
+CREATE TABLE `languages_subtags` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `language_id` int(10) unsigned NOT NULL,
+  `subtag` char(4) CHARACTER SET utf8 DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT UNIQUE (`language_id`,`subtag` )
 ) DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=136 ;
 
 CREATE TABLE `genres` (
@@ -88,6 +97,7 @@ CREATE TABLE `series` (
   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
   `brick_id` int,
   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `has_mpd` TINYINT(2) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
@@ -165,6 +175,7 @@ CREATE TABLE `series_episodes` (
     `rating_count` int UNSIGNED DEFAULT '0',
     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
     `best_resolution_id` int,
+    `has_mpd` TINYINT(2) NOT NULL,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`best_resolution_id`) REFERENCES resolutions(`id`),
@@ -204,6 +215,7 @@ CREATE TABLE `series_mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `episode_id` int NOT NULL,
   `folder` VARCHAR(255) NOT NULL,
+  `complete` TINYINT(2) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`episode_id`,`folder`) 
@@ -218,10 +230,11 @@ CREATE TABLE `series_videos` (
   FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
 );
 
-CREATE TABLE `series_audio` (
+CREATE TABLE `series_audios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned NOT NULL,
+  `lang_id` int(10) unsigned,
+  `lang_subtag_id` int(10) unsigned,
   `channels` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
@@ -232,7 +245,9 @@ CREATE TABLE `series_audio` (
 CREATE TABLE `series_srts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned  NOT NULL,
+  `lang_id` int(10) unsigned,
+  `lang_subtag_id` int(10) unsigned,
+  `name` VARCHAR(255),
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
@@ -294,7 +309,8 @@ CREATE TABLE `films_videos` (
 CREATE TABLE `films_audios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned NOT NULL,
+  `lang_id` int(10) unsigned,
+  `lang_subtag_id` int(10) unsigned,
   `channels` int NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
@@ -306,6 +322,8 @@ CREATE TABLE `films_srts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned  NOT NULL,
+  `lang_subtag_id` int(10) unsigned,
+  `name` VARCHAR(255),
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
@@ -407,7 +425,8 @@ CREATE TABLE `add_file_tasks` (
 CREATE TABLE `add_file_subtasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `task_id` int NOT NULL,
-  `command` VARCHAR(255) NOT NULL,
+  `command` VARCHAR(2048) NOT NULL,
+  `output` VARCHAR(255) NOT NULL,
   `done` TINYINT(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`task_id`) REFERENCES add_file_tasks(`id`) ON DELETE CASCADE
@@ -619,7 +638,6 @@ INSERT INTO `languages` VALUES(134, 'Chinese', 'zh');
 INSERT INTO `languages` VALUES(135, 'Zulu', 'zu');
 
 
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(0, NULL);
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(1, 'eng');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(2, 'aar');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(3, 'abk');
@@ -669,7 +687,7 @@ INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(38, 'glg');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(39, 'grn');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(40, 'guj');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(41, 'hau');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(42, 'heb'); -- --
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(42, 'heb');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(43, 'hin');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(44, 'hr');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(45, 'hu');
@@ -764,6 +782,55 @@ INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(132, 'xh');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(133, 'yo');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(134, 'zh');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(135, 'zu');
+
+-- IETF langs ( TODO add them all)
+-- French sub tags
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'BE');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'BF');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'BI');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'BJ');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'BL');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CA');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CD');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CF');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CG');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CH');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CI');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'CM');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'DJ');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'DZ');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'FR');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'GA');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'GF');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'GN');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'GP');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'GQ');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'HT');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'KM');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'LU');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MA');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MC');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MF');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MG');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'ML');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MQ');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MR');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'MU');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'NC');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'NE');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'PF');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'PM');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'RE');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'RW');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'SC');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'SN');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'SY');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'TD');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'TG');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'TN');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'VU');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'WF');
+INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'YT');
 
 -- roles
 INSERT INTO `roles` VALUES(1, 'admin');
