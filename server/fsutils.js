@@ -2,6 +2,7 @@ var fs = require('fs');
 var mkdirp_ = require('mkdirp');
 var readline = require('readline');
 var stream = require('stream');
+const xml2js = require('xml2js');
 
 class FSUtils{
     async mkdirp(path){
@@ -169,9 +170,13 @@ class FSUtils{
         });
     }
 
+    async writeJSON(file, data){
+        return await write(file,JSON.stringify(data));
+    }
+
     async write(file, data){
         return new Promise((resolve, reject) => {
-            fs.writeFile(file, JSON.stringify(data), function(err) {
+            fs.writeFile(file,data, function(err) {
                 if(err) {
                     console.log(err);
                     reject(err);
@@ -267,13 +272,45 @@ class FSUtils{
                 return false;
             }
 
-            await this.write(file,newObj);
+            await this.writeJson(file,newObj);
             return true;
         }catch(err){
             console.log("FS error appendJson failed ",err);
             return false;
         }
     }
+
+    //xml utils
+    async parseXml(stringVal){
+        let parser = new xml2js.Parser();
+        return new Promise((resolve, reject) => {
+            parser.parseString(stringVal, function (err, result) {
+                if(err){
+                    console.error("Error parsing xml ");
+                    reject(err);
+                }else{
+                    resolve(result)
+                }
+            });
+        });
+    }
+
+    async parseXmlFile(fileName){
+        let content = await this.read(fileName);
+        return this.parseXml(content);
+    }
+
+    async saveAsXML(fileName, xmlObject){
+        let builder = new xml2js.Builder({renderOpts:{pretty:true, newline:"\n"}});
+        let xml = builder.buildObject(xmlObject);
+
+        if(xml.length > 0){
+            return await this.write(fileName,xml);
+        }else{
+            return false;
+        }
+    }
+
 }
 
 

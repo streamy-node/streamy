@@ -1,7 +1,9 @@
-//const ProcessesMgr = require('./server/transcoding/ffmpegprocesses').FfmpegProcessManager;
 const shortId = require('shortid');
 var path = require('path');
+
 var fsutils = require('../fsutils');
+var jsutils = require("../jsutils");
+
 var Process = require('./ffmpegprocesses').Process;
 var Hardware = require('./ffmpegprocesses').Hardware;
 
@@ -9,7 +11,7 @@ var MPD = require("./mpdutils").MPDFile;
 var mpdUtils = require("./mpdutils").MPDUtils;
 
 const Semaphore = require("await-semaphore").Semaphore;//TODO remove
-var jsutils = require("../jsutils");
+
 
 class TranscoderManager{
     constructor(processManager,dbMgr, settings){
@@ -92,7 +94,7 @@ class TranscoderManager{
         // if(extension == ".srt"){
         //     this.addSubtitleFile(filename,episodeId,filmId,task_id);
         // }else{
-        await this.convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder);
+        await this.convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder,false, true);
         // }
     }
 
@@ -129,19 +131,18 @@ class TranscoderManager{
         await this.convertFileToMpd(filename,episodeId,filmId,null,workingFolder);
     }
 
-    // async addSubtitleFile(filename,episodeId,filmId,task_id){
-
-    // }
-
     async convertFileToMpd(filename,episodeId,filmId,task_id,workingFolder,live = false,splitProcessing = false){
         var self = this;
 
         //Check if there are sub tasks
-        let subTasks = this.dbMgr.getAddFileSubTasks(task_id);
-
+        let subTasks = await this.dbMgr.getAddFileSubTasks(task_id);
+        
         //Check if task partially done
         let isPartiallyDone = false;
-        for(subtask in subTasks){
+        for(let i=0; i<subTasks.length; i++){
+            let subtask = subTasks[i];
+            subtask.command = JSON.parse(subtask.command);
+
             if(subtask.done === 1){
                 isPartiallyDone = true;
             }
@@ -220,8 +221,7 @@ class TranscoderManager{
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
 
         if(infos === null){
-
-            self.updateProgressions(episodeId,filmId,0,1,"no worker available",type);
+            self.updateProgressions(episodeId,filmId,0,1,type,"no worker available, cannot run ffprobe",type);
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
@@ -238,33 +238,47 @@ class TranscoderManager{
             let dashPartFiles = [];
 
             if(isPartiallyDone){ // Continue processing updating working folder and file src in command
-                for(subtask in subTasks){
+                for(let k=0; k<subTasks.length; k++){
+                    let subtask = subTasks[k];
                     if(subtask.done === 0){
-                        let command = subtask.command.replace(/_WORKING_FOLDER_/g,absoluteWorkingFolder);
-                        ffmpegCmds.push(command.replace(/_FILE_SRC_/g,absoluteSourceFile));
+                        // TODO think if path update is really necessary
+                        // let command = subtask.command.replace(/_WORKING_FOLDER_/g,absoluteWorkingFolder);
+                        // ffmpegCmds.push(command.replace(/_FILE_SRC_/g,absoluteSourceFile));
+                        ffmpegCmds.push(subtask.command);
                         subTasksIds.push(subtask.id);
                     }
+                    dashPartFiles.push(subtask.output);
                 }
             }else if(splitProcessing){ // Split command into subtasks
                 let audioDone = false;
                 let idx = 0;
                 let audios_channels_;
-                for(resolution in resolutions){
+
+                //Keep only reachable resolutions
+                let bestVideoStream = this._getBestVideoStream(infos.streams);
+                let valid_resolutions = await this._filterValidResolutions(bestVideoStream,resolutions);
+
+                //Put higher resolution first
+                valid_resolutions.sort(this.compareResolutions);
+                valid_resolutions.reverse();
+
+                for(let i = 0; i<valid_resolutions.length; i++){
                     let dashName;
-                    let resolutions_ = [resolution];
+                    let resolutions_ = [valid_resolutions[i]];
                     if(!audioDone){
-                        dashName = "all.mpd";
                         audios_channels_ = audios_channels;
+                        audioDone = true;
                     }else{
-                        dashName = "p"+idx.toString()+".mpd";
                         audios_channels_ = [];
                     }
-                    dashPartFiles.push(dashName);
+
+                    dashName = "p"+idx.toString()+".mpd";
+                    dashPartFiles.push(absoluteWorkingFolder+"/"+dashName);
 
                     let cmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_);
-                    let subtask = await this.dbMgr.insertAddFileSubTask(task_id,cmd,false)
+                    let subtaskId = await this.dbMgr.insertAddFileSubTask(task_id,JSON.stringify(cmd),false,absoluteWorkingFolder+"/"+dashName);
                     ffmpegCmds.push(cmd);
-                    subTasksIds.push(subtask.id);   
+                    subTasksIds.push(subtaskId);   
                     idx++;
                 }
             }else{ // Send as a single command
@@ -293,17 +307,14 @@ class TranscoderManager{
                         //This callback is called when the transcoding of one stream succeed
                         remainingCommands--;
 
-                        //Set subtask done
-                        if(subTasksIds.length > 0){
-                            await this.dbMgr.setAddFileSubTaskDone(subTasksIds[i]);
-                        }
 
                         //If it's the last command
                         if(remainingCommands === 0){
                             //Parse main mpd file
                             //Merge subtask if needed
-                            if(dashPartFiles.length > 1){
-                                await mpdUtils.mergeMpdsToMpd("all.mpd",dashPartFiles);
+                            if(splitProcessing){
+
+                                await mpdUtils.mergeMpdsToMpd(absoluteWorkingFolder+"/all.mpd",dashPartFiles);
                             }
 
                             //TODO remove part mpd
@@ -323,8 +334,14 @@ class TranscoderManager{
                                 console.error("Failed to create mdp entry in db ",absoluteWorkingFolder);
                                 return;
                             }
-                            for(var j=0; j<ffmpegCmds[i].streams.length; j++){
-                                let stream = ffmpegCmds[i].streams[j];
+
+                            let streams = [];
+                            for(var k=0; k<ffmpegCmds.length; k++){
+                                streams = streams.concat(ffmpegCmds[k].streams);
+                            }
+
+                            for(var j=0; j<streams.length; j++){
+                                let stream = streams[j];
                                 
                                 // add video
                                 var id = null;
@@ -403,6 +420,11 @@ class TranscoderManager{
                             self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),0,type);
                             console.log("Offline transcoding done for: "+absoluteWorkingFolder);
         
+                        }else{
+                            //Set subtask done (TODO move this before the if and tak care of the case we)
+                            if(subTasksIds.length > 0){
+                                await self.dbMgr.setAddFileSubTaskDone(subTasksIds[i]);
+                            }
                         }
                 },
                 function(msg){//OnError
@@ -527,13 +549,21 @@ class TranscoderManager{
 
             if(stream.codec_type === "video" && bestVideoStream == stream){ //Take the best video stream
                 let src_width = stream.width;
+                let src_height = stream.height;
+
                 let valid_resolutions = await this._filterValidResolutions(stream,resolutions);
 
+
                 for(var j=0; j<valid_resolutions.length; j++){
-                    let output_stream = jsutils.clone(stream);
+                    let output_stream = {};// = jsutils.clone(stream);
+                    output_stream.codec_type = stream.codec_type;
+                    output_stream.title = stream.title;
+                    output_stream.tags = stream.tags;
+                    output_stream.r_frame_rate = stream.r_frame_rate;
+
                     //output_stream._video_index = videoOutputIndex;
                     output_stream.width = valid_resolutions[j].width;
-                    output_stream.height = output_stream.height*output_stream.width/src_width;
+                    output_stream.height = src_height*output_stream.width/src_width;
                     //output_stream.index = audioVideoIndex;
                     output_stream._src_index = stream.index;
                     output_streams.push(output_stream);
@@ -554,37 +584,38 @@ class TranscoderManager{
                 }
 
                 //Check if we need to generate a stereo audio (for compatibility)
-                let targetChannels = [stream.channels];
-                let minChannels = this._getLowerChannelByLang(stream,audios_channels);
-                if( stream.channels > 2 && (!minChannels || minChannels > 2 )){
-                    targetChannels.push(2);
-                }
-
-                for(var k=0; k<targetChannels.length; k++){
-                    let output_stream = jsutils.clone(stream);
-                    //output_stream._audio_index = audioOutputIndex;
-                    //output_stream.index = audioVideoIndex;
-                    output_stream._src_index = stream.index;
-                    output_stream.channels = targetChannels[k];
-
-                    if(tags){
-                        output_stream.tags = tags;
+                if(audios_channels.size > 0){
+                    let targetChannels = [stream.channels];
+                    let minChannels = this._getLowerChannelByLang(stream,audios_channels);
+                    if( stream.channels > 2 && (!minChannels || minChannels > 2 )){
+                        targetChannels.push(2);
                     }
+    
+                    for(var k=0; k<targetChannels.length; k++){
+                        let output_stream = {};//jsutils.clone(stream);
+                        output_stream.codec_type = stream.codec_type;
+                        output_stream.title = stream.title;
+                        output_stream.tags = stream.tags;
 
-                    
-                    output_streams.push(output_stream);
-                    adaptation_sets+='id='+stream.index.toString()+",streams="+(adaptation_index).toString()+" ";
-                    adaptation_index++;
-                    // mappingArgs.push('-map');
-                    // mappingArgs.push("0:"+stream.index);
-                    
-                    //audioOutputIndex++;
-                    //audioVideoIndex++;
+                        output_stream._src_index = stream.index;
+                        output_stream.channels = targetChannels[k];
+    
+                        if(tags){
+                            output_stream.tags = tags;
+                        }
+    
+                        output_streams.push(output_stream);
+                        adaptation_sets+='id='+stream.index.toString()+",streams="+(adaptation_index).toString()+" ";
+                        adaptation_index++;
+                    }
                 }
-
             }else if(stream.codec_type === "subtitle"){
                 //Subtitle are not handled directly by ffmpeg in mpd file. So there is no adaptation set
-                let output_stream = jsutils.clone(stream);
+                let output_stream = {};//jsutils.clone(stream);
+                output_stream.codec_type = stream.codec_type;
+                output_stream.title = stream.title;
+                output_stream.tags = stream.tags;
+
                 output_stream._src_index = stream.index;
                 output_stream.target_folder = targetFolder;
 
@@ -656,25 +687,25 @@ class TranscoderManager{
          //Generate output streams
          for(var i=0; i<streams.length; i++){
             let stream = streams[i];
-
+            stream.index = i;
             if(stream.codec_type === "video"){ //Take only first video stream
-                stream.index = video_audio_index;
+                //stream.index = video_audio_index;
                 stream._video_index = videoOutputIndex;
                 let resolution = await this._getResolution(stream.width);
                 let cmd_part = await this._generateX264Part(stream,resolution);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
                 video_audio_mapping.push("0:"+stream._src_index);
-                video_audio_index++;
+                //video_audio_index++;
                 videoOutputIndex++;
             }else if(stream.codec_type === "audio"){
-                stream.index = video_audio_index;
+                //stream.index = video_audio_index;
                 stream._audio_index = audioOutputIndex;
                 let cmd_part = await this._generateFdkaacPart(stream);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
                 video_audio_mapping.push("0:"+stream._src_index);
-                video_audio_index++;
+                //video_audio_index++;
                 audioOutputIndex++;
             }else if(stream.codec_type == "subtitle"){
                 let cmd_part = await this._generateSubtitlePart(stream);
@@ -688,70 +719,71 @@ class TranscoderManager{
         return global_command;
     }
 
-    /**
-     * Import dash files to streamy and return global mdp file id associated
-     * @param {*} workingdir 
-     * @param {*} cmd 
-     */
-    async importDashStream(episodeId,filmId,workingdir,dashName){
-        var dataFile = this.settings.upload_path+"/"+workingdir+"/"+dataFileName;
-        var dashFile = this.settings.upload_path+"/"+workingdir+"/"+dashName;
-        var targetFolder = await this._getTargetFolder(episodeId,filmId);
-        var targetDataFile = targetFolder + "/"+workingdir+"/" + dataFileName;
-        var targethDashFile = targetFolder + "/"+workingdir + "/" + dashName;
-        var mergeDashFile = targetFolder + "/"+workingdir+ "/all.mpd";
+    // /**
+    //  * Import dash files to streamy and return global mdp file id associated
+    //  * @param {*} workingdir 
+    //  * @param {*} cmd 
+    //  */
+    // async importDashStream(episodeId,filmId,workingdir,dashName){
+    //     var dataFile = this.settings.upload_path+"/"+workingdir+"/"+dataFileName;
+    //     var dashFile = this.settings.upload_path+"/"+workingdir+"/"+dashName;
+    //     var targetFolder = await this._getTargetFolder(episodeId,filmId);
+    //     var targetDataFile = targetFolder + "/"+workingdir+"/" + dataFileName;
+    //     var targethDashFile = targetFolder + "/"+workingdir + "/" + dashName;
+    //     var mergeDashFile = targetFolder + "/"+workingdir+ "/all.mpd";
 
-        //create dir
-        await fsutils.mkdirp(targetFolder+"/"+workingdir);
+    //     //create dir
+    //     await fsutils.mkdirp(targetFolder+"/"+workingdir);
 
-        //Moving file
-        console.log("Moving file "+dataFile+" to "+targetDataFile);
-        await fsutils.rename(dataFile,targetDataFile);
-        console.log("Moving file "+dashFile+" to "+targethDashFile);
-        await fsutils.rename(dashFile,targethDashFile);
+    //     //Moving file
+    //     console.log("Moving file "+dataFile+" to "+targetDataFile);
+    //     await fsutils.rename(dataFile,targetDataFile);
+    //     console.log("Moving file "+dashFile+" to "+targethDashFile);
+    //     await fsutils.rename(dashFile,targethDashFile);
 
-        if(await this.updateMPDFile(targethDashFile,mergeDashFile)){
-            console.log("Merge "+targethDashFile+" and "+mergeDashFile+" succeed");
+    //     if(await this.updateMPDFile(targethDashFile,mergeDashFile)){
+    //         console.log("Merge "+targethDashFile+" and "+mergeDashFile+" succeed");
 
-            // add infos to db
-            var mpdinfos = await this.getMPD(episodeId,filmId,workingdir);
-            var mpdId = null
+    //         // add infos to db
+    //         var mpdinfos = await this.getMPD(episodeId,filmId,workingdir);
+    //         var mpdId = null
 
-            //If not already in db, add it
-            if(!mpdinfos){
-                mpdId = await this.addMPD(episodeId,filmId,workingdir,0);
-            }else{
-                mpdId = mpdinfos.id;
-            }
+    //         //If not already in db, add it
+    //         if(!mpdinfos){
+    //             mpdId = await this.addMPD(episodeId,filmId,workingdir,0);
+    //         }else{
+    //             mpdId = mpdinfos.id;
+    //         }
 
-            return mpdId;
+    //         return mpdId;
             
-        }else{
-            console.error("Failed to merge mdp files ",targethDashFile,mergeDashFile);
-            return null;
-        }
-    }
+    //     }else{
+    //         console.error("Failed to merge mdp files ",targethDashFile,mergeDashFile);
+    //         return null;
+    //     }
+    // }
 
-    async updateMPDFile(targethDashFile,mergeDashFile){
-        //To prevent multiple concurent update (due to awaits) of the same mpd file, use mutex
-        var release = null;
-        if(!this.mpdSemaphores.has(mergeDashFile)){
-            this.mpdSemaphores.set(mergeDashFile,new Semaphore(1));
-        }
-        release = await this.mpdSemaphores.get(mergeDashFile).acquire();
-        //Moving file
-        var mergedMpd = await mpdUtils.mergeMpdFiles(targethDashFile,mergeDashFile);
-        var saved = await mergedMpd.save(mergeDashFile+".tmp");
-        if(saved){
-            await fsutils.rename(mergeDashFile+".tmp",mergeDashFile);
-            release();
-            return true;
-        }else{
-            release();
-            return false;
-        }
-        //TODO remove semaphore if not used
-    }
+    //Not used
+    // async updateMPDFile(targethDashFile,mergeDashFile){
+    //     //To prevent multiple concurent update (due to awaits) of the same mpd file, use mutex
+    //     var release = null;
+    //     if(!this.mpdSemaphores.has(mergeDashFile)){
+    //         this.mpdSemaphores.set(mergeDashFile,new Semaphore(1));
+    //     }
+    //     release = await this.mpdSemaphores.get(mergeDashFile).acquire();
+    //     //Moving file
+    //     var mergedMpd = await mpdUtils.mergeMpdFiles(targethDashFile,mergeDashFile);
+    //     var saved = await mergedMpd.save(mergeDashFile+".tmp");
+    //     if(saved){
+    //         await fsutils.rename(mergeDashFile+".tmp",mergeDashFile);
+    //         release();
+    //         return true;
+    //     }else{
+    //         release();
+    //         return false;
+    //     }
+    //     //TODO remove semaphore if not used
+    // }
 
     async getMPD(episodeId,filmId,workingdir,type=0){
         var mpdinfos = null;
@@ -884,7 +916,7 @@ class TranscoderManager{
             if(langInfos){
                 lang = langInfos.iso_639_1
             }else{
-                console.error("_generateSubtitlePart unknown lang code: ",stream.tags.language);
+                console.warn("_generateSubtitlePart unknown lang code: ",stream.tags.language," using undefined one");
             }
         }else if(stream.tags.language.length === 2){
             lang = stream.tags.language;
@@ -892,7 +924,7 @@ class TranscoderManager{
 
         return[
         '-map',
-        '0:'+stream.index,
+        '0:'+stream._src_index,
         '-c:0',
         'webvtt',
         '-flush_packets',
@@ -916,6 +948,14 @@ class TranscoderManager{
         return ouputs;
     }
 
+    compareResolutions(a,b) {
+        if (a.width < b.width)
+          return -1;
+        if (a.width > b.width)
+          return 1;
+        return 0;
+    }      
+
     _getBestVideoStream(streams){
         let bestStream = null;
         for(let i=0; i<streams.length; i++){
@@ -927,18 +967,18 @@ class TranscoderManager{
         return bestStream;
     }
     
-    async _generateX264Parts(stream,target_resolutions){
-        let results = [];
-        var original_resolution = await this._getResolution(stream.width);
-        for(var i=0; i<target_resolutions.length; i++){
-            let target_resolution = target_resolutions[i];
+    // async _generateX264Parts(stream,target_resolutions){
+    //     let results = [];
+    //     var original_resolution = await this._getResolution(stream.width);
+    //     for(var i=0; i<target_resolutions.length; i++){
+    //         let target_resolution = target_resolutions[i];
 
-            if(original_resolution.width >= target_resolution.width){
-                Array.prototype.push.apply(results, this._generateX264Part(target_resolution));
-            }
-        }
-        return results;
-    }
+    //         if(original_resolution.width >= target_resolution.width){
+    //             Array.prototype.push.apply(results, this._generateX264Part(target_resolution));
+    //         }
+    //     }
+    //     return results;
+    // }
 
     async _generateX264Part(stream,target_resolution){
         let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
@@ -1060,53 +1100,53 @@ class TranscoderManager{
         return parseInt(arrayOfStrings[0])/parseInt(arrayOfStrings[1]);
     }
 
-    async _addAudioStream(file,audio_stream,targetChannelsList,workingDir,existingFiles,episodeId,filmId){
-        var self = this;
-        //Send transcoding commands
-        for(var i=0; i<targetChannelsList.length; i++){
-            let targetChannels = targetChannelsList[i];
-            let cmd = await this._generateFdkaacCommand(file,audio_stream,targetChannels,workingDir);
+    // async _addAudioStream(file,audio_stream,targetChannelsList,workingDir,existingFiles,episodeId,filmId){
+    //     var self = this;
+    //     //Send transcoding commands
+    //     for(var i=0; i<targetChannelsList.length; i++){
+    //         let targetChannels = targetChannelsList[i];
+    //         let cmd = await this._generateFdkaacCommand(file,audio_stream,targetChannels,workingDir);
 
-            //Check if command will produce already existing file in target folder
-            // If it the case, skip this file
-            if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
-                console.log("Skipping already done transcoding for episode ",episodeId," file: ",cmd.targetName);
-                continue;
-            }
+    //         //Check if command will produce already existing file in target folder
+    //         // If it the case, skip this file
+    //         if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
+    //             console.log("Skipping already done transcoding for episode ",episodeId," file: ",cmd.targetName);
+    //             continue;
+    //         }
 
-            this.launchOfflineTranscodingCommand(cmd,workingDir,
-                async function(){
-                 //This callback is called when the transcoding of one stream succeed
-                 var mpdId = await self.importDashStream(episodeId,filmId,workingDir,cmd.dashName,cmd.targetName);
+    //         this.launchOfflineTranscodingCommand(cmd,workingDir,
+    //             async function(){
+    //              //This callback is called when the transcoding of one stream succeed
+    //              var mpdId = await self.importDashStream(episodeId,filmId,workingDir,cmd.dashName,cmd.targetName);
                             
-                 if(!mpdId){
-                     console.error("Failed to create mdp entry in db ",workingDir);
-                     return;
-                 }
+    //              if(!mpdId){
+    //                  console.error("Failed to create mdp entry in db ",workingDir);
+    //                  return;
+    //              }
 
-                let langInfos = await self.dbMgr.getLangFromIso639_2(audio_stream.tags.language);
-                let lang_id = null;
+    //             let langInfos = await self.dbMgr.getLangFromIso639_2(audio_stream.tags.language);
+    //             let lang_id = null;
 
-                if(!langInfos){
-                    console.log("Unknown audio lang ...",);
-                }else{
-                    lang_id = langInfos.language_id;
-                }
+    //             if(!langInfos){
+    //                 console.log("Unknown audio lang ...",);
+    //             }else{
+    //                 lang_id = langInfos.language_id;
+    //             }
 
-                var id = null;
-                if(episodeId){
-                    id = await self.dbMgr.insertSerieAudio(mpdId,lang_id,targetChannels);
-                }else if(filmId){
-                    id = await self.dbMgr.insertFilmAudio(mpdId,lang_id,targetChannels);
-                }
-                if(id === null){
-                    console.error("Failed to create audio entry in db ",mpdId,target_resolution.id);
-                }else{
-                    console.log("Dash file updated: "+mpdId);
-                }       
-            },function(msg){});
-        }
-    }
+    //             var id = null;
+    //             if(episodeId){
+    //                 id = await self.dbMgr.insertSerieAudio(mpdId,lang_id,targetChannels);
+    //             }else if(filmId){
+    //                 id = await self.dbMgr.insertFilmAudio(mpdId,lang_id,targetChannels);
+    //             }
+    //             if(id === null){
+    //                 console.error("Failed to create audio entry in db ",mpdId,target_resolution.id);
+    //             }else{
+    //                 console.log("Dash file updated: "+mpdId);
+    //             }       
+    //         },function(msg){});
+    //     }
+    // }
 
     launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError,onProgressions){//TODO 
         var hw = new Hardware(1,0,0,0);
@@ -1174,60 +1214,60 @@ class TranscoderManager{
         ];
     }
 
-    async _generateFdkaacCommand(inputfile,stream,target_channels,workingDir){
-        var output = {};
+//     async _generateFdkaacCommand(inputfile,stream,target_channels,workingDir){
+//         var output = {};
 
-        //Width determine resolution category
-        //width*height induce bitrate
-        let bitrate = await this.dbMgr.getAudioBitrate(target_channels);
+//         //Width determine resolution category
+//         //width*height induce bitrate
+//         let bitrate = await this.dbMgr.getAudioBitrate(target_channels);
         
-        var segmentduration = this.settings.global.segment_duration;
-        let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
-        let lang_639_1 = "unknown";
+//         var segmentduration = this.settings.global.segment_duration;
+//         let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
+//         let lang_639_1 = "unknown";
 
-        if(!langInfos){
-            console.log("Unknown lang ",stream.tags.language);
-        }else{
-            lang_639_1 = langInfos.iso_639_1;
-        }
+//         if(!langInfos){
+//             console.log("Unknown lang ",stream.tags.language);
+//         }else{
+//             lang_639_1 = langInfos.iso_639_1;
+//         }
 
-        output.targetName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mp4";
-        output.dashName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mpd";
-        output.args = [
-            '-i',
-            inputfile,
-            '-y',
-            '-vn',
-            '-sn',
-            '-c:a:'+stream.audio_index,
-            'libfdk_aac',
-            '-ac',
-            target_channels.toString(),
-            '-ab',
-            bitrate.toString()+"K",
-            '-use_timeline',
-            '0',
-            '-use_template',
-            '0',
-            '-single_file',
-            '1',
-            '-single_file_name',
-            output.targetName,
-            '-min_seg_duration',
-            segmentduration,
-            '-f',
-            'dash',
-            workingDir+"/"+output.dashName
-        ];
-//         /opt/ffmpeg/bin/ffmpeg -re -i ../output.mp4 -vn -sn -c:a libfdk_aac \
-// -ac 2 -ab 128k -vn \
-// -use_timeline 1 -use_template 1 -single_file 1 -single_file_name audio1.mp4 \
-// -f dash ./audio1.mpd
+//         output.targetName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mp4";
+//         output.dashName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mpd";
+//         output.args = [
+//             '-i',
+//             inputfile,
+//             '-y',
+//             '-vn',
+//             '-sn',
+//             '-c:a:'+stream.audio_index,
+//             'libfdk_aac',
+//             '-ac',
+//             target_channels.toString(),
+//             '-ab',
+//             bitrate.toString()+"K",
+//             '-use_timeline',
+//             '0',
+//             '-use_template',
+//             '0',
+//             '-single_file',
+//             '1',
+//             '-single_file_name',
+//             output.targetName,
+//             '-min_seg_duration',
+//             segmentduration,
+//             '-f',
+//             'dash',
+//             workingDir+"/"+output.dashName
+//         ];
+// //         /opt/ffmpeg/bin/ffmpeg -re -i ../output.mp4 -vn -sn -c:a libfdk_aac \
+// // -ac 2 -ab 128k -vn \
+// // -use_timeline 1 -use_template 1 -single_file 1 -single_file_name audio1.mp4 \
+// // -f dash ./audio1.mpd
 
-        //-preset slow
+//         //-preset slow
 
-        return output;
-    }
+//         return output;
+//     }
 
     // sync checkHasMpd(){
 

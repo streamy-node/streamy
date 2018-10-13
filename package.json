@@ -30,7 +30,8 @@
     "request": "^2.87.0",
     "shaka-player": "^2.3.3",
     "shortid": "^2.2.11",
-    "ws": "^5.1.0"
+    "ws": "^5.1.0",
+    "xml2js": "^0.4.19"
   },
   "devDependencies": {
     "eslint": "^4.19.0"

@@ -415,14 +415,14 @@ class DBStructure{
         }
     }   
 
-    async getSerieMpdFileFromEpisode(episodeId,workingDir,type){
+    async getSerieMpdFileFromEpisode(episodeId,workingDir){
         if(!this.checkId(episodeId) && workingDir.length > 0 ){
             console.error("getSerieMpdFileFromEpisode: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
         +" FROM `series_mpd_files` "
-        +" WHERE series_mpd_files.episode_id = "+episodeId+" AND folder = '"+workingDir+"' AND type = "+type;
+        +" WHERE series_mpd_files.episode_id = "+episodeId+" AND folder = '"+workingDir+"'";
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -432,13 +432,13 @@ class DBStructure{
         }
     }
 
-    async insertSerieMPDFile(episode_id,folder,complete,type=0){
+    async insertSerieMPDFile(episode_id,folder,complete){
         if( (!this.checkId(episode_id) || folder.length && 0)){
             console.error("insertSerieMPDFile: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`,`complete`,`type`) "
-        + " VALUES("+episode_id+", '"+folder+"', "+complete.toString()+", "+type.toString()+")";
+        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`,`complete`) "
+        + " VALUES("+episode_id+", '"+folder+"', "+complete.toString()+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -479,7 +479,7 @@ class DBStructure{
             var sqlres = await this.query(sql);
             id = sqlres.insertId;
         }catch(error){
-            console.warn("Error inserting subtitle in database: "+error);
+            console.warn("Error inserting audio in database: "+error);
             return null;
         }
         return id;
@@ -490,7 +490,7 @@ class DBStructure{
             console.error("insertSerieSubtitle: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_subtitles` (`mpd_id`,`lang_id`,`name`) "
+        var sql = "INSERT INTO `series_srts` (`mpd_id`,`lang_id`,`name`) "
         + " VALUES("+mpd_id+", "+lang_id+', "'+name+'")';
 
         let id = null;
@@ -639,7 +639,7 @@ class DBStructure{
             console.error("insertFilmSubtitle: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `films_subtitles` (`mpd_id`,`lang_id`,`name`) "
+        var sql = "INSERT INTO `films_srts` (`mpd_id`,`lang_id`,`name`) "
         + " VALUES("+mpd_id+", "+lang_id+", "+name+")";
         try{
             var sqlres = await this.query(sql);
@@ -694,13 +694,13 @@ class DBStructure{
         return taskId;
     }
 
-    async insertAddFileSubTask(task_id,command,done){
-        if( (!this.checkId(episode_id) && !this.checkId(film_id)) || target_folder.length == 0 || file.length == 0 ){
+    async insertAddFileSubTask(task_id,command,done,output){
+        if( !this.checkId(task_id) || command.length == 0 ){
             console.error("insertAddFileTask: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `add_file_subtasks` (`task_id`,`command`,`done`) "
-        + " VALUES('"+task_id+"', '"+command+"', "+done+")";
+        var sql = "INSERT INTO `add_file_subtasks` (`task_id`,`command`,`done`,`output`) "
+        + " VALUES('"+task_id+"', '"+command+"', "+done+', "'+output+'")';
         var sqlres = await this.query(sql);
         var subtaskId = sqlres.insertId;
 
@@ -746,7 +746,7 @@ class DBStructure{
     async setAddFileSubTaskDone(id){
         var sql = "UPDATE `add_file_subtasks`  "
         + " SET done = 1"
-        + " WHERE id = "+id+")";
+        + " WHERE id = "+id+"";
         var sqlres = await this.query(sql);
         return sqlres;
     }
