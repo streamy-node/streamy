@@ -59,25 +59,27 @@ class VideoBlock{
         $progress.addClass('d-none');
     }
 
-    updateStatus(state,progression,msg = null){
+    showProgression(progression){
         let $progress = this.element.find('.video_progress');
         $progress.text(progression+"%");
+        $progress.removeClass('d-none');
+    }
+
+    updateStatus(state,progression,msg = null){
+
         if(state == 0){
             this.setBroken(false);
-            $progress.addClass('d-none');
+            
             this.hideProgression();
             this.setError(false);
         }else if(state == 1){
             this.setError(true,transcoding_error_color,msg);
             if(!this.hasMpd) this.setBroken(true,nofile_color);
-            $progress.addClass('d-none');
         }else if(state == 2){
             if(!this.hasMpd) this.setBroken(true,transcoding_color);
-            $progress.removeClass('d-none');
             this.setError(false);
         }else if(state == 3){
             if(!this.hasMpd) this.setBroken(true,waiting_color);
-            $progress.removeClass('d-none');
             this.setError(false);
         }
     }
@@ -128,8 +130,8 @@ class VideoBlock{
         // Resumable.js isn't supported, fall back on a different method
         if(!r.support) location.href = '/some-default-uploader';
 
-        let $browse = $form.find('.browse'); // TODO change with name
-        r.assignBrowse($browse);
+        let browse = element.find('.browse'); // TODO change with name
+        r.assignBrowse(browse);
         r.assignDrop(blocs);
 
         r.on('fileAdded', function(file, event){
@@ -144,6 +146,7 @@ class VideoBlock{
         });
         r.on('fileProgress', function(file){
             console.log("fileProgress ",file)
+            self.showProgression(Math.floor(file.progress()*1000)/10)
         });
 
         

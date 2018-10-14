@@ -157,7 +157,7 @@ class Resumable{
             if(currentTestChunk >= numberOfChunks){
                 if(automerge){
                     let files = this.getAllChunkFilenames(numberOfChunks,identifier)
-                    let targetFileName = identifier+path.extname(original_filename)
+                    let targetFileName = identifier+path.extname(filename)
                     let concatReult = await fsutils.concat(files,this.temporaryFolder+"/"+targetFileName)
                     if(concatReult){
                         await fsutils.unlinkFiles(files);
