@@ -24,11 +24,15 @@ var consolidate = require('consolidate');
 
 var fsUtils = require('./server/fsutils.js')
 
-
 //Ffmpeg manager
 const ProcessesMgr = require('./server/transcoding/ffmpegprocesses').FfmpegProcessManager;
 const TranscodeMgr = require('./server/transcoding/transcodermanager');
 
+//Upload
+const Resumable = require('./server/resumable-node.js')
+var resumable = new Resumable()
+var multipart = require('connect-multiparty');
+var crypto = require('crypto');
 
 
 if(process.argv.length <= 2){
@@ -56,11 +60,11 @@ var dbMgr = new DBStructure();
 var settings = new Settings(dbMgr);
 var appstarted = false;
 
-dbMgr.initialize(dbOptions,function(err) {
+dbMgr.initialize(dbOptions,async function(err) {
   if (err) {
     process.exit(1);
   }else{
-    settings.pullSettings();
+    await settings.pullSettings();
     if(!appstarted){
       startApp();
     }
@@ -412,9 +416,63 @@ function startApp(){
     }
   })
 
+  ////////////////////// UPLOAD ///////////////////////////////
 
+  // Handle uploads through Resumable.js
+  let tmpUploadPath = settings.getUploadPath()+"/tmp"
+  fsUtils.mkdirp(tmpUploadPath);
+  resumable.setTemporaryFolder(settings.getUploadPath())
+
+  // retrieve file id. invoke with /fileid?filename=my-file.jpg
+  app.get('/fileid', loggedIn, function(req, res){
+    if(req.user){
+      if(!req.query.filename){
+        return res.status(500).end('query parameter missing');
+      }
+      // create md5 hash from filename
+      res.end(
+        crypto.createHash('md5')
+        .update(req.query.filename)
+        .digest('hex')
+      );
+    }else{
+      console.warn("Unlogged user try to get files")
+    }
+  });
+
+  var multipartMiddleware = multipart({uploadDir:tmpUploadPath});
+  app.post('/upload/:type/:id', loggedIn, multipartMiddleware, async function(req,res){
+    var type = req.params.type;
+    var id = req.params.id;
+    if(req.user){ //TODO check rights
+      let result = await resumable.post(req, true);
+      //console.log('POST', result.status, result.original_filename, result.identifier);
+      //If the file has been received completly
+      if(result.status == 201){
+        var filename = path.basename(result.filename);
+        if(type === "series"){
+          transcodeMgr.addEpisodeMedia(filename,result.original_filename,parseInt(id));
+        }else if(type === "films"){
+          transcodeMgr.addFilmMedia(filename,result.original_filename,parseInt(id));
+        }
+      }
+      res.sendStatus(result.status);
+    }
+  })
+
+  // Handle status checks on chunks through Resumable.js
+  app.get('/upload/:type', loggedIn, async function(req, res){
+    var type = req.params.type;
+    if(req.user){ //TODO check rights
+      let result = await resumable.get(req);
+      //console.log('GET', status);
+      res.sendStatus(result.status);
+    }
+  });
+
+  //////////////////////// Old upload ////////////////////////
   // Upload files
-  app.post('/upload/:type', loggedIn, async function(req,res){
+  app.post('/upload2/:type', loggedIn, async function(req,res){
     if(req.user){ //TODO check rights
       var type = req.params.type;
       var form = new formidable.IncomingForm();
@@ -537,7 +595,9 @@ function startApp(){
       res.status(401).send('You need to login');
     }
 
-  }) 
+  })
+
+  //app.use(multipart()); // for upload
 
   var server = app.listen(8080, function () {
 

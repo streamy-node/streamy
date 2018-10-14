@@ -412,6 +412,7 @@ CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `creation_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `file` VARCHAR(255) NOT NULL,
+  `original_name` VARCHAR(255) NOT NULL,
   `working_folder` VARCHAR(255) NOT NULL,
   `episode_id` int,
   `film_id` int,

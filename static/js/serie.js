@@ -178,7 +178,7 @@ class SerieController{
     // Series display
 
     updateProgressions(progressions){
-        if(location.hash.includes("#serie_")){
+        if(location.hash.includes("#serie_") && progressions){
             for(let items of this.blocks){
                 let videoId = items[0];
                 let videoBlock = items[1];

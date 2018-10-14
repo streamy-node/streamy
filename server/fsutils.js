@@ -3,6 +3,7 @@ var mkdirp_ = require('mkdirp');
 var readline = require('readline');
 var stream = require('stream');
 const xml2js = require('xml2js');
+var async = require('async');
 
 class FSUtils{
     async mkdirp(path){
@@ -33,9 +34,9 @@ class FSUtils{
         });
     }
 
-    async read(file){
+    async read(file, format = 'utf8'){
         return new Promise((resolve, reject) => {
-            fs.readFile(file, 'utf8', function (err, data) {
+            fs.readFile(file, format, function (err, data) {
                 if (err) reject(err);
                 resolve(data);
             });
@@ -229,6 +230,10 @@ class FSUtils{
         });
     }
 
+    async unlinkFiles(files){
+        await files.map(async file => { return await this.unlink(file) })
+    }
+
     async readir(dir){
         return new Promise((resolve, reject) => {
         fs.readdir(dir, (err, files) => {
@@ -251,6 +256,22 @@ class FSUtils{
                 resolve();
             });
         });
+    }
+
+    async concat(files, destination){
+        return new Promise(async (resolve, reject) => {
+            var wstream = fs.createWriteStream(destination, {flags: "a"});
+            wstream.on('finish', function () {
+                resolve(true);
+            });
+
+            for(let i = 0; i<files.length; i++){
+                let data = await this.read(files[i],null)
+                wstream.write(data);
+            }
+
+            wstream.end();
+        })
     }
 
     async appendJson(file,obj){

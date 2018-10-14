@@ -681,13 +681,13 @@ class DBStructure{
     }
 
     /// Transcoding part
-    async insertAddFileTask(file,working_folder,episode_id,film_id){
+    async insertAddFileTask(file,original_name,working_folder,episode_id,film_id){
         if( (!this.checkId(episode_id) && !this.checkId(film_id)) || working_folder.length == 0 || file.length == 0 ){
             console.error("insertAddFileTask: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `add_file_tasks` (`file`,`working_folder`,`episode_id`,`film_id`) "
-        + " VALUES('"+file+"', '"+working_folder+"', "+episode_id+", "+film_id+")";
+        var sql = "INSERT INTO `add_file_tasks` (`file`,`original_name`,`working_folder`,`episode_id`,`film_id`) "
+        + " VALUES('"+file+"', '"+original_name+"', '"+working_folder+"', "+episode_id+", "+film_id+")";
         var sqlres = await this.query(sql);
         var taskId = sqlres.insertId;
 
