@@ -7,6 +7,7 @@ class DBStructure{
         this.con = null;
         this.dboptions = null;
         this.langs = new Map();
+        this.categories = new Map()
     }
 
     initialize(dbOptions,onResult){
@@ -25,7 +26,7 @@ class DBStructure{
                     console.error("Cannot setup the db ",error);
                     onResult(error);
                 }else{
-                    self.loadLangs();
+                    self._cacheStaticData();
                     onResult();
                 }
             });
@@ -35,12 +36,24 @@ class DBStructure{
             
     }
 
-    async loadLangs(){
+    async _cacheStaticData(){
+        this._loadCategories();
+        this._loadLangs();
+    }
+
+    async _loadLangs(){
         if(this.langs.size == 0){ 
             var rawLangs = await this.getLangs();
             for(var i=0; i<rawLangs.length; i++){
                 this.langs[rawLangs[i].iso_639_1] = rawLangs[i].id;
             }
+        }
+    }
+
+    async _loadCategories(){
+        let categories = await this.getCategories()
+        for(let i=0; i<categories.length; i++){
+            this.categories.set(categories[i].id,categories[i].category)
         }
     }
 
@@ -59,7 +72,7 @@ class DBStructure{
     getConnection(){
         return this.con;
     }
-
+    
     handleDisconnect(statuscb) {
         var self = this;
         this.con = mysql.createConnection(this.dboptions); // Recreate the connection, since
@@ -85,8 +98,6 @@ class DBStructure{
             }
         });
     }
-
-
 
     setup_database(onResult){
         //If the database is available, create tables if necessary
@@ -143,6 +154,7 @@ class DBStructure{
             return results;
         }
     }
+    
 
     getLangsId(langCode){
         return this.langs[langCode];
@@ -212,12 +224,12 @@ class DBStructure{
     //     }
     // }
 
-    async setSerieHasMPD(serieId,hasMpd){
-        if( (!this.checkId(serieId))){
-            console.error("setSerieHasMPD: Invalid entries ");
+    async setMediaHasMPD(mediaId,hasMpd){
+        if( (!this.checkId(mediaId))){
+            console.error("setMediaHasMPD: Invalid entries ");
             return null;
         }
-        var sql = "UPDATE `series` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+serieId.toString();
+        var sql = "UPDATE `media` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+mediaId.toString();
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -247,14 +259,13 @@ class DBStructure{
     //         return result[0];
     //     }
     // }
-
-    async getSerieTranslation(serieId,langCode){
-        if(!this.checkId(serieId) || !this.checkId(langCode)){
-            console.error("getSerieTranslation: Invalid entries ");
+    async getMedia(mediaId){
+        if(!this.checkId(mediaId)){
+            console.error("getMedia: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_translations`, `languages` WHERE serie_id = "+serieId+" AND series_translations.lang_id = "+langCode;
+        var sql = "SELECT * FROM `media` WHERE id = "+mediaId;
         var result = await this.query(sql);
 
         if(result.length == 0 ){
@@ -263,6 +274,271 @@ class DBStructure{
             return result[0];
         }
     }
+
+    //Get all media and it's children paths
+    // Note: Only child of depth 3 for now
+    async getMediaRecursivePaths(mediaId){
+        if(!this.checkId(mediaId)){
+            console.error("getMediaRecursivePaths: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT path FROM `media`"+
+        " WHERE parent_id = "+mediaId+" OR id = "+mediaId+
+        " UNION "+
+        " SELECT path FROM `media`"+
+        " WHERE parent_id IN (SELECT id FROM streamy.media WHERE parent_id = "+mediaId+")"
+        var results = await this.query(sql);
+
+        return results;
+    }
+
+    async getSerieSeasons(serieId,langCode){
+        if(!this.checkId(serieId) || !this.checkId(langCode)){
+            console.error("getSerieSeasons: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `series_seasons`, `series_seasons_translations`"
+        +" WHERE series_seasons.serie_id = "+serieId+" AND series_seasons.id = season_id AND series_seasons_translations.lang_id = "+langCode
+        +" ORDER BY series_seasons.season_number";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results;
+        }
+    }
+
+    getMediaBaseRequest(categoryId, langId, userId, withBrick){
+        let sqlSelect = "SELECT "
+        // let sqlSelect = "SELECT m.id, m.release_date, m.rating, m.rating_count, m.original_name "+
+        //     ", m.original_language, m.brick_id, m.added_date, m.has_mpd, m.path, m.category_id ";
+            
+        let sqlJoins = ""
+        if(categoryId){
+            sqlSelect += " c.*, "
+            sqlJoins += " LEFT JOIN `media_"+this.categories.get(categoryId)+"` c ON m.id = c.media_id";
+        }
+        if(withBrick){
+            sqlSelect += " b.*, "
+            sqlJoins += " LEFT JOIN `bricks` b ON m.brick_id = b.id"
+        }
+        if(langId){
+            sqlSelect += " t.title, t.overview, "
+            sqlJoins += " LEFT JOIN `media_translations` t  ON m.id = t.media_id AND t.lang_id = "+langId; //TODO don't send path to clients
+        }
+        if(userId){
+            sqlSelect += " p.audio_lang, p.subtitle_lang, p.progression, p.last_seen, p.watched, "
+            sqlJoins += " LEFT JOIN `media_progressions` p ON p.user_id = "+userId+" AND m.id = p.media_id"
+        }
+        sqlSelect += " m.* "
+        let sqlBase = sqlSelect + " FROM `media` m " + sqlJoins
+        return sqlBase
+    }
+
+    async getMediaFullList(categoryId, langCode, userId, sortKey){
+        if(!this.checkId(categoryId)){
+            console.error("getMedia: Invalid entries ");
+            return null;
+        }
+
+        let sql = this.getMediaBaseRequest(categoryId,langCode,userId,true)
+        sql += " WHERE m.category_id = "+categoryId;
+        // var sql = "SELECT m.id FROM `media` m "+
+        // " JOIN `media_"+this.categories.get(categoryId)+"` c ON m.id = c.media_id"+
+        // " JOIN `bricks` b ON m.brick_id = b.id"+
+        // " LEFT JOIN `media_translations` t  ON m.id = t.media_id AND t.lang_id = "+langCode; //TODO don't send path to clients
+
+        // if(userId){
+        //     sql += " LEFT JOIN `media_progressions` p ON p.user_id = "+userId+" AND m.id = p.media_id"
+        // }
+        // sql += " WHERE m.category_id = "+categoryId;
+
+        if(sortKey){
+            sql += " ORDER BY "+sortKey;
+        }
+
+        try{
+            let results = await this.query(sql);
+            return results;
+        }catch(err){
+            console.error(err);
+            throw err
+        }
+
+
+    }
+
+    async getMediaFull(mediaId, mediaCategoryId, langCode, userId){
+        try{
+            if(!this.checkId(mediaId)){
+                console.error("getMedia: Invalid entries ");
+                return null;
+            }
+
+            let sql = this.getMediaBaseRequest(mediaCategoryId,langCode,userId,true)
+            sql += " WHERE m.id = "+mediaId;
+            // var sql = "SELECT * FROM `media` m"+
+            // " JOIN `media_"+this.categories.get(mediaCategoryId)+"` c ON m.id = c.media_id"+
+            // " JOIN `bricks` b ON m.brick_id = b.id"+
+            // " LEFT JOIN `media_translations` t  ON m.id = t.media_id AND t.lang_id = "+langCode;
+
+            // if(userId){
+            //     sql += " LEFT JOIN `media_progressions` p ON p.user_id = "+userId+" AND m.id = p.media_id"
+            // }
+            // sql += " WHERE m.id = "+mediaId;
+
+            //console.log("2",sql)
+            var result = await this.query(sql);
+
+            if(result.length == 0 ){
+                return null;
+            }else{
+                return result[0];
+            }
+        }catch(err){
+            console.log("getMediaFull failed ",err)
+            throw err
+        }
+    }
+
+    async getMediaChildrenFull(mediaId,categoryId, langId, userId, sortKey){
+        try{
+            if(!this.checkId(mediaId)){
+                console.error("getMedia: Invalid entries ");
+                return null;
+            }
+
+            let sql = this.getMediaBaseRequest(categoryId,langId,userId,false)
+            sql += " WHERE m.parent_id = "+mediaId;
+
+            if(sortKey){
+                sql += " ORDER BY "+sortKey;
+            }
+
+            //" JOIN `bricks` b ON m.brick_id = b.id"+
+            // var sql = "SELECT * FROM `media` m "+
+            // " JOIN `media_"+this.categories.get(categoryId)+"` c ON m.id = c.media_id"+
+            // " LEFT JOIN `media_translations` tr  ON m.id = tr.media_id AND tr.lang_id = "+langId;
+
+            // if(userId){
+            //     sql += " LEFT JOIN `media_progressions` AS p ON p.user_id = "+userId+" AND m.id = p.media_id"
+            // }
+            // sql += " WHERE m.parent_id = "+mediaId;
+
+            // if(sortKey){
+            //     sql += " ORDER BY "+sortKey;
+            // }
+
+            //console.log(sql)
+            let results = await this.query(sql);
+            return results;
+
+        }catch(err){
+            console.log("getMediaChildrenFull failed ",err)
+            throw err
+        }
+    }
+
+    //For the moment, for perf reasons all children should have same category
+    async getChildrenCategoryId(mediaId){
+        try{
+            if(!this.checkId(mediaId)){
+                console.error("getMedia: Invalid entries ");
+                return null;
+            }
+
+            let sql = "SELECT `category_id` FROM `media` "+
+            " WHERE parent_id = "+mediaId+
+            " LIMIT 1";
+
+            let result = await this.query(sql);
+
+            if(result.length == 0 ){
+                return null;
+            }else{
+                return result[0].category_id;
+            }
+        }catch(err){
+            console.error("getChildrenCategoryId failed",err)
+            return null
+        }
+    }
+
+    async getMediaCategory(mediaId){
+        if(!this.checkId(mediaId)){
+            console.error("getMedia: Invalid entries ");
+            return null;
+        }
+
+        let sql = "SELECT category_id FROM `media` AS m "
+        " WHERE m.id = "+mediaId;
+
+        let result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0].category_id;
+        }
+    }
+
+    async getCategories(){
+
+        let sql = "SELECT * FROM `categories` ";
+
+        let results = await this.query(sql);
+
+        return results;
+    }
+
+
+    async getMediaTranslation(mediaId,langCode){
+        if(!this.checkId(mediaId) || !this.checkId(langCode)){
+            console.error("getMediaTranslation: Invalid entries ");
+            return null;
+        }
+
+        var sql = "SELECT * FROM `media_translations`, `languages` WHERE media_id = "+mediaId+" AND lang_id = "+langCode;
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async insertMediaTranslation(media_id,lang_id,title,overview){
+        if( !this.checkId(media_id) || !this.checkId(lang_id)){
+            console.error("insertMediaTranslation: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `media_translations` (`media_id`,`lang_id`,`title`,`overview`) "
+        + " VALUES( "+media_id+", "+lang_id+", "+"'"+title.replace(/'/g,"\\'")+
+        "', "+"'"+overview.replace(/'/g,"\\'")+"')";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    // async getSerieTranslation(serieId,langCode){
+    //     if(!this.checkId(serieId) || !this.checkId(langCode)){
+    //         console.error("getSerieTranslation: Invalid entries ");
+    //         return null;
+    //     }
+
+    //     var sql = "SELECT * FROM `series_translations`, `languages` WHERE serie_id = "+serieId+" AND series_translations.lang_id = "+langCode;
+    //     var result = await this.query(sql);
+
+    //     if(result.length == 0 ){
+    //         return null;
+    //     }else{
+    //         return result[0];
+    //     }
+    // }
 
     async getSerieSeasons(serieId,langCode){
         if(!this.checkId(serieId) || !this.checkId(langCode)){
@@ -319,13 +595,13 @@ class DBStructure{
         }
     }
 
-    async getEpisodePath(episodeId){
-        if(!this.checkId(episodeId) ){
-            console.error("getEpisodePath: Invalid entries ");
+    async getMediaPath(mediaId){
+        if(!this.checkId(mediaId) ){
+            console.error("getMediaPath: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, season.season_number,  ep.episode_number"
+        var sql = "SELECT bricks.path as brick_path, media.original_name as serie_name, series.release_date as serie_release_date, season.season_number,  ep.episode_number"
         +" FROM `series_episodes` AS ep, `series_seasons` AS season, `series`, `bricks` "
         +" WHERE ep.id = "+episodeId+" and ep.season_id = season.id AND season.serie_id = series.id AND bricks.id = series.brick_id";
         var results = await this.query(sql);
@@ -336,20 +612,50 @@ class DBStructure{
             return results[0];
         }
     }
+    // async getEpisodePath(episodeId){
+    //     if(!this.checkId(episodeId) ){
+    //         console.error("getEpisodePath: Invalid entries ");
+    //         return null;
+    //     }
 
-    async getSeriesMdpFiles(episodeId){
-        if(!this.checkId(episodeId)){
-            console.error("getEpisodeStreams: Invalid entries ");
+    //     var sql = "SELECT bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, season.season_number,  ep.episode_number"
+    //     +" FROM `series_episodes` AS ep, `series_seasons` AS season, `series`, `bricks` "
+    //     +" WHERE ep.id = "+episodeId+" and ep.season_id = season.id AND season.serie_id = series.id AND bricks.id = series.brick_id";
+    //     var results = await this.query(sql);
+
+    //     if(results.length == 0 ){
+    //         return null;
+    //     }else{
+    //         return results[0];
+    //     }
+    // }
+
+    async getMdpFiles(mediaId){
+        if(!this.checkId(mediaId)){
+            console.error("getMdpFiles: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_mpd_files` AS mdp "+
-        " WHERE mdp.episode_id = "+episodeId;
+        var sql = "SELECT * FROM `mpd_files` AS mdp "+
+        " WHERE mdp.media_id = "+mediaId;
         var results = await this.query(sql);
 
         return results;
     }
+    // async getSeriesMdpFiles(episodeId){
+    //     if(!this.checkId(episodeId)){
+    //         console.error("getEpisodeStreams: Invalid entries ");
+    //         return null;
+    //     }
 
+    //     var sql = "SELECT * FROM `series_mpd_files` AS mdp "+
+    //     " WHERE mdp.episode_id = "+episodeId;
+    //     var results = await this.query(sql);
+
+    //     return results;
+    // }
+
+    //TODO delete when replaced
     async getSeriesLiveMdpFiles(episodeId){
         if(!this.checkId(episodeId)){
             console.error("getEpisodeStreams: Invalid entries ");
@@ -381,13 +687,13 @@ class DBStructure{
         }
     }
 
-    async getSeriesAudios(mdpId){
+    async getAudios(mdpId){
         if(!this.checkId(mdpId)){
-            console.error("getSeriesAudios: Invalid entries ");
+            console.error("getAudios: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_audios` AS s "+
+        var sql = "SELECT * FROM `mpd_audios` AS s "+
         " WHERE s.mpd_id = "+mdpId;
         var results = await this.query(sql);
 
@@ -398,13 +704,13 @@ class DBStructure{
         }
     }  
 
-    async getSeriesSubtitles(mdpId){
+    async getSubtitles(mdpId){
         if(!this.checkId(mdpId)){
-            console.error("getSeriesSubtitles: Invalid entries ");
+            console.error("getSubtitles: Invalid entries ");
             return null;
         }
 
-        var sql = "SELECT * FROM `series_subtitles` AS s "+
+        var sql = "SELECT * FROM `mpd_subtitles` AS s "+
         " WHERE s.mpd_id = "+mdpId;
         var results = await this.query(sql);
 
@@ -415,14 +721,14 @@ class DBStructure{
         }
     }   
 
-    async getSerieMpdFileFromEpisode(episodeId,workingDir){
-        if(!this.checkId(episodeId) && workingDir.length > 0 ){
-            console.error("getSerieMpdFileFromEpisode: Invalid entries ");
+    async getMpdFileFromMedia(mediaId,workingDir){
+        if(!this.checkId(mediaId) && workingDir.length > 0 ){
+            console.error("getMpdFileFromMedia: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
-        +" FROM `series_mpd_files` "
-        +" WHERE series_mpd_files.episode_id = "+episodeId+" AND folder = '"+workingDir+"'";
+        +" FROM `mpd_files` as s "
+        +" WHERE s.media_id = "+mediaId+" AND folder = '"+workingDir+"'";
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -432,48 +738,100 @@ class DBStructure{
         }
     }
 
-    async insertSerieMPDFile(episode_id,folder,complete){
-        if( (!this.checkId(episode_id) || folder.length && 0)){
-            console.error("insertSerieMPDFile: Invalid entries ");
+    async getSerieMpdFileFromEpisode(episodeId,workingDir){
+        if(!this.checkId(episodeId) && workingDir.length > 0 ){
+            console.error("getSerieMpdFileFromEpisode: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`folder`,`complete`) "
-        + " VALUES("+episode_id+", '"+folder+"', "+complete.toString()+")";
+        var sql = "SELECT * "
+        +" FROM `series_mpd_files` as s , `mpd_files` as m"
+        +" WHERE s.episode_id = "+episodeId+" AND s.mpd_id = m.id AND folder = '"+workingDir+"'";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0];
+        }
+    }
+
+    // async insertSerieMPDFile(episode_id,mpd_id){
+    //     if( (!this.checkId(episode_id) || !this.checkId(mpd_id))){
+    //         console.error("insertSerieMPDFile: Invalid entries ");
+    //         return null;
+    //     }
+    //     var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`mpd_id`) "
+    //     + " VALUES("+episode_id+", "+mpd_id+")";
+    //     var sqlres = await this.query(sql);
+    //     var id = sqlres.insertId;
+    //     return id;
+    // }
+
+    async insertMPDFile(media_id,folder,complete){
+        if( folder.length < 0 || !this.checkId(media_id)){
+            console.error("insertMPDFile: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `mpd_files` (`media_id`,`folder`,`complete`) "
+        + " VALUES("+media_id+",'"+folder+"', "+complete.toString()+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
     }
 
-    async setSerieMPDFileComplete(mpd_id,complete){
+    async setMPDFileComplete(mpd_id,complete){
         if( (!this.checkId(mpd_id))){
             console.error("setSerieMPDFileComplete: Invalid entries ");
             return null;
         }
-        var sql = "UPDATE `series_mpd_files` SET `complete` = "+complete.toString()+" WHERE `id` = "+mpd_id.toString();
+        var sql = "UPDATE `mpd_files` SET `complete` = "+complete.toString()+" WHERE `id` = "+mpd_id.toString();
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
     }
 
-    async insertSerieVideo(mpd_id,resolution_id){
+    async insertMedia(release_date,rating,rating_count,original_name,original_language,
+        brickId,has_mpd,path, category_id, parent_id = null){
+        if( !this.checkId(brickId)){
+            console.error("insertMedia: Invalid entries ");
+            return null;
+        }
+
+        try{
+            var sql = "INSERT INTO `media` (`release_date`,`rating`,`rating_count`,"+
+            "`original_name`,`original_language`, `brick_id`, `has_mpd`, `path`, `category_id`, `parent_id`) "+
+            " VALUES ('"+release_date+"', "+rating+", "+rating_count+
+            ", '"+original_name.replace(/'/g,"\\'")+
+            "', '"+original_language+"', "+brickId+", "+has_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
+
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.error("insertMedia failed, ",err)
+            return null
+        }
+    }
+
+    async insertVideo(mpd_id,resolution_id,user_id){
         if( (!this.checkId(mpd_id) || !this.checkId(resolution_id))){
-            console.error("insertSerieVideo: Invalid entries ");
+            console.error("insertVideo: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_videos` (`mpd_id`,`resolution_id`) "
-        + " VALUES("+mpd_id+", "+resolution_id+")";
+        var sql = "INSERT INTO `mpd_videos` (`mpd_id`,`resolution_id`,`user_id`) "
+        + " VALUES("+mpd_id+", "+resolution_id+", "+user_id+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
     }
 
-    async insertSerieAudio(mpd_id,lang_id,channels){
+    async insertAudio(mpd_id,lang_id,lang_subtag_id,channels,user_id){
         if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
-            console.error("insertSerieVideo: Invalid entries ");
+            console.error("insertAudio: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_audios` (`mpd_id`,`lang_id`,`channels`) "
-        + " VALUES("+mpd_id+", "+lang_id+", "+channels+")";
+        var sql = "INSERT INTO `mpd_audios` (`mpd_id`,`lang_id`,`lang_subtag_id`,`channels`,`user_id`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+lang_subtag_id+", "+channels+", "+user_id+")";
         let id = null;
         try{
             var sqlres = await this.query(sql);
@@ -485,13 +843,13 @@ class DBStructure{
         return id;
     }
 
-    async insertSerieSubtitle(mpd_id,lang_id,name,filename){
-        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
-            console.error("insertSerieSubtitle: Invalid entries ");
+    async insertSubtitle(mpd_id,lang_id,lang_subtag_id,name,user_id){
+        if( (!this.checkId(mpd_id) || !this.checkId(lang_id))){
+            console.error("insertSubtitle: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `series_srts` (`mpd_id`,`lang_id`,`name`) "
-        + " VALUES("+mpd_id+", "+lang_id+', "'+name+'")';
+        var sql = "INSERT INTO `mpd_srts` (`mpd_id`,`lang_id`,`lang_subtag_id`,`name`,`user_id`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+lang_subtag_id+', "'+name+'",'+user_id+')';
 
         let id = null;
         try{
@@ -547,14 +905,14 @@ class DBStructure{
         return results;
     }
 
-    async getFilmMpdFile(filmId,workingDir,type=0){
-        if(!this.checkId(filmId) && workingDir.length > 0){
+    async getFilmMpdFile(filmId,workingDir){
+        if(!this.checkId(filmId) && workingDir.length > 0 ){
             console.error("getFilmMpdFile: Invalid entries ");
             return null;
         }
         var sql = "SELECT * "
-        +" FROM `films_mpd_files` "
-        +" WHERE films_mpd_files.film_id = "+filmId+" AND films_mpd_files.folder = '"+workingDir+"' AND type = "+type.toString();
+        +" FROM `films_mpd_files` as s , `mpd_files` as m"
+        +" WHERE s.film_id = "+episodeId+" AND s.mpd_id = m.id AND folder = '"+workingDir+"'";
         var results = await this.query(sql);
 
         if(results.length == 0 ){
@@ -564,108 +922,16 @@ class DBStructure{
         }
     }
 
-    async insertFilmMPDFile(film_id,folder,complete,type=0){
+    async insertFilmMPDFile(film_id,mpd_id){
         if( (!this.checkId(film_id) && folder.length > 0)){
             console.error("insertFilmMpd: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`folder`,`complete`,`type`) "
-        + " VALUES("+film_id+", '"+folder+"',"+complete.toString()+", "+type.toString()+")";
+        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`mpd_id`) "
+        + " VALUES("+episode_id+", "+mpd_id+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
-    }
-
-    async setFilmMPDFileComplete(mpd_id,complete){
-        if( (!this.checkId(mpd_id))){
-            console.error("setFilmMPDFileComplete: Invalid entries ");
-            return null;
-        }
-        var sql = "UPDATE `films_mpd_files` SET `complete` = "+complete.toString()+" WHERE `id` = "+mpd_id.toString();
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
-        return id;
-    }
-
-    async insertFilmVideo(mpd_id,resolution_id){
-        if( (!this.checkId(mpd_id) && !this.checkId(resolution_id))){
-            console.error("insertFilmVideo: Invalid entries ");
-            return null;
-        }
-        var sql = "INSERT INTO `films_videos` (`mpd_id`,`resolution_id`) "
-        + " VALUES("+mpd_id+", "+resolution_id+")";
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
-        return id;
-    }
-
-    async getFilmsAudios(mdpId){
-        if(!this.checkId(mdpId)){
-            console.error("getFilmsAudios: Invalid entries ");
-            return null;
-        }
-
-        var sql = "SELECT * FROM `films_audios` AS s "+
-        " WHERE s.mpd_id = "+mdpId;
-        var results = await this.query(sql);
-
-        if(results.length == 0 ){
-            return null;
-        }else{
-            return results;
-        }
-    }
-    
-    async insertFilmAudio(mpd_id,lang_id,channels){
-        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
-            console.error("insertFilmAudio: Invalid entries ");
-            return null;
-        }
-        var sql = "INSERT INTO `films_audios` (`mpd_id`,`lang_id`,`channels`) "
-        + " VALUES("+mpd_id+", "+lang_id+", "+channels+")";
-        let id = null;
-        try{
-            var sqlres = await this.query(sql);
-            id = sqlres.insertId;
-        }catch(error){
-            console.warn("Error inserting subtitle in database: "+error);
-            return null;
-        }
-        return id;
-    }
-
-    async insertFilmSubtitle(mpd_id,lang_id,name){
-        if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
-            console.error("insertFilmSubtitle: Invalid entries ");
-            return null;
-        }
-        var sql = "INSERT INTO `films_srts` (`mpd_id`,`lang_id`,`name`) "
-        + " VALUES("+mpd_id+", "+lang_id+", "+name+")";
-        try{
-            var sqlres = await this.query(sql);
-            id = sqlres.insertId;
-        }catch(error){
-            console.warn("Error inserting subtitle in database: "+error);
-            return null;
-        }
-        return id;
-    }
-
-    async getFilmsSubtitles(mdpId){
-        if(!this.checkId(mdpId)){
-            console.error("getFilmsSubtitles: Invalid entries ");
-            return null;
-        }
-
-        var sql = "SELECT * FROM `films_subtitles` AS s "+
-        " WHERE s.mpd_id = "+mdpId;
-        var results = await this.query(sql);
-
-        if(results.length == 0 ){
-            return null;
-        }else{
-            return results;
-        }
     }
 
     async getAudioBitrate(target_channels){
@@ -680,14 +946,65 @@ class DBStructure{
         }
     }
 
-    /// Transcoding part
-    async insertAddFileTask(file,original_name,working_folder,episode_id,film_id){
-        if( (!this.checkId(episode_id) && !this.checkId(film_id)) || working_folder.length == 0 || file.length == 0 ){
+    //////////////////////////////////////////////////////
+    ////////////// Media specialisations /////////////////
+    //////////////////////////////////////////////////////
+
+    async insertSerie(media_id,number_of_seasons,number_of_episodes){
+        try{
+            if( (!this.checkId(media_id) )){
+                console.error("insertSerie: Invalid entries ");
+                return null;
+            }
+            var sql = "INSERT INTO `media_series` (`media_id`,`number_of_seasons`,`number_of_episodes`) "+
+            " VALUES ('"+media_id+"', "+number_of_seasons+", "+number_of_episodes+")";
+
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.error('insertSerie failed',err)
+            return null;
+        }
+    }
+
+    async insertSeason(media_id,season_number,number_of_episodes){
+        if( !this.checkId(media_id)){
+            console.error("insertSeason: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `media_seasons` (`media_id`,`season_number`,`number_of_episodes`) "+
+        " VALUES ("+media_id+", "+season_number+", "+number_of_episodes+")";
+
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async insertEpisode(media_id,episode_number){
+        if( (!this.checkId(media_id) )){
+            console.error("insertEpisode: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `media_episodes` (`media_id`,`episode_number`) "+
+        " VALUES ('"+media_id+"', "+episode_number+")";
+
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    //////////////////////////////////////////////////////
+    ////////////// Transcoding part //////////////////////
+    //////////////////////////////////////////////////////
+
+    async insertAddFileTask(file,original_name,working_folder,media_id,user_id=null){
+        if( !this.checkId(media_id) || working_folder.length == 0 || file.length == 0 ){
             console.error("insertAddFileTask: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `add_file_tasks` (`file`,`original_name`,`working_folder`,`episode_id`,`film_id`) "
-        + " VALUES('"+file+"', '"+original_name+"', '"+working_folder+"', "+episode_id+", "+film_id+")";
+        var sql = "INSERT INTO `add_file_tasks` (`file`,`original_name`,`working_folder`,`media_id`,`user_id`) "
+        + " VALUES('"+file+"', '"+original_name+"', '"+working_folder+"', "+media_id+", "+user_id+")";
         var sqlres = await this.query(sql);
         var taskId = sqlres.insertId;
 
@@ -696,7 +1013,7 @@ class DBStructure{
 
     async insertAddFileSubTask(task_id,command,done,output){
         if( !this.checkId(task_id) || command.length == 0 ){
-            console.error("insertAddFileTask: Invalid entries ");
+            console.error("insertAddSubFileTask: Invalid entries ");
             return null;
         }
         var sql = "INSERT INTO `add_file_subtasks` (`task_id`,`command`,`done`,`output`) "
@@ -789,7 +1106,7 @@ class DBStructure{
 
 
     async getBrick(brickId){
-        var sql = "SELECT `id`, `alias`, `path` FROM `bricks` WHERE `id`="+brickId+"";
+        var sql = "SELECT `id`, `brick_alias`, `brick_path` FROM `bricks` WHERE `id`="+brickId+"";
         var result = await this.query(sql);
 
         if(result.length == 0 ){
@@ -799,19 +1116,26 @@ class DBStructure{
         }
     }
 
-    async getSeriesTranscodingResolutions(){
-        var sql = "SELECT res.* FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
-        " WHERE serie_res.resolution_id = res.id";
+    async getTranscodingResolutions(categoryId){
+        var sql = "SELECT res.* FROM `"+this.categories.get(categoryId)+"_transcoding_resolutions` AS tres, `resolutions` AS res "+
+        " WHERE tres.resolution_id = res.id";
         var results = await this.query(sql);
         return results;
     }
 
-    async getFilmsTranscodingResolutions(){
-        var sql = "SELECT res.* FROM `films_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
-        " WHERE serie_res.resolution_id = res.id";
-        var results = await this.query(sql);
-        return results;
-    }
+    // async getSeriesTranscodingResolutions(){
+    //     var sql = "SELECT res.* FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+    //     " WHERE serie_res.resolution_id = res.id";
+    //     var results = await this.query(sql);
+    //     return results;
+    // }
+
+    // async getFilmsTranscodingResolutions(){
+    //     var sql = "SELECT res.* FROM `films_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
+    //     " WHERE serie_res.resolution_id = res.id";
+    //     var results = await this.query(sql);
+    //     return results;
+    // }
 
     async getResolutions(){
         var sql = "SELECT * FROM `resolutions` "+
@@ -867,7 +1191,7 @@ class DBStructure{
 
     checkId(id){
         if (typeof id != "number") {
-            console.error('checkId: serieId is not a number',id);
+            console.error('checkId: Id is not a number',id);
             return false;
         }
         return true;

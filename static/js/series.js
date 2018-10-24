@@ -61,8 +61,8 @@ class SeriesContent{
     renderSeries_element(serieInfos){
         var template = $("#poster_tpl").clone();
         //template.attr("id","serie_"+parseInt(serieInfos.id));
-        template.find("img").attr("src","/data/series/"+serieInfos.brick_id+"/"+serieInfos.original_name+" ("+serieInfos.release_date.substr(0,4)+")/fanart/img500.jpg");
-        template.find(".series_titles").html(serieInfos.language.title+" ("+serieInfos.release_date.substr(0,4)+")");
+        template.find("img").attr("src","/brick/"+serieInfos.brick_id+"/"+serieInfos.path+"/fanart/img500.jpg");
+        template.find(".series_titles").html(serieInfos.title+" ("+serieInfos.release_date.substr(0,4)+")");
         template.find(".series_rating").html(serieInfos.rating);
         template.find(".series_link").attr("href","#serie_"+serieInfos.id);
         template.find(".series_link").css("href","#serie_"+serieInfos.id);

@@ -57,7 +57,7 @@ class SerieController{
         } 
     }
 
-    renderSerie_season(serieId,seasonInfos){
+    renderSerie_season(brickId,seasonInfos){
         var template = $("#serie_season_tpl").clone();
         //template.attr("id","serie_"+parseInt(serieInfos.id));
         // console.log(template.html());
@@ -69,10 +69,12 @@ class SerieController{
         template.find(".season_name").append(seasonInfos.title);
         template.find(".panel-collapse").attr("id","collapse_"+seasonInfos.season_number.toString());
 
-        for(var i=0; i<seasonInfos.episodes.length; i++){
-            let episode = seasonInfos.episodes[i];
+        for(var i=0; i<seasonInfos.children.length; i++){
+            let episode = seasonInfos.children[i];
             let ep_tpl = $("#serie_episode_tpl").clone();
-            let data_path = "series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString();
+            //let data_path = "brick/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString();
+            let data_path = "brick/"+brickId+"/"+episode.path;
+            
             ep_tpl.removeClass("hidden");
             ep_tpl.find(".box").attr("video_id",episode.id.toString());
             //ep_tpl.find("img").attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
@@ -105,10 +107,10 @@ class SerieController{
         return template;
     }
 
-    renderSerie_seasons(serieId,seasonsInfos){
+    renderSerie_seasons(brickId,seasonsInfos){
         this.blocks = new Map();
         for(var i=0; i<seasonsInfos.length; i++){ 
-            this.appendToContainer("#seasons",this.renderSerie_season(serieId,seasonsInfos[i]));
+            this.appendToContainer("#seasons",this.renderSerie_season(brickId,seasonsInfos[i]));
         } 
     }
 
@@ -124,26 +126,27 @@ class SerieController{
         }
 
         //Render main description
-        $.getJSON( "series/"+serieId.toString(), function( data ) {
-            $("#serieName").text(data.language.title);
-            $("#releasedate").text(data.release_date.substr(0,4));
-            $("#rating").text(data.rating);
-            $("#ratingcount").text(data.rating_count);
-            $("#overview").text(data.language.overview);
-            $("#poster").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img500.jpg");
+        $.getJSON( "media/"+serieId.toString(), function( mediaData ) {
+            $("#serieName").text(mediaData.title);
+            $("#releasedate").text(mediaData.release_date.substr(0,4));
+            $("#rating").text(mediaData.rating);
+            $("#ratingcount").text(mediaData.rating_count);
+            $("#overview").text(mediaData.overview);
+            $("#poster").attr("src","/brick/"+mediaData.brick_id+"/"+mediaData.path+"/fanart/img500.jpg");
             //$("#poster2").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img300.jpg");
             //$('#box-1').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
+                
+            //Render seasons and episodes
+            $.getJSON( "series/"+serieId.toString()+"/seasons", function( data ) {
+                self.renderSerie_seasons(mediaData.brick_id,data);
+    
+                // //TODFO
+                // var videoBock = new VideoBlock();
+                // videoBock.setup(ep_tpl,"serie",episode.id);
+                // this.blocks.push(videoBock);
+            });
         });
 
-        //Render seasons and episodes
-        $.getJSON( "series/"+serieId.toString()+"/seasons", function( data ) {
-            self.renderSerie_seasons(serieId,data);
-
-            // //TODFO
-            // var videoBock = new VideoBlock();
-            // videoBock.setup(ep_tpl,"serie",episode.id);
-            // this.blocks.push(videoBock);
-        });
 
         // $(".box").each(function(elem) {
 
@@ -182,8 +185,8 @@ class SerieController{
             for(let items of this.blocks){
                 let videoId = items[0];
                 let videoBlock = items[1];
-                if(progressions[videoId]){
-                    let progressionInfos = progressions[videoId];
+                if(progressions.offline[videoId]){
+                    let progressionInfos = progressions.offline[videoId];
                     videoBlock.updateStatus(progressionInfos.state_code,progressionInfos.progression,progressionInfos.msg);
     
                 }

@@ -33,8 +33,8 @@ CREATE TABLE `genres` (
 
 CREATE TABLE `bricks` (
   `id` int NOT NULL,
-  `alias` char(49) CHARACTER SET utf8 NOT NULL,
-  `path` VARCHAR(255),
+  `brick_alias` char(49) CHARACTER SET utf8 NOT NULL,
+  `brick_path` VARCHAR(255),
   PRIMARY KEY (`id`)
 );
 
@@ -46,6 +46,29 @@ CREATE TABLE `resolutions` (
    PRIMARY KEY (`id`),
    CONSTRAINT UNIQUE (`name`),
    CONSTRAINT UNIQUE (`width`) 
+);
+
+-- Users
+
+CREATE TABLE `roles` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `users` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` VARCHAR(255) NOT NULL,
+  `password` VARCHAR(255) NOT NULL,
+  `role_id` int NOT NULL,
+  `qos_priority` TINYINT UNSIGNED NOT NULL,
+  `last_connection` datetime,
+  `email` VARCHAR(255),
+  `phone` VARCHAR(255),
+  `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`role_id`) REFERENCES roles(`id`),
+  CONSTRAINT UNIQUE (`username`) 
 );
 
 CREATE TABLE `resolutions_bitrates` (
@@ -86,327 +109,411 @@ CREATE TABLE `genres_translations` (
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`) ON DELETE CASCADE 
 );
 
-CREATE TABLE `series` (
+-- CREATE TABLE `series` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `release_date` datetime NOT NULL,
+--   `rating` decimal(3,1) DEFAULT '0.0',
+--   `rating_count` int UNSIGNED DEFAULT '0',
+--   `number_of_seasons` TINYINT UNSIGNED,
+--   `number_of_episodes` INT UNSIGNED,
+--   `original_name` VARCHAR(255) NOT NULL,
+--   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
+--   `brick_id` int,
+--   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+--   `has_mpd` TINYINT(2) NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
+--   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
+--   CONSTRAINT UNIQUE (`release_date`,`original_name`)
+-- );
+CREATE TABLE `categories` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `release_date` datetime NOT NULL,
-  `rating` decimal(3,1) DEFAULT '0.0',
-  `rating_count` int UNSIGNED DEFAULT '0',
-  `number_of_seasons` TINYINT UNSIGNED,
-  `number_of_episodes` INT UNSIGNED,
-  `original_name` VARCHAR(255) NOT NULL,
-  `original_language` char(2) CHARACTER SET utf8 NOT NULL,
-  `brick_id` int,
-  `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
-  `has_mpd` TINYINT(2) NOT NULL,
+  `category` VARCHAR(255),
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
-  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
-  CONSTRAINT UNIQUE (`release_date`,`original_name`)
+  CONSTRAINT UNIQUE (`category`)
 );
 
-CREATE TABLE `series_translations` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `serie_id` int NOT NULL,
-    `lang_id` int(10) unsigned NOT NULL,
-    `title` VARCHAR(255) NOT NULL,
-    `overview` VARCHAR(765),
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
-);
-
-CREATE TABLE `series_genres` (
+CREATE TABLE `media` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `serie_id` int NOT NULL,
-  `genre_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT UNIQUE (`serie_id`,`genre_id`) 
-);
-
-CREATE TABLE `series_moviedb` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `serie_id` int NOT NULL,
-  `moviedb_id` int NOT NULL,
-  `poster_path` VARCHAR(255),
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`moviedb_id`)
-);
-
-CREATE TABLE `series_seasons` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `serie_id` int NOT NULL,
-    `release_date` datetime NOT NULL,
-    `season_number` int NOT NULL,
-    `number_of_episodes` int NOT NULL,
-    `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
-    CONSTRAINT UNIQUE (`serie_id`,`season_number`) 
-);
-
-CREATE TABLE `series_seasons_translations` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `season_id` int NOT NULL,
-    `lang_id` int(10) unsigned NOT NULL,
-    `title` VARCHAR(255),
-    `overview` VARCHAR(765),
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
-);
-
-CREATE TABLE `series_seasons_moviedb` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `season_id` int NOT NULL,
-  `moviedb_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`moviedb_id`)
-);
-
-CREATE TABLE `series_episodes` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `season_id` int NOT NULL,
-    `episode_number` int NOT NULL,
-    `original_name` VARCHAR(255),
-    `release_date` datetime,
-    `rating` decimal(3,1) DEFAULT '0.0',
-    `rating_count` int UNSIGNED DEFAULT '0',
-    `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
-    `best_resolution_id` int,
-    `has_mpd` TINYINT(2) NOT NULL,
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`best_resolution_id`) REFERENCES resolutions(`id`),
-    CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
-);
-
-CREATE TABLE `series_episodes_translations` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `episode_id` int NOT NULL,
-    `lang_id` int(10) unsigned NOT NULL,
-    `title` VARCHAR(255) NOT NULL,
-    `overview` VARCHAR(765),
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
-);
-
-
-CREATE TABLE `series_episodes_moviedb` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `episode_id` int NOT NULL,
-  `moviedb_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`moviedb_id`)
-);
-
-CREATE TABLE `series_episodes_genres` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `episode_id` int NOT NULL,
-  `genre_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT UNIQUE (`episode_id`,`genre_id`) 
-);
-
-CREATE TABLE `series_mpd_files` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `episode_id` int NOT NULL,
-  `folder` VARCHAR(255) NOT NULL,
-  `complete` TINYINT(2) NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`episode_id`,`folder`) 
-);
-
-CREATE TABLE `series_videos` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `mpd_id` int NOT NULL,
-  `resolution_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
-);
-
-CREATE TABLE `series_audios` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned,
-  `lang_subtag_id` int(10) unsigned,
-  `channels` int NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`) 
-);
-
-CREATE TABLE `series_srts` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned,
-  `lang_subtag_id` int(10) unsigned,
-  `name` VARCHAR(255),
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
-);
-
-CREATE TABLE `films` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `release_date` datetime NOT NULL,
+  `release_date` datetime,
   `rating` decimal(3,1) DEFAULT '0.0',
   `rating_count` int UNSIGNED DEFAULT '0',
   `original_name` VARCHAR(255),
-  `original_language` char(2) CHARACTER SET utf8 NOT NULL,
+  `original_language` char(2) CHARACTER SET utf8,
   `brick_id` int,
   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+  `has_mpd` TINYINT(2) NOT NULL,
+  `path` VARCHAR(255),
+  `category_id` int ,
+  `parent_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
-  CONSTRAINT UNIQUE (`original_name`,`release_date`) 
+  FOREIGN KEY (`category_id`) REFERENCES categories(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`parent_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`original_name`,`release_date`)
 );
 
-CREATE TABLE `films_translations` (
+CREATE TABLE `media_translations` (
     `id` int NOT NULL AUTO_INCREMENT,
-    `film_id` int NOT NULL,
+    `media_id` int NOT NULL,
     `lang_id` int(10) unsigned NOT NULL,
     `title` VARCHAR(255) NOT NULL,
     `overview` VARCHAR(765),
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-    CONSTRAINT UNIQUE (`film_id`,`lang_id`) 
+    FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
-CREATE TABLE `films_genres` (
+CREATE TABLE `mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `film_id` int NOT NULL,
-  `genre_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT UNIQUE (`film_id`,`genre_id`) 
-);
-
-CREATE TABLE `films_mpd_files` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `film_id` int NOT NULL,
+  `media_id` int NOT NULL,
   `folder` VARCHAR(255) NOT NULL,
+  `complete` TINYINT(2) NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`film_id`,`folder`) 
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE 
 );
 
-CREATE TABLE `films_videos` (
+CREATE TABLE `mpd_videos` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
   `resolution_id` int NOT NULL,
+  `user_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
+  FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`),
+  FOREIGN KEY (`user_id`) REFERENCES users(`id`) 
 );
 
-CREATE TABLE `films_audios` (
+CREATE TABLE `mpd_audios` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned,
   `lang_subtag_id` int(10) unsigned,
   `channels` int NOT NULL,
+  `user_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`) 
+  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`),
+  FOREIGN KEY (`user_id`) REFERENCES users(`id`) 
 );
 
-CREATE TABLE `films_srts` (
+CREATE TABLE `mpd_srts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned  NOT NULL,
   `lang_subtag_id` int(10) unsigned,
   `name` VARCHAR(255),
+  `user_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`mpd_id`) REFERENCES films_mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
+  FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
+  FOREIGN KEY (`user_id`) REFERENCES users(`id`) 
 );
 
-CREATE TABLE `films_moviedb` (
+-- CREATE TABLE `series_episodes_translations` (
+--     `id` int NOT NULL AUTO_INCREMENT,
+--     `episode_id` int NOT NULL,
+--     `lang_id` int(10) unsigned NOT NULL,
+--     `title` VARCHAR(255) NOT NULL,
+--     `overview` VARCHAR(765),
+--     PRIMARY KEY (`id`),
+--     FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
+--     FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
+-- );
+
+CREATE TABLE `media_genres` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `films_id` int NOT NULL,
+  `media_id` int NOT NULL,
+  `genre_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`genre_id`) REFERENCES genres(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`media_id`,`genre_id`) 
+);
+
+CREATE TABLE `media_series` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `media_id` int NOT NULL ,
+  `number_of_seasons` TINYINT UNSIGNED,
+  `number_of_episodes` INT UNSIGNED,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
+);
+
+CREATE TABLE `media_seasons` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `media_id` int NOT NULL ,
+  `season_number` int NOT NULL,
+  `number_of_episodes` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`media_id`,`season_number`) 
+);
+
+CREATE TABLE `media_episodes` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `media_id` int NOT NULL,
+    `episode_number` int NOT NULL,
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+    CONSTRAINT UNIQUE (`media_id`,`episode_number`) 
+);
+
+CREATE TABLE `series_moviedb` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `media_id` int NOT NULL,
   `moviedb_id` int NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`films_id`) REFERENCES films(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`moviedb_id`)
 );
 
-CREATE TABLE `roles` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(255) NOT NULL,
-  PRIMARY KEY (`id`)
-);
 
-CREATE TABLE `users` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `username` VARCHAR(255) NOT NULL,
-  `password` VARCHAR(255) NOT NULL,
-  `role_id` int NOT NULL,
-  `qos_priority` TINYINT UNSIGNED NOT NULL,
-  `last_connection` datetime,
-  `email` VARCHAR(255),
-  `phone` VARCHAR(255),
-  `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`role_id`) REFERENCES roles(`id`),
-  CONSTRAINT UNIQUE (`username`) 
-);
 
-CREATE TABLE `users_films` (
+-- CREATE TABLE `series_seasons` (
+--     `id` int NOT NULL AUTO_INCREMENT,
+--     `serie_id` int NOT NULL,
+--     `release_date` datetime NOT NULL,
+--     `season_number` int NOT NULL,
+--     `number_of_episodes` int NOT NULL,
+--     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+--     PRIMARY KEY (`id`),
+--     FOREIGN KEY (`serie_id`) REFERENCES series(`id`) ON DELETE CASCADE,
+--     CONSTRAINT UNIQUE (`serie_id`,`season_number`) 
+-- );
+
+-- CREATE TABLE `series_seasons_translations` (
+--     `id` int NOT NULL AUTO_INCREMENT,
+--     `season_id` int NOT NULL,
+--     `lang_id` int(10) unsigned NOT NULL,
+--     `title` VARCHAR(255),
+--     `overview` VARCHAR(765),
+--     PRIMARY KEY (`id`),
+--     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
+--     FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
+-- );
+
+-- CREATE TABLE `series_seasons_moviedb` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `season_id` int NOT NULL,
+--   `moviedb_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
+--   CONSTRAINT UNIQUE (`moviedb_id`)
+-- );
+
+
+-- CREATE TABLE `series_episodes` (
+--     `id` int NOT NULL AUTO_INCREMENT,
+--     `season_id` int NOT NULL,
+--     `episode_number` int NOT NULL,
+--     `original_name` VARCHAR(255),
+--     `release_date` datetime,
+--     `rating` decimal(3,1) DEFAULT '0.0',
+--     `rating_count` int UNSIGNED DEFAULT '0',
+--     `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+--     `best_resolution_id` int,
+--     `has_mpd` TINYINT(2) NOT NULL,
+--     PRIMARY KEY (`id`),
+--     FOREIGN KEY (`season_id`) REFERENCES series_seasons(`id`) ON DELETE CASCADE,
+--     FOREIGN KEY (`best_resolution_id`) REFERENCES resolutions(`id`),
+--     CONSTRAINT UNIQUE (`season_id`,`episode_number`) 
+-- );
+
+-- CREATE TABLE `series_episodes_translations` (
+--     `id` int NOT NULL AUTO_INCREMENT,
+--     `episode_id` int NOT NULL,
+--     `lang_id` int(10) unsigned NOT NULL,
+--     `title` VARCHAR(255) NOT NULL,
+--     `overview` VARCHAR(765),
+--     PRIMARY KEY (`id`),
+--     FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
+--     FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
+-- );
+
+
+-- CREATE TABLE `series_episodes_moviedb` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `episode_id` int NOT NULL,
+--   `moviedb_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
+--   CONSTRAINT UNIQUE (`moviedb_id`)
+-- );
+
+-- CREATE TABLE `series_episodes_genres` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `episode_id` int NOT NULL,
+--   `genre_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   CONSTRAINT UNIQUE (`episode_id`,`genre_id`) 
+-- );
+
+-- CREATE TABLE `series_mpd_files` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `episode_id` int NOT NULL,
+--   `mpd_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE
+-- );
+
+-- CREATE TABLE `series_videos` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `mpd_id` int NOT NULL,
+--   `resolution_id` int NOT NULL,
+--   `user_id` int,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`)
+-- );
+
+-- CREATE TABLE `series_audios` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `mpd_id` int NOT NULL,
+--   `lang_id` int(10) unsigned,
+--   `lang_subtag_id` int(10) unsigned,
+--   `channels` int NOT NULL,
+--   `user_id` int,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
+--   CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`)
+-- );
+
+-- CREATE TABLE `series_srts` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `mpd_id` int NOT NULL,
+--   `lang_id` int(10) unsigned,
+--   `lang_subtag_id` int(10) unsigned,
+--   `name` VARCHAR(255),
+--   `user_id` int,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`mpd_id`) REFERENCES series_mpd_files(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`)
+-- );
+
+-- CREATE TABLE `films` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `release_date` datetime NOT NULL,
+--   `rating` decimal(3,1) DEFAULT '0.0',
+--   `rating_count` int UNSIGNED DEFAULT '0',
+--   `original_name` VARCHAR(255),
+--   `original_language` char(2) CHARACTER SET utf8 NOT NULL,
+--   `brick_id` int,
+--   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
+--   `has_mpd` TINYINT(2) NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
+--   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
+--   CONSTRAINT UNIQUE (`original_name`,`release_date`)
+-- );
+
+-- CREATE TABLE `films_genres` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `film_id` int NOT NULL,
+--   `genre_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   CONSTRAINT UNIQUE (`film_id`,`genre_id`) 
+-- );
+
+-- CREATE TABLE `films_mpd_files` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `film_id` int NOT NULL,
+--   `mpd_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE
+-- );
+
+-- CREATE TABLE `films_moviedb` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `films_id` int NOT NULL,
+--   `moviedb_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`films_id`) REFERENCES films(`id`) ON DELETE CASCADE,
+--   CONSTRAINT UNIQUE (`moviedb_id`)
+-- );
+
+-- CREATE TABLE `users_films` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `film_id` int NOT NULL,
+--   `watched` TINYINT(1) NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`),
+--   FOREIGN KEY (`film_id`) REFERENCES films(`id`),
+--   CONSTRAINT UNIQUE (`user_id`,`film_id`) 
+-- );
+
+-- -- TO MERGE
+-- CREATE TABLE `users_films` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `film_id` int NOT NULL,
+--   `watched` TINYINT(1) NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`),
+--   FOREIGN KEY (`film_id`) REFERENCES films(`id`),
+--   CONSTRAINT UNIQUE (`user_id`,`film_id`) 
+-- );
+
+-- -- TO MERGE
+-- CREATE TABLE `users_series` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `serie_id` int NOT NULL,
+--   `watched_season` int DEFAULT 0,
+--   `watched_episode` int DEFAULT 0,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`),
+--   FOREIGN KEY (`serie_id`) REFERENCES series(`id`),
+--   CONSTRAINT UNIQUE (`user_id`,`serie_id`) 
+-- );
+
+-- CREATE TABLE `users_films_progressions` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `film_id` int NOT NULL,
+--   `audio_lang` int,
+--   `subtitle_lang` int,
+--   `progression` float DEFAULT '0.0',
+--   `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`film_id`) REFERENCES films(`id`)
+-- );
+
+CREATE TABLE `media_progressions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
-  `film_id` int NOT NULL,
+  `media_id` int NOT NULL,
+  `audio_lang` int,
+  `subtitle_lang` int,
+  `progression` float DEFAULT '0.0',
+  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
   `watched` TINYINT(1) NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`),
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`),
-  CONSTRAINT UNIQUE (`user_id`,`film_id`) 
-);
-
-CREATE TABLE `users_series` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `serie_id` int NOT NULL,
-  `watched_season` int DEFAULT 0,
-  `watched_episode` int DEFAULT 0,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`),
-  FOREIGN KEY (`serie_id`) REFERENCES series(`id`),
-  CONSTRAINT UNIQUE (`user_id`,`serie_id`) 
-);
-
-CREATE TABLE `users_films_progressions` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `film_id` int NOT NULL,
-  `audio_lang` int,
-  `subtitle_lang` int,
-  `progression` float DEFAULT '0.0',
-  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`)
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
 );
-
-CREATE TABLE `users_episodes_progressions` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `episode_id` int NOT NULL,
-  `audio_lang` int,
-  `subtitle_lang` int,
-  `progression` float DEFAULT '0.0',
-  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`)
-);
+-- CREATE TABLE `users_episodes_progressions` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `episode_id` int NOT NULL,
+--   `audio_lang` int,
+--   `subtitle_lang` int,
+--   `progression` float DEFAULT '0.0',
+--   `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`)
+-- );
 
 CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -414,11 +521,11 @@ CREATE TABLE `add_file_tasks` (
   `file` VARCHAR(255) NOT NULL,
   `original_name` VARCHAR(255) NOT NULL,
   `working_folder` VARCHAR(255) NOT NULL,
-  `episode_id` int,
-  `film_id` int,
+  `media_id` int,
+  `user_id` int,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`episode_id`) REFERENCES series_episodes(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`film_id`) REFERENCES films(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`file`) ,
   CONSTRAINT UNIQUE (`working_folder`) 
 );
@@ -447,7 +554,7 @@ CREATE TABLE `users_settings` (
   FOREIGN KEY (`subtitle_lang`) REFERENCES languages(`id`)
 );
 
-CREATE TABLE `series_transcoding_resolutions` (
+CREATE TABLE `episodes_transcoding_resolutions` (
   `id` int NOT NULL,
   `resolution_id` int NOT NULL,
    PRIMARY KEY (`id`),
@@ -841,6 +948,12 @@ INSERT INTO `roles` VALUES(3, 'guest');
 -- default user
 INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'admin', 'streamy',1,255);
 
+-- category
+INSERT INTO `categories` (`id`,`category`) VALUES( 1, 'series');
+INSERT INTO `categories` (`id`,`category`) VALUES( 2, 'seasons');
+INSERT INTO `categories` (`id`,`category`) VALUES( 3, 'episodes');
+INSERT INTO `categories` (`id`,`category`) VALUES( 4, 'films');
+
 -- resolutions
 INSERT INTO `resolutions` VALUES(1, 'LOW', 1,1);
 INSERT INTO `resolutions` VALUES(2, 'SD', 720,576);
@@ -866,12 +979,12 @@ INSERT INTO `audio_bitrates` VALUES(4, '5.1', 6, 512);
 INSERT INTO `films_transcoding_resolutions` VALUES(1, 4);
 INSERT INTO `films_transcoding_resolutions` VALUES(2, 3);
 
-INSERT INTO `series_transcoding_resolutions` VALUES(1, 4);
-INSERT INTO `series_transcoding_resolutions` VALUES(2, 3);
+INSERT INTO `episodes_transcoding_resolutions` VALUES(1, 4);
+INSERT INTO `episodes_transcoding_resolutions` VALUES(2, 3);
 
 -- dev
-INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 1, 'brick1','/data/streamy');
-INSERT INTO `bricks` (`id`,`alias`,`path`) VALUES( 2, 'brick_upload','/data/upload');
+INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 1, 'brick1','/data/streamy');
+INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 2, 'brick_upload','/data/upload');
 UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
 UPDATE `global_settings` SET `int` = 2 WHERE `key` = 'upload_brick' ;
 INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) VALUES (INET_ATON("127.0.0.1"),7000,1);

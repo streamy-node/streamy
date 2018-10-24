@@ -12,6 +12,7 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
 var users = require('./server/users');
+var MediaMgr = require('./server/media.js');
 var SeriesMgr = require('./server/series.js');
 var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
@@ -87,7 +88,8 @@ function startApp(){
 
 
   // setup managers
-  var serieMgr = new SeriesMgr(dbMgr,settings);
+  var mediaMgr = new MediaMgr(dbMgr,settings);
+  var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
 
   var processesMgr = new ProcessesMgr();
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,settings);
@@ -308,46 +310,63 @@ function startApp(){
     res.send(MovieDB_KEY);
   })
 
+  // // get series
+  // app.get('/series', loggedIn, async function (req, res) {
+  //   if(req.user){ //TODO check rights
+  //     var lang = req.query.lang;
+  //     //Set default lang
+  //     if(!lang){
+  //       lang = 'en';
+  //     }
+
+  //     let series = await serieMgr.getSeriesInfos(lang);
+
+  //     res.setHeader('Content-Type', 'application/json');
+  //     res.send(JSON.stringify(series));
+  //   }
+  // });
+
   // get series
   app.get('/series', loggedIn, async function (req, res) {
     if(req.user){ //TODO check rights
       var lang = req.query.lang;
+      var userId = 1;//TODO get userId
+
       //Set default lang
       if(!lang){
         lang = 'en';
       }
-
-      let series = await serieMgr.getSeriesInfos(lang);
+      var langId = await dbMgr.getLangsId(lang);
+      let series = await mediaMgr.getMediaListByCategory(1, langId, userId, "")
+      //let series = await serieMgr.getSeriesInfos(lang);
 
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(series));
     }
   });
 
+  // app.get('/series/:serieId', loggedIn, async function (req, res) {
+  //   var serieId = req.params.serieId;
+  //   var lang = req.query.lang;
 
-  app.get('/series/:serieId', loggedIn, async function (req, res) {
-    var serieId = req.params.serieId;
-    var lang = req.query.lang;
+  //   //Set default lang
+  //   if(!lang){
+  //     lang = 'en';
+  //   }
 
-    //Set default lang
-    if(!lang){
-      lang = 'en';
-    }
+  //   let infos = await serieMgr.getSerieInfos(parseInt(serieId),lang);
 
-    let infos = await serieMgr.getSerieInfos(parseInt(serieId),lang);
+  //   if(infos === null){
+  //     res.status(404).send('Serie not found');
+  //   }else{
+  //     res.setHeader('Content-Type', 'application/json');
+  //     res.send(JSON.stringify(infos));
+  //   }
+  // });
 
-    if(infos === null){
-      res.status(404).send('Serie not found');
-    }else{
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify(infos));
-    }
-
-    //res.send(MovieDB_KEY);
-  });
-
-  app.get('/series/:serieId/seasons', async function (req, res) {
-    var serieId = req.params.serieId;
+  // Get media info until depth
+  app.get('/media/:mediaId', loggedIn, async function (req, res) {
+    var mediaId = req.params.mediaId;
     var lang = req.query.lang;
     var userId = 1;//TODO get userId
 
@@ -355,8 +374,9 @@ function startApp(){
     if(!lang){
       lang = 'en';
     }
+    var langId = await dbMgr.getLangsId(lang);
+    let infos = await mediaMgr.getMediaInfos(parseInt(mediaId),langId, 0, userId, [])
 
-    let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
 
     if(infos === null){
       res.status(404).send('No season found');
@@ -368,41 +388,124 @@ function startApp(){
     //res.send(MovieDB_KEY);
   });
 
-  app.get('/mpd_files/:type/:id', loggedIn, async function (req, res) {
-    let type = req.params.type;
-    let id = req.params.id;
-    let output = {};
-    if(type === "episode"){
-      output = await serieMgr.getEpisodesMpdFiles(parseInt(id));
-    }else if(type == "film"){
-      output = await serieMgr.getFilmsMdpFiles(parseInt(id));
+  app.get('/series/:mediaId/seasons', async function (req, res) {
+    var mediaId = req.params.mediaId;
+    var lang = req.query.lang;
+    var userId = 1;//TODO get userId
+
+    //Set default lang
+    if(!lang){
+      lang = 'en';
     }
+    var langId = await dbMgr.getLangsId(lang);
+    let sortKeyDepth = ["season_number","episode_number"]
+    let infos = await mediaMgr.getChildrenMediaInfos(parseInt(mediaId),langId, 1, userId, sortKeyDepth)
+    //let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
+    //let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
+
+    if(infos === null){
+      res.status(404).send('No season found');
+    }else{
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(infos));
+    }
+
+    //res.send(MovieDB_KEY);
+  });
+
+  //TO DEL
+  // app.get('/series/:serieId/seasons', async function (req, res) {
+  //   var serieId = req.params.serieId;
+  //   var lang = req.query.lang;
+  //   var userId = 1;//TODO get userId
+
+  //   //Set default lang
+  //   if(!lang){
+  //     lang = 'en';
+  //   }
+
+  //   let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
+
+  //   if(infos === null){
+  //     res.status(404).send('No season found');
+  //   }else{
+  //     res.setHeader('Content-Type', 'application/json');
+  //     res.send(JSON.stringify(infos));
+  //   }
+  // });
+
+  //TO DELETE
+  // app.get('/mpd_files/:type/:id', loggedIn, async function (req, res) {
+  //   let type = req.params.type;
+  //   let id = req.params.id;
+  //   let output = {};
+  //   if(type === "episode"){
+  //     output = await serieMgr.getEpisodesMpdFiles(parseInt(id));
+  //   }else if(type == "film"){
+  //     output = await serieMgr.getFilmsMdpFiles(parseInt(id));
+  //   }
+
+  //   res.setHeader('Content-Type', 'application/json');
+  //   res.send(JSON.stringify(output));
+  // })
+
+  app.get('/mpd_files/:id', loggedIn, async function (req, res) {
+    //let type = req.params.type;
+    let id = parseInt(req.params.id);
+    let output = {};
+    let category_id = await dbMgr.getMediaCategory(id)
+    if(category_id == 3){
+      output = await serieMgr.getMpdFiles(id)
+    }else{
+      output = await mediaMgr.getMpdFiles(id)
+    }
+    
 
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
-
-    // await dbMgr.getBrick(brickid);
-
-    // res.render('index.html',{UserName:req.user.displayName});
-    //res.sendFile(__dirname + '/views/index.html');
   })
+  
 
   //DEPRECATED use /series/:serieId/data/* instead
   app.get('/data/series/:brickid/*', async function (req, res) {
     var brickid = req.params.brickid;
     var brick = await dbMgr.getBrick(brickid);
-    res.sendFile(brick.path+"/series/" + req.params[0]);
+    res.sendFile(brick.brick_path+"/series/" + req.params[0]);
   })
 
-  app.get('/series/:serieId/data/*', async function (req, res) {
+  app.get('/brick/:brickid/*', async function (req, res) {
+    var brickid = req.params.brickid;
+    var brick = await dbMgr.getBrick(brickid);
+
+    res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
+    res.sendFile(brick.brick_path+"/" + req.params[0]);
+  })
+
+
+  app.get('/media/:mediaId/*', async function (req, res) {
     //TODO improve performances by caching requests
-    var serieId = req.params.serieId;
-    var serie = await dbMgr.getSerie(serieId);
-    var brick = await dbMgr.getBrick(serie.brick_id);
-    var path = brick.path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+    var mediaId = req.params.mediaId;
+    var media = await dbMgr.getMedia(mediaId);
+    var brick = await dbMgr.getBrick(media.brick_id);
+    //var path = brick.brick_path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+    let path = brick.brick_path+"/series/"+media.path+"/" + req.params[0];
+    
     res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
     res.sendFile(path);
   })
+
+  //TO DELTE
+  // app.get('/series/:serieId/*', async function (req, res) {
+  //   //TODO improve performances by caching requests
+  //   var serieId = req.params.serieId;
+  //   var serie = await dbMgr.getSerie(serieId);
+  //   var brick = await dbMgr.getBrick(serie.brick_id);
+  //   //var path = brick.brick_path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+  //   let path = brick.brick_path+"/series/"+serie.path+"/" + req.params[0];
+    
+  //   res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
+  //   res.sendFile(path);
+  // })
 
   app.get('/episodes/streams/:episodeId', async function (req, res) {
     var episodeId = parseInt(req.params.episodeId);
@@ -441,20 +544,15 @@ function startApp(){
   });
 
   var multipartMiddleware = multipart({uploadDir:tmpUploadPath});
-  app.post('/upload/:type/:id', loggedIn, multipartMiddleware, async function(req,res){
-    var type = req.params.type;
-    var id = req.params.id;
+  app.post('/upload/media/:media_id', loggedIn, multipartMiddleware, async function(req,res){
+    var id = req.params.media_id;
     if(req.user){ //TODO check rights
       let result = await resumable.post(req, true);
       //console.log('POST', result.status, result.original_filename, result.identifier);
       //If the file has been received completly
       if(result.status == 201){
         var filename = path.basename(result.filename);
-        if(type === "series"){
-          transcodeMgr.addEpisodeMedia(filename,result.original_filename,parseInt(id));
-        }else if(type === "films"){
-          transcodeMgr.addFilmMedia(filename,result.original_filename,parseInt(id));
-        }
+        transcodeMgr.addMedia(filename,result.original_filename,parseInt(id));
       }
       res.sendStatus(result.status);
     }

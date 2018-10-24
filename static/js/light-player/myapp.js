@@ -41,7 +41,7 @@ lightDemo.getURLParameter_ = function(sParam){
   }
 }
 
-let type = lightDemo.getURLParameter_("type");
+//let type = lightDemo.getURLParameter_("type");
 let id = lightDemo.getURLParameter_("id");
 
 var protocol = location.protocol;
@@ -53,7 +53,7 @@ var host = slashes.concat(window.location.hostname)+":"+location.port;
 // config.preferredTextLanguage = document.getElementById('preferredTextLanguage').value;
 
 lightDemo.loadMpdFiles = function() {
-  $.getJSON( "/mpd_files/"+type+"/"+id, function( mpdfiles ) {
+  $.getJSON( "/mpd_files/"+id, function( mpdfiles ) {
 
     for(let i=0; i<mpdfiles.length; i++){
       let mpdfile = mpdfiles[i];

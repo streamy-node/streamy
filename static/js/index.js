@@ -79,9 +79,9 @@ class ContentManager{
     var self = this;
     if(location.hash.includes("serie") || location.hash.includes("films")){
       $.getJSON("progression-infos",function(data){
-        self.moviesMgr.updateProgressions(data.films);
-        self.seriesMgr.updateProgressions(data.series);
-        self.serieMgr.updateProgressions(data.series);
+        self.moviesMgr.updateProgressions(data);
+        self.seriesMgr.updateProgressions(data);
+        self.serieMgr.updateProgressions(data);
       });
     }
 

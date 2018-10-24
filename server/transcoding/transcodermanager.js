@@ -22,33 +22,37 @@ class TranscoderManager{
         this.lastProgressions = {};
         this.lastProgressions.offline={};
         this.lastProgressions.live={};
-        this.lastProgressions.offline.series = {};
-        this.lastProgressions.offline.films = {};
-        this.lastProgressions.live.series = {};
-        this.lastProgressions.live.films = {};
+        // this.lastProgressions.offline.series = {};
+        // this.lastProgressions.offline.films = {};
+        // this.lastProgressions.live.series = {};
+        // this.lastProgressions.live.films = {};
     }
 
     getProgressions(){
         return this.lastProgressions;
     }
 
-    async addEpisodeMedia(file,original_name,episodeId){
-        this.convertFileToOfflineMpd(file,original_name,episodeId,null);
+    async addMedia(file,original_name,mediaId,userId = null){
+        this.convertFileToOfflineMpd(file,original_name,mediaId,userId);
     }
 
-    async addFilmMedia(file,original_name,film_id){
-        this.convertFileToOfflineMpd(file,original_name,null,film_id);
-    }
+    // async addEpisodeMedia(file,original_name,episodeId){
+    //     this.convertFileToOfflineMpd(file,original_name,episodeId,null);
+    // }
+
+    // async addFilmMedia(file,original_name,film_id){
+    //     this.convertFileToOfflineMpd(file,original_name,null,film_id);
+    // }
 
     async loadAddFileTasks(){
         let tasks = await this.dbMgr.getAddFileTasks();
         for(let i=0; i<tasks.length; i++){
             let task = tasks[i];
-            await this.convertFileToOfflineMpd(task.file,task.original_name,task.episode_id,task.film_id);
+            await this.convertFileToOfflineMpd(task.file,task.original_name,task.media_id,task.user_id,task.working_folder);
         }
     }
 
-    async convertFileToOfflineMpd(filename,original_name,episodeId,filmId,workingFolderHint = null, isLive = false){
+    async convertFileToOfflineMpd(filename,original_name,mediaId,userId,workingFolderHint = null, isLive = false){
 
         //Check if a task for this file is not already added
         let task = await this.dbMgr.getAddFileTask(filename);
@@ -58,11 +62,12 @@ class TranscoderManager{
         if(ext === ".srt" || ext === ".vtt"){
             if(!workingFolderHint){
                 let mpds = [];
-                if(episodeId){
-                    mpds = await this.dbMgr.getSeriesMdpFiles(episodeId);
-                }else if(filmId){
-                    mpds = await this.dbMgr.getFilmsMdpFiles(filmId);
-                }
+                mpds = await this.dbMgr.getMdpFiles(mediaId);
+                // if(episodeId){
+                //     mpds = await this.dbMgr.getSeriesMdpFiles(episodeId);
+                // }else if(filmId){
+                //     mpds = await this.dbMgr.getFilmsMdpFiles(filmId);
+                // }
                 if(mpds.length > 0){
                     workingFolderHint = mpds[0].folder;
                 }
@@ -79,7 +84,7 @@ class TranscoderManager{
                 workingFolder = shortId.generate();
             }
             //Add this file to insert tasks table (in case of shutdown to avoid to download again the file)
-            task_id = await this.dbMgr.insertAddFileTask(filename,original_name,workingFolder,episodeId,filmId);
+            task_id = await this.dbMgr.insertAddFileTask(filename,original_name,workingFolder,mediaId,userId);
         }else{
             workingFolder = task.working_folder;
             task_id = task.id;
@@ -94,7 +99,7 @@ class TranscoderManager{
         // if(extension == ".srt"){
         //     this.addSubtitleFile(filename,episodeId,filmId,task_id);
         // }else{
-        await this.convertFileToMpd(filename,original_name,episodeId,filmId,task_id,workingFolder,false, true);
+        await this.convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,userId,false, true);
         // }
     }
 
@@ -131,8 +136,15 @@ class TranscoderManager{
         await this.convertFileToMpd(filename,original_name,episodeId,filmId,null,workingFolder);
     }
 
-    async convertFileToMpd(filename,original_name,episodeId,filmId,task_id,workingFolder,live = false,splitProcessing = false){
+    async convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,user_id,live = false,splitProcessing = false){
         var self = this;
+
+        //Retreive the target media
+        let media = await this.dbMgr.getMedia(mediaId);
+        if(!media){
+            console.error("Cannot get media with id",mediaId)
+            return null
+        }
 
         //Check if there are sub tasks
         let subTasks = await this.dbMgr.getAddFileSubTasks(task_id);
@@ -183,7 +195,7 @@ class TranscoderManager{
         //     await fsutils.mkdirp(absoluteWorkingFolder);
         // }
         // Create target folder if not already done
-        var targetFolder = await this._getTargetFolder(episodeId,filmId);
+        var targetFolder = await this._getTargetFolder(media/*episodeId,filmId*/);
         var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
 
         let type = "offline";
@@ -207,21 +219,22 @@ class TranscoderManager{
        
         //Get video resolutions
         let resolutions;
-        if(filmId){
-            resolutions = await this.dbMgr.getFilmsTranscodingResolutions();
-        }else if(episodeId){
-            resolutions = await this.dbMgr.getSeriesTranscodingResolutions();
-        }else{
-            console.error("TranscodeMgr: cannot transcode video without ids");
-            return null;
-        }
+        resolutions = await this.dbMgr.getTranscodingResolutions(media.category_id);
+        // if(filmId){
+        //     resolutions = await this.dbMgr.getFilmsTranscodingResolutions();
+        // }else if(episodeId){
+        //     resolutions = await this.dbMgr.getSeriesTranscodingResolutions();
+        // }else{
+        //     console.error("TranscodeMgr: cannot transcode video without ids");
+        //     return null;
+        // }
 
 
         let absoluteSourceFile = this.settings.upload_path+"/"+filename;
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
 
         if(infos === null){
-            self.updateProgressions(episodeId,filmId,0,1,type,"no worker available, cannot run ffprobe",type);
+            self.updateProgressions(media,0,1,type,"no worker available, cannot run ffprobe",type);
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
@@ -296,7 +309,7 @@ class TranscoderManager{
             
             let mdpFileUpdated = false;
             var hasVideoOrAudio = false;
-            self.updateProgressions(episodeId,filmId,0,3,type);
+            self.updateProgressions(media,0,3,type);
 
             let remainingCommands = ffmpegCmds.length;
             let hasError = false;
@@ -322,11 +335,11 @@ class TranscoderManager{
 
                             // add MPD file infos to db if not already done
                             var mpdId = null
-                            var mpdinfos = await self.getMPD(episodeId,filmId,workingFolder);
+                            var mpdinfos = await self.getMPD(mediaId,workingFolder);
                         
                             //If not already in db, add it
                             if(!mpdinfos){
-                                mpdId = await self.addMPD(episodeId,filmId,workingFolder,0);
+                                mpdId = await self.addMPD(media.id,workingFolder,0);
                             }else{
                                 mpdId = mpdinfos.id;
                             }
@@ -348,11 +361,7 @@ class TranscoderManager{
                                 var id = null;
                                 if(stream.codec_type == "video"){
                                     let resolution = await self._getResolution(stream.width);
-                                    if(episodeId){
-                                        id = await self.dbMgr.insertSerieVideo(mpdId,resolution.id);
-                                    }else if(filmId){
-                                        id = await self.dbMgr.insertFilmVideo(mpdId,resolution.id);
-                                    }
+                                    id = await self.dbMgr.insertVideo(mpdId,resolution.id,user_id);
                                     hasVideoOrAudio = true;
                                 }else if(stream.codec_type == "audio"){
                                     let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
@@ -362,11 +371,8 @@ class TranscoderManager{
                                         langInfos = {};
                                         langInfos.language_id = null;
                                     }
-                                    if(episodeId){
-                                        id = await self.dbMgr.insertSerieAudio(mpdId,langInfos.language_id,stream.channels);
-                                    }else if(filmId){
-                                        id = await self.dbMgr.insertFilmAudio(mpdId,langInfos.language_id,stream.channels);
-                                    }
+
+                                    id = await self.dbMgr.insertAudio(mpdId,langInfos.language_id,null,stream.channels,user_id);
                                     hasVideoOrAudio = true;
                                 }else if(stream.codec_type === "subtitle"){
                                     //subtitles_streams.push(stream);
@@ -387,11 +393,7 @@ class TranscoderManager{
                                         name = "";
                                     }
         
-                                    if(episodeId){
-                                        id = await self.dbMgr.insertSerieSubtitle(mpdId,langid,name);
-                                    }else if(filmId){
-                                        id = await self.dbMgr.insertFilmSubtitle(mpdId,lang_id,name);
-                                    }
+                                    id = await self.dbMgr.insertSubtitle(mpdId,langid,null,name,user_id);
                                 }
         
                                 if(id === null){
@@ -405,8 +407,8 @@ class TranscoderManager{
         
                             //Mark mpd as complete if audio or video stream added
                             if(hasVideoOrAudio){
-                                await self.dbMgr.setSerieMPDFileComplete(mpdId,1);
-                                await self.setVideoMpdStatus(episodeId,filmId,1);
+                                await self.dbMgr.setMPDFileComplete(mpdId,1);
+                                await self.setMpdStatus(media.id,1);
                             }
         
                             //Remove add file task
@@ -418,7 +420,7 @@ class TranscoderManager{
                             await fsutils.unlink(absoluteSourceFile);
                                 
                             progressions[i] = 100;
-                            self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),0,type);
+                            self.updateProgressions(media,jsutils.arrayGetMean(progressions),0,type);
                             console.log("Offline transcoding done for: "+absoluteWorkingFolder);
         
                         }else{
@@ -436,11 +438,11 @@ class TranscoderManager{
                         error_msg = null;
                     }
                     progressions[i] = msg.progression;
-                    self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),1,type,error_msg);
+                    self.updateProgressions(media,jsutils.arrayGetMean(progressions),1,type,error_msg);
                 },
                 async function(msg){//On Progress
                     progressions[i] = msg.progression;
-                    self.updateProgressions(episodeId,filmId,jsutils.arrayGetMean(progressions),2,type);
+                    self.updateProgressions(media,jsutils.arrayGetMean(progressions),2,type);
                     if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
                         // if(subtitles_streams.length > 0){
                         //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
@@ -472,10 +474,10 @@ class TranscoderManager{
         infos = {};
         //TODO use regexp
         // sometext_fr.vtt
-        let baseName = path.basename(filename);
+        let baseName = filename.substring(0,filename.length-4);
         if(baseName.length > 4){
-            infos.language = baseName.substring(filename.length-3);
-            infos.title = filename.substring(0,filename.length-4);
+            infos.language = baseName.substring(baseName.length-2);
+            infos.title = baseName.substring(0,baseName.length-3);
         }else{
             console.warn("Cannot extract subtitles info from it's name ",filename)
         }
@@ -507,27 +509,35 @@ class TranscoderManager{
         return outputs;
     }
 
-    updateProgressions(episodeId,filmId,progression,state_code,type = "offline",message = null){
-        let id = episodeId == null ? filmId : episodeId;
+    updateProgressions(media,progression,state_code,type = "offline",message = null){
+        //let id = episodeId == null ? filmId : episodeId;
+        let id = media.id;
         let progressionFilter = progression;
         if(!progressionFilter){
             progressionFilter = 0;
         }
-        if(episodeId){
-            this.lastProgressions[type].series[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
-        }else if(filmId){
-            this.lastProgressions[type].films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
-        }
+        // if(!this.lastProgressions[type].has(media.category)){
+        //     this.lastProgressions[type].category = {}
+        // }
+
+        this.lastProgressions[type][id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
+
+        // if(episodeId){
+        //     this.lastProgressions[type][media.category][id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
+        // }else if(filmId){
+        //     this.lastProgressions[type].films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
+        // }
 
         //Clear from lastProgressions after 30 secs
         var self = this;
         if(state_code == 0){
             setTimeout(function(){
-                if(episodeId){
-                    delete self.lastProgressions[type].series[id];
-                }else if(filmId){
-                    delete this.lastProgressions[type].films[id];
-                } 
+                delete self.lastProgressions[type][id];
+                // if(media.id){
+                //     delete self.lastProgressions[type].series[id];
+                // }else if(filmId){
+                //     delete this.lastProgressions[type].films[id];
+                // } 
             },30000);
         }
     }
@@ -806,64 +816,95 @@ class TranscoderManager{
     //     //TODO remove semaphore if not used
     // }
 
-    async getMPD(episodeId,filmId,workingdir,type=0){
+    async getMPD(mediaId,workingdir){
         var mpdinfos = null;
-        if(episodeId){
-            mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir,type);
-        }else if(filmId){
-            mpdinfos = await this.dbMgr.getFilmMpdFile(filmId,workingdir,type);
-        }
+        mpdinfos = await this.dbMgr.getMpdFileFromMedia(mediaId,workingdir);
+        // if(episodeId){
+        //     mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir,type);
+        // }else if(filmId){
+        //     mpdinfos = await this.dbMgr.getFilmMpdFile(filmId,workingdir,type);
+        // }
         return mpdinfos;
     }
 
-    async addMPD(episodeId,filmId,workingdir,complete,type=0){
+    async addMPD(mediaId,workingdir,complete,type=0){
         var mpdId = null;
-        if(episodeId){
-            mpdId = await this.dbMgr.insertSerieMPDFile(episodeId,workingdir,complete,type);
-        }else if(filmId){
-            mpdId = await this.dbMgr.insertFilmMPDFile(filmId,workingdir,complete,type);
+        if(!mediaId ){
+            console.error("Cannot add MPD with empty mediaId")
+            return null
         }
+
+        mpdId = await this.dbMgr.insertMPDFile(mediaId,workingdir,complete)
+        // if(episodeId){
+        //     await this.dbMgr.insertSerieMPDFile(episodeId,mpdId);
+        // }else if(filmId){
+        //     await this.dbMgr.insertFilmMPDFile(filmId,mpdId);
+        // }
         return mpdId;
     }
 
-    async setVideoMpdStatus(episodeId,filmId,hasMpd){
-        let serieId = await this.dbMgr.getSerieIdFromEpisode(episodeId);
-        let videoId = null;
-        if(episodeId){
-            videoId = await this.dbMgr.setSerieEpisodeHasMPD(episodeId,hasMpd);
-            await this.dbMgr.setSerieHasMPD(serieId,hasMpd);
-        }else if(filmId){
-            videoId = await this.dbMgr.setFilmHasMPD(filmId,hasMpd);
+    async setMpdStatus(mediaId,hasMpd){
+        let media = await this.dbMgr.getMedia(mediaId);
+        await this.dbMgr.setMediaHasMPD(mediaId,hasMpd);
+
+        if(media.parent_id && hasMpd){
+            await this.setMpdStatus(media.parent_id,hasMpd)
+        }else{
+            //TODO remove mpd if no child has it
         }
-        return videoId;
+        
+
+        // let serieId = await this.dbMgr.getSerieIdFromEpisode(episodeId);
+        // let videoId = null;
+        // if(episodeId){
+        //     videoId = await this.dbMgr.setSerieEpisodeHasMPD(episodeId,hasMpd);
+        //     await this.dbMgr.setSerieHasMPD(serieId,hasMpd);
+        // }else if(filmId){
+        //     videoId = await this.dbMgr.setFilmHasMPD(filmId,hasMpd);
+        // }
+        // return videoId;
     }
+    // async setVideoMpdStatus(episodeId,filmId,hasMpd){
+    //     let serieId = await this.dbMgr.getSerieIdFromEpisode(episodeId);
+    //     let videoId = null;
+    //     if(episodeId){
+    //         videoId = await this.dbMgr.setSerieEpisodeHasMPD(episodeId,hasMpd);
+    //         await this.dbMgr.setSerieHasMPD(serieId,hasMpd);
+    //     }else if(filmId){
+    //         videoId = await this.dbMgr.setFilmHasMPD(filmId,hasMpd);
+    //     }
+    //     return videoId;
+    // }
     //bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, series_seasons.season_number,  series_episodes.episode_number
 
-    async _getTargetFolder(episodeId,filmId){
+    async _getTargetFolder(media){
         var mainFolder;
-        if(episodeId){
-            var res = await this.dbMgr.getEpisodePath(episodeId);
-            mainFolder = res.brick_path + "/series/" + res.serie_name + " ("+res.serie_release_date.getFullYear()+")/season_"+res.season_number.toString()+"/episode_"+res.episode_number.toString();
-        }else if(filmId){
-            var res = await this.dbMgr.getFilmPath(filmId);
-            mainFolder = res.brick_path+"/films/"+res.original_name+" ("+films.serie_release_date.getFullYear()+")";
-        }
-        return mainFolder;
+        //let media = await this.dbMgr.getMedia(mediaId);
+        let brick = await this.dbMgr.getBrick(media.brick_id);
+        return brick.brick_path +"/"+ media.path;
+        // if(episodeId){
+        //     var res = await this.dbMgr.getEpisodePath(episodeId);
+        //     mainFolder = res.brick_path + "/series/" + res.serie_name + " ("+res.serie_release_date.getFullYear()+")/season_"+res.season_number.toString()+"/episode_"+res.episode_number.toString();
+        // }else if(filmId){
+        //     var res = await this.dbMgr.getFilmPath(filmId);
+        //     mainFolder = res.brick_path+"/films/"+res.original_name+" ("+films.serie_release_date.getFullYear()+")";
+        // }
+        // return mainFolder;
     }
 
-    async _getProcessedFiles(episodeId,filmId,workingDir){
-        var mainFolder = await this._getTargetFolder(episodeId,filmId);
-        if(await fsutils.exists(mainFolder+"/"+workingDir)){
-            return await fsutils.readir(mainFolder+"/"+workingDir);
-        }else{
-            return[];
-        }
-    }
+    // async _getProcessedFiles(media,workingDir){
+    //     var mainFolder = await this._getTargetFolder(media);
+    //     if(await fsutils.exists(mainFolder+"/"+workingDir)){
+    //         return await fsutils.readir(mainFolder+"/"+workingDir);
+    //     }else{
+    //         return[];
+    //     }
+    // }
 
-    async _getBestResolution(episodeId,filmId){
-        var mainFolder = await this._getTargetFolder(episodeId,filmId);
-        return await fsutils.readir(mainFolder);
-    }
+    // async _getBestResolution(media){
+    //     var mainFolder = await this._getTargetFolder(media);
+    //     return await fsutils.readir(mainFolder);
+    // }
     //////////
     
     // const PROCESS_STATUS = {

@@ -82,9 +82,10 @@
                     <div class="video_broken material-icons float-right" data-toggle="tooltip" title="no video available for this title">broken_image</div>
                     <div class="video_progress float-right d-none">0%</div>
                     <div class="video_error material-icons float-right"  data-toggle="tooltip" title="error adding last video file">error</div>
+                    <div class="download_progress float-right d-none">0%</div>
             </div>
             
-            <form class="box episodeBox" method="post" action="upload/series" enctype="multipart/form-data" id="box-1">
+            <form class="box episodeBox" method="post" action="upload/media" enctype="multipart/form-data" id="box-1">
                 <img id="poster" class="episode-image bloc-image" src=""/>
                 <div class="box__input" id="input-1" >
                     <input class="box__file  inputfile" type="file" name="files[]" id="file-1" data-multiple-caption="{count} files selected" multiple />

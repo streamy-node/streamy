@@ -65,21 +65,34 @@ class VideoBlock{
         $progress.removeClass('d-none');
     }
 
+    hideDownloadProgression(){
+        let $progress = this.element.find('.download_progress');
+        $progress.addClass('d-none');
+    }
+
+    showDownloadProgression(progression){
+        let $progress = this.element.find('.download_progress');
+        $progress.text(progression+"%");
+        $progress.removeClass('d-none');
+    }
+
     updateStatus(state,progression,msg = null){
 
         if(state == 0){
             this.setBroken(false);
-            
             this.hideProgression();
             this.setError(false);
         }else if(state == 1){
             this.setError(true,transcoding_error_color,msg);
+            this.hideProgression();
             if(!this.hasMpd) this.setBroken(true,nofile_color);
         }else if(state == 2){
             if(!this.hasMpd) this.setBroken(true,transcoding_color);
+            this.showProgression(progression);
             this.setError(false);
         }else if(state == 3){
             if(!this.hasMpd) this.setBroken(true,waiting_color);
+            this.showProgression(progression);
             this.setError(false);
         }
     }
@@ -146,7 +159,7 @@ class VideoBlock{
         });
         r.on('fileProgress', function(file){
             console.log("fileProgress ",file)
-            self.showProgression(Math.floor(file.progress()*1000)/10)
+            self.showDownloadProgression(Math.floor(file.progress()*1000)/10)
         });
 
         
