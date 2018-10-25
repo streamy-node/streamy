@@ -11,5 +11,6 @@
 	"Username": "Username",
 	"Password": "Password",
 	"AddMovieFromUpload": "Upload Movie",
-	"AddMovieFromFile": "Import Movie"
+	"AddMovieFromFile": "Import Movie",
+	"Workers": "Workers"
 }

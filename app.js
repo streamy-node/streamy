@@ -98,7 +98,8 @@ function startApp(){
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,settings);
 
   //TODO add worker from config file and/or web page
-  processesMgr.addWorker("127.0.0.1",7000);
+  processesMgr.addWorkersFromDB(dbMgr,true);
+  //processesMgr.addWorker("127.0.0.1",7000);
 
   // var con = mysql.createConnection({
   //   host: "127.0.0.1",
@@ -276,16 +277,19 @@ function startApp(){
   // templates
 
   app.get('/movies.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/movies.html');
+    res.sendFile(__dirname + '/views/templates/movies.html');// TODO template here
   })
   app.get('/series.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/series.html');
+    res.sendFile(__dirname + '/views/templates/series.html');// TODO template here
   })
   app.get('/serie.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/serie.html');
+    res.sendFile(__dirname + '/views/templates/serie.html');// TODO template here
   })
   app.get('/addvideo.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/addvideo.html');
+    res.sendFile(__dirname + '/views/templates/addvideo.html');// TODO template here
+  })
+  app.get('/workers.html', loggedIn, function (req, res) {
+    res.render('templates/workers.html');
   })
 
   //static files from node_modules
@@ -360,6 +364,24 @@ function startApp(){
     res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
     res.sendFile(brick.brick_path+"/" + req.params[0]);
   })
+
+  ////////////////// Workers  //////////////
+  app.get('/workers', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var lang = req.query.lang;
+      var userId = 1;//TODO get userId
+
+      //Set default lang
+      if(!lang){
+        lang = 'en';
+      }
+
+      let workers = processesMgr.getWorkers();
+
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(workers));
+    }
+  });
 
   ////////////////// Series specific //////////////
 

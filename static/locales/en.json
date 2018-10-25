@@ -27,5 +27,8 @@
 		
 	},
 	"Username": "Username",
-	"Password": "Password"
+	"Password": "Password",
+	"Workers": "Workers",
+	"AddWorker": "Add a new worker",
+	"Remove": "Remove"
 }

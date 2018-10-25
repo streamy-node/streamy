@@ -1176,15 +1176,45 @@ class DBStructure{
     }
 
     async insertWorker(ipv4,port,enabled){
-        var sql = "INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) "
-        + " VALUES(INET_ATON("+ipv4+"), "+port+", "+enabled+")";
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
-        return id;
+        try{
+            var sql = "INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) "
+            + " VALUES(INET_ATON("+ipv4+"), "+port+", "+enabled+")";
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.warn("insertWorker failed ",err)
+            return null
+        }
+    }
+
+    async setWorkerEnabled(ipv4,port,enabled){
+        try{
+            var sql = "UPDATE `ffmpeg_workers` SET `enabled` = "+enabled.toString()+
+            " WHERE `ipv4` = INET_ATON("+ipv4+") AND `port` = "+port;
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.warn("setWorkerEnabled failed ",err)
+            return null
+        }
+    }
+
+    async removeWorker(ipv4,port){
+        try{
+            let sql = "DELETE FROM `ffmpeg_workers` "
+            + " WHERE `ipv4` = INET_ATON("+ipv4+") AND `port` = "+port;
+            let sqlres = await this.query(sql);
+            return sqlres;
+        }catch(err){
+            console.warn("removeWorker failed ",err)
+            return null
+        }
     }
 
     async getFfmpegWorkers(){
-        var sql = "SELECT `id`, INET_NTOA(`ipv4`), `port`, `enabled` FROM `ffmpeg_workers` ";
+        var sql = "SELECT `id`, INET_NTOA(`ipv4`) as ipv4, `port`, `enabled` FROM `ffmpeg_workers` ";
         var results = await this.query(sql);
         return results; 
     } 

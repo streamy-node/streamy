@@ -1,0 +1,52 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_worker" >
+    <div class="container-fluid no-gutters nopad" >
+        <h1 >Workers</h1>
+
+        <ul class="list-group" id="worker_list">
+            <li class="list-group-item d-flex align-items-center">
+                <div class="">192.168.1.10:7000</div>
+                <div class="status alert-danger ml-2 mr-auto">Offline</div>
+                <button type="button" class="btn btn-danger">Remove</button>
+            </li>
+            <li class="list-group-item d-flex align-items-center">
+                <div class="">192.168.1.11:7000</div>
+                <div class="status alert-success ml-2 mr-auto">Online</div>
+                <button type="button" class="btn btn-warning mr-2">Pause</button>
+                <button type="button" class="btn btn-danger">Remove</button>
+            </li>
+            <li class="list-group-item d-flex align-items-center">
+                <div class="">192.168.1.10:7000</div>
+                <div class="status alert-danger ml-2 mr-auto">Offline</div>
+                <button type="button" class="btn btn-danger">Remove</button>
+            </li>
+        </ul>
+
+    </div>
+
+    <label for="worker_host" class="mt-4">{{AddWorker}}:</label>
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <span class="input-group-text" id="descIp">IP</span>
+        </div>
+        <input id="worker_host" type="text" class="form-control" placeholder="192.168.1.42 or Some computer name" aria-describedby="descIp">
+        <div class="input-group-append">
+            <span class="input-group-text" id="descPort">Port</span>
+        </div>
+        <input type="number" class="port_input form-control" placeholder="7000" min="0" max="65535" aria-describedby="descPort">
+        <div class="input-group-append">
+            <button class="btn btn-success" type="button" id="addWorkerButton">Button</button>
+        </div>
+    </div>  
+</div>
+
+<!-- Templates -->
+<div id="worker_status_tpl" class="hidden">
+    <li class="list-group-item d-flex align-items-center">
+        <div class="worker_ip">192.168.1.11:7000</div>
+        <div class="status alert-success ml-2 mr-auto">Online</div>
+        <button type="pause_worker_btn button" class="btn btn-warning mr-2">Stop</button>
+        <button type="start_worker_btn button" class="btn btn-success mr-2">Start</button>
+        <button type="remove_worker_btn button" class="btn btn-danger">{{Remove}}</button>
+    </li>
+</div>

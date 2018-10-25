@@ -36,6 +36,21 @@ st_menu{
 .download_progress{
     color: #3950d3;
 }
+
+.status{
+    position: relative;
+    padding: .25rem 0.25rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
+
+.port_input{
+    max-width: 90px;
+    min-width: 90px;
+}
+/* flex: 0 0 60px;
+-ms-flex: 0 0 60px; */
+
 /* .relative{
     position:relative;
 } */

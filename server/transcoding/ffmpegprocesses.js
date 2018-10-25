@@ -89,6 +89,7 @@ class Worker{
     this.id = ip+":"+port.toString();
     this.ws_uri = "ws://"+ip+":"+port.toString();
     this.enabled = true;
+    this.error_msg;
     this.failures = 0;
     this.waitingProcesses = [];
     this.stoppedProcesses = [];
@@ -102,6 +103,37 @@ class FfmpegProcessManager extends EventEmitter{
     this.processes = [];
     this.waitingProcesses = []; // Processes not yet launched waiting
     this.stoppedProcesses = []; // Processes not yet launched stopped
+  }
+
+  getWorkers(){
+    return this.workers;
+  }
+
+  enableWorker(id,value){
+    for(let i=0; i<this.workers.length; i++){
+      let worker = this.workers[i];
+      if(worker.id == id){
+        worker.enabled = value;
+        this.emit('workerEnabled',worker);
+        break;
+      }
+    }
+  }
+
+  removeWorker(id){
+    for(let i=0; i<this.workers.length; i++){
+      let worker = this.workers[i];
+      if(worker.id == id){
+        if(worker.enabled == false){
+          this.emit('workerRemoved',worker);
+          this.workers.splice(i, 1)
+        }else{
+          console.warn("removeWorker cannot remove a worker which is enabled")
+          return false
+        }
+        break;
+      }
+    }
   }
 
   async addWorker(ip,port){
@@ -118,10 +150,12 @@ class FfmpegProcessManager extends EventEmitter{
       var worker = new Worker(ip,port,ffmpegInfos,hwInfos);
       this.workers.push(worker);
       if(this.workers.length == 1){
-        this.emit('workerAvailable');
+        this.emit('workerAvailable',worker);
       }
+      this.emit('workerAdded',worker);
       console.log("Worker added ",ip,port);
       this.fillupWorker(worker);
+      
       return true;
     }catch(err){
       console.error("Failed to add worker: ",ip," ",err);
@@ -295,6 +329,8 @@ class FfmpegProcessManager extends EventEmitter{
           (error)=>{
             process._onFinal(new FinalMsg(2,"Socket send error",error));
             worker.enabled = false;
+            worker.error = error
+            this.emit('workerDisabled',worker);
           }
         );
       });
@@ -399,6 +435,8 @@ class FfmpegProcessManager extends EventEmitter{
             if(error){
               process._onFinal(new FinalMsg(2,"Socket send error",error));
               process.worker.enabled = false;
+              process.worker.error = error
+              this.emit('workerDisabled',worker);
             }
           });
           return true;
@@ -441,6 +479,8 @@ class FfmpegProcessManager extends EventEmitter{
             if(error){
               process._onFinal(new FinalMsg(2,"Socket send error",error));
               process.worker.enabled = false;
+              process.worker.error = error
+              this.emit('workerDisabled',worker);
               //self.fillupWorker(process.worker);
             }
           });
@@ -539,6 +579,32 @@ class FfmpegProcessManager extends EventEmitter{
     }
   }
 
+  /////////// OPTIONAL METHODS /////////////
+  async addWorkersFromDB(dbMgr,linkWithDB){
+    let workers = await dbMgr.getFfmpegWorkers()
+    for(let i=0; i<workers.length; i++){
+      let worker = workers[i];
+      await this.addWorker(worker.ipv4,worker.port);
+    }
+    if(linkWithDB){
+      this._linkWithDB(dbMgr)
+    }
+  }
+
+  _linkWithDB(dbMgr){
+    this.on('workerAdded', function(worker){
+      dbMgr.insertWorker(worker.ip,worker.port,worker.enabled)
+    });
+    this.on('workerEnabled', function(worker){
+      dbMgr.setWorkerEnabled(worker.ip,worker.port,worker.enabled)
+    });
+    this.on('workerDisabled', function(worker){
+      dbMgr.setWorkerEnabled(worker.ip,worker.port,worker.enabled)
+    });
+    this.on('workerRemoved', function(worker){
+      dbMgr.insertWorker(worker.ip,worker.port,worker.enabled)
+    });
+  }
 }
 module.exports.FfmpegProcessManager=FfmpegProcessManager
 module.exports.Process=Process
