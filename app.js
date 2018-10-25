@@ -246,6 +246,14 @@ function startApp(){
     }
   }
 
+  function safePath(req, res, next){
+    if(req.params[0].indexOf("..") != -1){
+      res.sendStatus(500);
+    }else{
+      next();
+    }
+  }
+
   //TODO add path to all folders
   app.post('/login',
     passport.authenticate('local', { successRedirect: '/index',
@@ -297,11 +305,11 @@ function startApp(){
   })
 
   //static files from node_modules
-  app.get('/js/shaka/*', loggedIn, function (req, res) {
+  app.get('/js/shaka/*', loggedIn, safePath, function (req, res) {
     res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
   })
 
-  app.get('/css/material-icons/*', loggedIn, function (req, res) {
+  app.get('/css/material-icons/*', loggedIn, safePath, function (req, res) {
     res.sendFile(__dirname + '/node_modules/material-icons/css/' + req.params[0]);
   })
 
@@ -467,13 +475,13 @@ function startApp(){
   
 
   //DEPRECATED use /series/:serieId/data/* instead
-  app.get('/data/series/:brickid/*', async function (req, res) {
+  app.get('/data/series/:brickid/*', safePath, async function (req, res) {
     var brickid = req.params.brickid;
     var brick = await dbMgr.getBrick(brickid);
     res.sendFile(brick.brick_path+"/series/" + req.params[0]);
   })
 
-  app.get('/brick/:brickid/*', async function (req, res) {
+  app.get('/brick/:brickid/*', safePath, async function (req, res) {
     var brickid = req.params.brickid;
     var brick = await dbMgr.getBrick(brickid);
 
@@ -482,7 +490,7 @@ function startApp(){
   })
 
 
-  app.get('/media/:mediaId/*', async function (req, res) {
+  app.get('/media/:mediaId/*', safePath, async function (req, res) {
     //TODO improve performances by caching requests
     var mediaId = req.params.mediaId;
     var media = await dbMgr.getMedia(mediaId);
