@@ -66,6 +66,9 @@ dbMgr.initialize(dbOptions,async function(err) {
     process.exit(1);
   }else{
     await settings.pullSettings();
+
+    // This callback is called each time there is a reconnection
+    // with the db
     if(!appstarted){
       startApp();
     }
@@ -206,43 +209,24 @@ function startApp(){
   app.use(express.json());
 
   //register helper as a locals function wrapped as mustache expects
-  app.use(function (req, res, next) {
+  function setupLocals(req, res, next){
     // mustache helper
     res.locals.__ = function () {
       return function (text, render) {
         return i18n.__.apply(req, arguments);
       };
     };
-
-    //if(req.)
-
-    // Website you wish to allow to connect
-    //res.setHeader('Access-Control-Allow-Origin', 'http://192.168.1.69:8080');
-
-    // Request methods you wish to allow
-    //res.setHeader('Access-Control-Allow-Methods', 'GET');
-
-    // Request headers you wish to allow
-    //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-    // Set to true if you need the website to include cookies in the requests sent
-    // to the API (e.g. in case you use sessions)
-    //res.setHeader('Access-Control-Allow-Credentials', true);
-
     next();
-  });
-
-
+  }
+  app.use(setupLocals);
 
   function loggedIn(req, res, next) {
     if (req.user) {
         next();
     } else {
-      //res.redirect('/login');
       setTimeout(function(){
         res.redirect('/login');
       },4000);
-      
     }
   }
 
@@ -318,59 +302,7 @@ function startApp(){
     res.send(MovieDB_KEY);
   })
 
-  // // get series
-  // app.get('/series', loggedIn, async function (req, res) {
-  //   if(req.user){ //TODO check rights
-  //     var lang = req.query.lang;
-  //     //Set default lang
-  //     if(!lang){
-  //       lang = 'en';
-  //     }
-
-  //     let series = await serieMgr.getSeriesInfos(lang);
-
-  //     res.setHeader('Content-Type', 'application/json');
-  //     res.send(JSON.stringify(series));
-  //   }
-  // });
-
-  // get series
-  app.get('/series', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
-      var lang = req.query.lang;
-      var userId = 1;//TODO get userId
-
-      //Set default lang
-      if(!lang){
-        lang = 'en';
-      }
-      var langId = await dbMgr.getLangsId(lang);
-      let series = await mediaMgr.getMediaListByCategory(1, langId, userId, "")
-      //let series = await serieMgr.getSeriesInfos(lang);
-
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify(series));
-    }
-  });
-
-  // app.get('/series/:serieId', loggedIn, async function (req, res) {
-  //   var serieId = req.params.serieId;
-  //   var lang = req.query.lang;
-
-  //   //Set default lang
-  //   if(!lang){
-  //     lang = 'en';
-  //   }
-
-  //   let infos = await serieMgr.getSerieInfos(parseInt(serieId),lang);
-
-  //   if(infos === null){
-  //     res.status(404).send('Serie not found');
-  //   }else{
-  //     res.setHeader('Content-Type', 'application/json');
-  //     res.send(JSON.stringify(infos));
-  //   }
-  // });
+  ////////////////// Media //////////////
 
   // Get media info until depth
   app.get('/media/:mediaId', loggedIn, async function (req, res) {
@@ -392,8 +324,62 @@ function startApp(){
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(infos));
     }
+  });
 
-    //res.send(MovieDB_KEY);
+  // app.get('/media/:mediaId/*', safePath, async function (req, res) {
+  //   //TODO improve performances by caching requests
+  //   var mediaId = req.params.mediaId;
+  //   var media = await dbMgr.getMedia(mediaId);
+  //   var brick = await dbMgr.getBrick(media.brick_id);
+  //   //var path = brick.brick_path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
+  //   let path = brick.brick_path+"/series/"+media.path+"/" + req.params[0];
+    
+  //   res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
+  //   res.sendFile(path);
+  // })
+
+  app.get('/mpd_files/:id', loggedIn, async function (req, res) {
+    //let type = req.params.type;
+    let id = parseInt(req.params.id);
+    let output = {};
+    let category_id = await dbMgr.getMediaCategory(id)
+    if(category_id == 3){
+      output = await serieMgr.getMpdFiles(id)
+    }else{
+      output = await mediaMgr.getMpdFiles(id)
+    }
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(output));
+  })
+
+  app.get('/brick/:brickid/*', safePath, async function (req, res) {
+    var brickid = req.params.brickid;
+    var brick = await dbMgr.getBrick(brickid);
+
+    res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
+    res.sendFile(brick.brick_path+"/" + req.params[0]);
+  })
+
+  ////////////////// Series specific //////////////
+
+  // get series
+  app.get('/series', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var lang = req.query.lang;
+      var userId = 1;//TODO get userId
+
+      //Set default lang
+      if(!lang){
+        lang = 'en';
+      }
+      var langId = await dbMgr.getLangsId(lang);
+      let series = await mediaMgr.getMediaListByCategory(1, langId, userId, "")
+      //let series = await serieMgr.getSeriesInfos(lang);
+
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(series));
+    }
   });
 
   app.get('/series/:mediaId/seasons', async function (req, res) {
@@ -408,8 +394,6 @@ function startApp(){
     var langId = await dbMgr.getLangsId(lang);
     let sortKeyDepth = ["season_number","episode_number"]
     let infos = await mediaMgr.getChildrenMediaInfos(parseInt(mediaId),langId, 1, userId, sortKeyDepth)
-    //let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
-    //let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
 
     if(infos === null){
       res.status(404).send('No season found');
@@ -421,109 +405,38 @@ function startApp(){
     //res.send(MovieDB_KEY);
   });
 
-  //TO DEL
-  // app.get('/series/:serieId/seasons', async function (req, res) {
-  //   var serieId = req.params.serieId;
-  //   var lang = req.query.lang;
-  //   var userId = 1;//TODO get userId
+  // Add serie
+  app.post('/series', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      console.log("body",req.body);
 
-  //   //Set default lang
-  //   if(!lang){
-  //     lang = 'en';
-  //   }
+      //For the moment only moviedb id
+      if(req.body.moviedbId != null){
+        //Check if serie already added
+        let serieId = await serieMgr.findSerieFromMoviedbId(req.body.moviedbId);
 
-  //   let infos = await serieMgr.getSeasonsEpisodesInfos(parseInt(serieId),lang,userId);
+        // prepare response
+        res.setHeader('Content-Type', 'application/json');
+        if(serieId === null){
+          //The serie don't exist, create it
+          console.log("Adding a new serie");
+          serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
+        }
+        
+        if(serieId !== null){
+          res.status(200).send(JSON.stringify({id:serieId}));
+        }else{
+          console.error("Failed to add serie from ",req.body);
+          res.status(500).send('Cannot create serie');
+        }
+        
 
-  //   if(infos === null){
-  //     res.status(404).send('No season found');
-  //   }else{
-  //     res.setHeader('Content-Type', 'application/json');
-  //     res.send(JSON.stringify(infos));
-  //   }
-  // });
+      }else{
+        res.status(400).send('Unknown request');
+      }
 
-  //TO DELETE
-  // app.get('/mpd_files/:type/:id', loggedIn, async function (req, res) {
-  //   let type = req.params.type;
-  //   let id = req.params.id;
-  //   let output = {};
-  //   if(type === "episode"){
-  //     output = await serieMgr.getEpisodesMpdFiles(parseInt(id));
-  //   }else if(type == "film"){
-  //     output = await serieMgr.getFilmsMdpFiles(parseInt(id));
-  //   }
-
-  //   res.setHeader('Content-Type', 'application/json');
-  //   res.send(JSON.stringify(output));
-  // })
-
-  app.get('/mpd_files/:id', loggedIn, async function (req, res) {
-    //let type = req.params.type;
-    let id = parseInt(req.params.id);
-    let output = {};
-    let category_id = await dbMgr.getMediaCategory(id)
-    if(category_id == 3){
-      output = await serieMgr.getMpdFiles(id)
     }else{
-      output = await mediaMgr.getMpdFiles(id)
-    }
-    
-
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(output));
-  })
-  
-
-  //DEPRECATED use /series/:serieId/data/* instead
-  app.get('/data/series/:brickid/*', safePath, async function (req, res) {
-    var brickid = req.params.brickid;
-    var brick = await dbMgr.getBrick(brickid);
-    res.sendFile(brick.brick_path+"/series/" + req.params[0]);
-  })
-
-  app.get('/brick/:brickid/*', safePath, async function (req, res) {
-    var brickid = req.params.brickid;
-    var brick = await dbMgr.getBrick(brickid);
-
-    res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
-    res.sendFile(brick.brick_path+"/" + req.params[0]);
-  })
-
-
-  app.get('/media/:mediaId/*', safePath, async function (req, res) {
-    //TODO improve performances by caching requests
-    var mediaId = req.params.mediaId;
-    var media = await dbMgr.getMedia(mediaId);
-    var brick = await dbMgr.getBrick(media.brick_id);
-    //var path = brick.brick_path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
-    let path = brick.brick_path+"/series/"+media.path+"/" + req.params[0];
-    
-    res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
-    res.sendFile(path);
-  })
-
-  //TO DELTE
-  // app.get('/series/:serieId/*', async function (req, res) {
-  //   //TODO improve performances by caching requests
-  //   var serieId = req.params.serieId;
-  //   var serie = await dbMgr.getSerie(serieId);
-  //   var brick = await dbMgr.getBrick(serie.brick_id);
-  //   //var path = brick.brick_path+"/series/"+serie.original_name+" ("+serie.release_date.getFullYear().toString()+")/" + req.params[0];
-  //   let path = brick.brick_path+"/series/"+serie.path+"/" + req.params[0];
-    
-  //   res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
-  //   res.sendFile(path);
-  // })
-
-  app.get('/episodes/streams/:episodeId', async function (req, res) {
-    var episodeId = parseInt(req.params.episodeId);
-    let infos = await serieMgr.getEpisodeStreamInfos(episodeId);
-
-    if(!infos){
-      res.status(404).send('No streams found');
-    }else{
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify(infos));
+      res.status(401).send('You need to login');
     }
   })
 
@@ -576,132 +489,7 @@ function startApp(){
     }
   });
 
-  //////////////////////// Old upload ////////////////////////
-  // Upload files
-  app.post('/upload2/:type', loggedIn, async function(req,res){
-    if(req.user){ //TODO check rights
-      var type = req.params.type;
-      var form = new formidable.IncomingForm();
-      form.uploadDir = settings.getUploadPath();
-      form.keepExtensions = true;
-      form.maxFileSize = 10 * 1024 * 1024 * 1024; // 10 Go
-      form.multiples = true;
-
-      var uploadInfos = {};
-      uploadInfos.user = req.user;
-      uploadInfos.id = null;
-      uploadInfos.type = type;
-
-      form.parse(req, function(err, fields, files) {
-        console.log("Fields: ",fields);
-        console.log("Files: ", files);
-        uploadInfos.fields = fields;
-        uploadInfos.files = files;
-      });
-
-      // form.onPart = function(part) {
-      //   form.handlePart(part);
-      // }
-      form.on('field', function(name, value) {
-        console.log("Field: ",name,value);
-        if(name === "id"){
-          uploadInfos.id = value;
-        }
-      });
-
-      //On upload starting
-      form.on('fileBegin', function(name, file) {
-        //TODO check name *.mp4, mkv, mp3 ...
-        // TODO check if already updating
-        // TODO create random folder to avoid colisions
-        var uploadPath = form.uploadDir;
-
-        //If it's a subtitle, keep lang info in the name
-        if(path.extname(file.name) == ".srt" && file.name.length > 5){
-          let langIndex = file.name.length - 6;
-          let lang = file.name.substring(langIndex,langIndex+2);
-          let nameIndex = file.name.lastIndexOf('.',langIndex-2);
-          if(nameIndex == -1){
-            nameIndex = 0;
-          }else{
-            nameIndex++;
-          }
-          let description = file.name.substring(nameIndex,langIndex-1);
-          file.path = file.path.substring(0,file.path.length-4)+"_srt_"+lang+ "_"+description+".srt";
-        }
-        file.path;
-      });
-
-      //One ulpoad done
-      form.on('file', async function(name, file) {
-        console.log('File uploaded ',name,file);
-        //TODO parse extension
-
-        //If file has no name delete it
-        if(file.name === ""){
-          fsUtils.unlink(file.path);
-        }else{
-          var filename = path.basename(file.path);
-          if(type === "series"){
-            transcodeMgr.addEpisode(filename,parseInt(uploadInfos.id));
-          }else if(type === "films"){
-            transcodeMgr.addFilm(filename,parseInt(uploadInfos.id));
-          }
-        }
-      });
-
-      //On upload done
-      form.on('end', function() {
-        if(type === "series"){
-
-        }
-        res.status(200).send();
-      });
-
-      form.on('error', function(err) {
-        console.error("Failed to download file ",err);
-        res.status(424).send("Upload failed!");
-      });
-    }else{
-      console.warn("Unknown user is trying to upload files");
-    }
-  });
-
-  // Add serie
-  app.post('/series', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
-      console.log("body",req.body);
-
-      //For the moment only moviedb id
-      if(req.body.moviedbId != null){
-        //Check if serie already added
-        let serieId = await serieMgr.findSerieFromMoviedbId(req.body.moviedbId);
-
-        // prepare response
-        res.setHeader('Content-Type', 'application/json');
-        if(serieId === null){
-          //The serie don't exist, create it
-          console.log("Adding a new serie");
-          serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
-        }
-        
-        if(serieId !== null){
-          res.status(200).send(JSON.stringify({id:serieId}));
-        }else{
-          console.error("Failed to add serie from ",req.body);
-          res.status(500).send('Cannot create serie');
-        }
-        
-
-      }else{
-        res.status(400).send('Unknown request');
-      }
-
-    }else{
-      res.status(401).send('You need to login');
-    }
-
-  })
+  
 
   //app.use(multipart()); // for upload
 

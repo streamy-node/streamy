@@ -3,8 +3,6 @@ var fsutils = require('./fsutils.js');
 var netutils = require('./netutils.js');
 const Media = require('./media.js');
 
-//var mkdirp = require('mkdirp');
-
 class SeriesMgr{
     constructor(dbmanager, settings, mediaMgr){
         this.con = dbmanager;
@@ -18,67 +16,6 @@ class SeriesMgr{
 
     init(){
     }
-
-    // async getSeries(){
-    //     return await this.con.getSeries();
-    // }
-
-    // async getSeriesInfos(lang){
-    //     var series = await this.getSeries();
-    //     var seriesPromises = [];
-    //     for(var i=0; i<series.length; i++){
-    //         seriesPromises.push(this.getSerieInfos(series[i].id,lang));
-    //     }
-
-    //     //Wait all series
-    //     return await Promise.all(seriesPromises);
-    // }
-
-    async getSerieInfos(serieId,lang){
-        var serie = await this.con.getSerie(serieId);
-        if(!serie){
-            return null;
-        }
-
-        var promises = [];
-        // TODO use sql join may be better
-        promises.push(this.con.getMediaTranslation(serie.media_id,this.con.getLangsId(lang)));
-        promises.push(this.con.getBrick(serie.brick_id));
-        //promises.push(await this.con.getFullSerieSeasons(serieId,this.con.getLangsId(lang)));
-        
-        let results = await Promise.all(promises);
-        serie.language = results[0];
-        serie.brick = results[1];
-        //serie.seasons = promises[2];
-        return serie;
-    }
-
-    // async getSeasonsInfos(serieId,lang){
-    //     return await this.con.getSerieSeasons(serieId,this.con.getLangsId(lang));
-    // }
-
-    // async getSeasonsEpisodesInfos(serieId,lang,userId){
-    //     try{
-    //         var seasons = await this.getSeasonsInfos(serieId,lang);
-    //         var seasonsPromises = [];
-    //         for(var i=0; i<seasons.length; i++){
-    //             seasonsPromises.push(this.con.getSerieSeasonEpisodesFull(seasons[i].id,this.con.getLangsId(lang),userId));
-    //         }
-    
-    //         //Wait all promises
-    //         var episodes = await Promise.all(seasonsPromises);
-    //         for(var i=0; i<seasons.length; i++){
-    //             seasons[i].episodes = episodes[i];
-    //         }
-    
-    //         return seasons;
-    //     }catch(err){
-    //         console.error("getSeasonsEpisodesInfos: ",err);
-    //         return null;
-    //     }
-
-    // }
-
 
     //TODO use media getMpdFiles
     async getMpdFiles(mediaId){
@@ -95,119 +32,6 @@ class SeriesMgr{
         }
         return outputFiles;
     }
-
-    // async getEpisodesMpdFiles(episode_id){
-    //     let outputFiles = [];
-    //     let serie = await this.con.getSerieFromEpisode(episode_id);
-    //     let mpdFiles = await this.con.getSeriesMdpFiles(episode_id);
-        
-    //     for(var i=0; i<mpdFiles.length; i++){
-    //         let mpdfile = mpdFiles[i];
-    //         let path = "/series/"+serie.id+"/data/season_"+serie.season_number.toString()+"/episode_"+serie.episode_number+"/"+mpdfile.folder+"/allsub.mpd";
-    //         let title = serie.original_name+" S"+serie.season_number+"E"+serie.episode_number.toString();
-    //         outputFiles.push({filename:path,title:title});
-    //     }
-    //     return outputFiles;
-    // }
-
-    //TO KEEP?
-    async getEpisodeStreamInfos(episode_id){
-        var results = [];
-        let mdpFiles = await this.con.getSeriesMdpFiles(episode_id);
-
-        for(var i=0; i<mdpFiles.length; i++){
-            let infos = {};
-            infos.mdp = mdpFiles[i];
-            infos.videos = await this.con.getSeriesVideos(infos.mdp.id);
-            infos.audios = await this.con.getAudios(infos.mdp.id);
-            infos.srts = await this.con.getSubtitles(infos.mdp.id);
-            results.push(infos);
-        }
-        return results;
-    }
-
-    async _getSeriePathById(serieId){
-        var serie = await this.con.getSerie(serieId);
-        return _getSeriePath(serie);
-    }
-
-    async _getSeriePath(serie){
-        if(!serie.brick_id){
-            return null;
-        }
-        let serieSubpath = this.generateSeriePath(serie.original_name,serie.release_date.getFullYear().toString())
-        var brick = await this.con.getBrick(serie.brick_id);
-        //let serieFolderTitle = serie.original_name+" ("+serie.release_date.getFullYear().toString()+")";
-        return brick.path+'/series/'+serieSubpath;
-    }
-
-    // async _createSerieFS(serieId,serieInfos){
-    //     try{
-    //         var serie = await this.con.getSerie(serieId);
-    //         var seriePath = await this._getSeriePath(serie);
-    //         var brick = await this.con.getBrick(serie.brick_id);
-
-    //         //Check if addPath setted
-    //         if(brick === null){
-    //             console.error("Serie has no brick assigned");
-    //             return null;
-    //         }
-
-    //         //Check if brick path exist
-    //         if(!await fsutils.exists(brick.path)){
-    //             console.error("Series adding path not existing ",brick.path);
-    //             return null;
-    //         }
-
-    //         //Create serie folder
-    //         if(!await fsutils.exists(seriePath)){
-    //             await fsutils.mkdirp(seriePath);
-    //         }
-
-    //         //Create streamy folder
-    //         if(!await fsutils.exists(seriePath+"/.streamy")){
-    //             await fsutils.mkdirp(seriePath+"/.streamy");
-    //         }
-
-    //         //Create season and episodes folders
-    //         for(var i=0; i<serieInfos.seasons.length; i++){
-    //             let seasonInfo = serieInfos.seasons[i];
-
-    //             let seasonTitle = this.generateSeasonSubPath(seasonInfo.season_number)
-    //             //let seasonTitle = "season_"+seasonInfo.season_number.toString();
-    //             var seasonPath = seriePath+"/"+seasonTitle;
-    //             if(!await fsutils.exists(seasonPath)){
-    //                 await fsutils.mkdirp(seasonPath);
-    //             }
-                
-    //             //Add episodes
-    //             for(var j=0; j<seasonInfo.episodes.length; j++){
-    //                 let episode = seasonInfo.episodes[j];
-    //                 let episodeTitle = this.generateEpisodeSubPath(episode.episode_number)
-    //                 // let episodeTitle = "episode_"+episode.episode_number.toString();
-    //                 var episodePath = seasonPath+"/"+episodeTitle;
-    //                 if(!await fsutils.exists(episodePath)){
-    //                     await fsutils.mkdirp(episodePath);
-    //                 }
-    //             }
-    //         }           
-    //     } catch (e) {
-    //         console.error("Failing to create file system for ",serie.original_name);
-    //         return null;
-    //     }
-    //     return true;
-    // }
-
-    // //Add info so that a new streamy server can quickly import a server
-    // async addHintInfos(mediaId,infos){
-    //     let path = await this.mediaMgr.getAbsolutePath(mediaId)
-    //     //Check serie folder
-    //     if(!await fsutils.exists(path)){
-    //         return false;
-    //     }
-    //     await fsutils.appendJson(path+"/.streamy/infos.json",infos);
-    //     return true;
-    // }
     
     async addSerie(serieInfos,serieImages,serieHints){
         //Check if serie is already in an adding state (the original name is suffiscient)
@@ -231,17 +55,6 @@ class SeriesMgr{
                 console.error("Video brick not reachable ",brick.brick_path);
                 return null;
             }
-
-            // Add serie to database
-            //var serieId = null;
-            // var sql = "INSERT INTO `series` (`release_date`,`rating`,`rating_count`,"+
-            //     "`number_of_seasons`,`number_of_episodes`,`original_name`,"+
-            //     "`original_language`, `brick_id`) "+
-            //     " VALUES ('"+serieInfos.release_date+"', "+serieInfos.rating+", "+serieInfos.rating_count+
-            //     ", "+serieInfos.number_of_seasons+", "+serieInfos.number_of_episodes+", '"+serieInfos.original_name.replace(/'/g,"\\'")+
-            //     "', '"+serieInfos.original_language+"', "+brick.id+")";
-            // var sqlres = await this.con.query(sql);
-            // var serieId = sqlres.insertId;
 
             let seriePath = this.generateSeriePath(serieInfos.original_name,new Date(serieInfos.release_date))
             let serieMediaId = await this.con.insertMedia(serieInfos.release_date,
@@ -282,11 +95,6 @@ class SeriesMgr{
                     serieMediaId);
 
                 let seasonId = await this.con.insertSeason(seasonMediaId,seasonInfo.season_number,seasonInfo.number_of_episodes)
-                // let seasonInfo = serieInfos.seasons[i];
-                // sql = "INSERT INTO `series_seasons` (`serie_id`,`release_date`,`season_number`,`number_of_episodes`) "+
-                // " VALUES("+serieId+",'"+seasonInfo.release_date+"', "+seasonInfo.season_number+", "+seasonInfo.number_of_episodes+")";
-                // var sqlres = await this.con.query(sql);
-                // var season_id = sqlres.insertId;
 
                 //TODO manage multilang add english by default
                 lang_id = 1
@@ -314,13 +122,6 @@ class SeriesMgr{
                         seasonMediaId);
                     let episode_id = await this.con.insertEpisode(episodeMediaId,
                         episode.episode_number);
-        
-
-                    // sql = "INSERT INTO `series_episodes` (`season_id`,`episode_number`,`original_name`,`release_date`,`rating`,`rating_count`) "+
-                    //     " VALUES("+season_id+","+episode.episode_number+", '"+ episode.original_name.replace(/'/g,"\\'")+
-                    //     "', '"+episode.release_date+"', "+episode.rating+", "+episode.rating_count+")";
-                    // var sqlres = await this.con.query(sql);
-                    // var episode_id = sqlres.insertId;
 
                     //TODO manage multilang add english by default
                     lang_id = 1
@@ -330,15 +131,6 @@ class SeriesMgr{
                     }
                     await this.con.insertMediaTranslation(episodeMediaId,lang_id,episode.langs.en.title,
                         episode.langs.en.overview)
-
-                    // if(episode.langs.en){
-                    //     //console.log(episode.langs.en.overview.replace(/'/g,"\\'").length);
-                    //     sql = "INSERT INTO `series_episodes_translations` (`episode_id`,`lang_id`,`title`,"+
-                    //         "`overview`)"+
-                    //         " VALUES("+episode_id+", 1, '"+episode.langs.en.title.replace("'","\\'")+
-                    //         "', '"+episode.langs.en.overview.replace(/'/g,"\\'")+"')";
-                    //     await this.con.query(sql);
-                    // }
                 }
             }
 
@@ -409,103 +201,10 @@ class SeriesMgr{
         //Wait only for the first level
         await Promise.all(topImagesPromises);
     }
-    // async downloadFanarts(serieId,serieImages){
-
-    //     try{
-    //         var serie = await this.con.getSerie(serieId);
-    //         var seriePath = await this._getSeriePath(serie);
-    //         if(seriePath === null){
-    //             console.error("Invalid serie path");
-    //             return false;
-    //         }
-
-    //         //create fanart folder
-    //         if(!await fsutils.exists(seriePath+"/fanart")){
-    //             await fsutils.mkdirp(seriePath+"/fanart");
-    //         }
-
-    //         //Download serie images
-    //         var downloads = [];
-    //         if("fanart500" in serieImages) downloads.push(netutils.download(serieImages.fanart500,seriePath+"/fanart/img500.jpg",false));
-    //         if("fanart300" in serieImages) downloads.push(netutils.download(serieImages.fanart300,seriePath+"/fanart/img300.jpg",false));
-    //         if("fanart200" in serieImages) downloads.push(netutils.download(serieImages.fanart200,seriePath+"/fanart/img200.jpg",false));
-
-    //         for(var i=0; i<serieImages.seasons.length; i++){
-    //             var season = serieImages.seasons[i];
-    //             var seasonFolder = seriePath +"/"+this.generateSeasonSubPath(season.season_number);
-    //             //create fanart folder
-    //             if(!await fsutils.exists(seasonFolder+"/fanart")){
-    //                 await fsutils.mkdirp(seasonFolder+"/fanart");
-    //             }
-
-    //             //Download seasons images
-    //             if("fanart500" in season) downloads.push(netutils.download(season.fanart500,seasonFolder+"/fanart/img500.jpg",false));
-    //             if("fanart300" in season) downloads.push(netutils.download(season.fanart300,seasonFolder+"/fanart/img300.jpg",false));
-    //             if("fanart200" in season) downloads.push(netutils.download(season.fanart200,seasonFolder+"/fanart/img200.jpg",false));
-                
-    //             for(var e=0; e<season.episodes.length; e++){
-    //                 var episode = season.episodes[e];
-    //                 var episodeFolder = seasonFolder + this.generateEpisodeSubPath(episode.episode_number);
-
-    //                 //create fanart folder
-    //                 if(!await fsutils.exists(episodeFolder+"/fanart")){
-    //                     await fsutils.mkdirp(episodeFolder+"/fanart");
-    //                 }
-
-    //                 if("fanart300" in episode) downloads.push(netutils.download(episode.fanart300,episodeFolder+"/fanart/img300.jpg",false));
-    //                 if("fanart200" in episode) downloads.push(netutils.download(episode.fanart200,episodeFolder+"/fanart/img200.jpg",false));
-    //             }
-    //         }
-    //         //Wait all downloads
-    //         await Promise.all(downloads);
-    //     }catch(err){
-    //         console.error("Failed to download fanart for serie ",serieId,err);
-    //         return false;
-    //     }
-    //     return true;
-    // }
 
     generateTMDBImageUrl(imgId,size){
         return "https://image.tmdb.org/t/p/w"+size.toString()+""+imgId;
     }
-
-    // async _getFanartImagesFromMovieDB(serieId,serieImages){//TODO
-    //     //Find brick
-
-    //     //Find TMDB id
-    //     var serieId = null;
-    //     var sql = "INSERT INTO `series` (`release_date`,`rating`,`rating_count`,"+
-    //         "`number_of_seasons`,`number_of_episodes`,`original_name`,"+
-    //         "`original_language`) "+
-    //         " VALUES ('"+serieInfos.release_date+"', "+serieInfos.rating+", "+serieInfos.rating_count+
-    //         ", "+serieInfos.number_of_seasons+", "+serieInfos.number_of_episodes+", '"+serieInfos.original_name.replace(/'/g,"\\'")+
-    //         "', '"+serieInfos.original_language+"')";
-    //     var sqlres = await this.con.query(sql);
-    //     var serieId = sqlres.insertId;
-        
-    //     try{
-    //         //Download serie images
-    //         await netutils.download("https://image.tmdb.org/t/p/w500/"+serieImages.fanart,"./fanart/fanart-500.jpg");
-    //         await netutils.download("https://image.tmdb.org/t/p/w300/"+serieImages.fanart,"./fanart/fanart-300.jpg");
-    //         await netutils.download("https://image.tmdb.org/t/p/w200/"+serieImages.fanart,"./fanart/fanart-200.jpg");
-
-    //         for(var i=0; i<serieImages.seasons.length; i++){
-    //             var season = serieImages.seasons[i];
-    //             //Download seasons images
-    //             await netutils.download("https://image.tmdb.org/t/p/w300/"+season.fanart,"./fanart/fanart-300.jpg");
-    //             await netutils.download("https://image.tmdb.org/t/p/w200/"+season.fanart,"./fanart/fanart-200.jpg");
-                
-    //             for(var i=0; i<season.episodes.length; i++){
-    //                 var episode = season.episodes[i];
-    //                 await netutils.download("https://image.tmdb.org/t/p/w300/"+episode.fanart,"./fanart/fanart-300.jpg");
-    //                 await netutils.download("https://image.tmdb.org/t/p/w200/"+episode.fanart,"./fanart/fanart-200.jpg");
-    //             }
-    //         }
-
-    //     }catch(err){
-
-    //     }
-    // }
 
     async addSerieFromMovieDB(movieDBId){
         try{
@@ -600,55 +299,6 @@ class SeriesMgr{
             console.error("Failing adding serie from TheMovieDB",movieDBId,e);
             return null;
         }
-
-        
-
-        //Download posters
-        // try{
-        //     //Check if addPath setted
-        //     if(this.addPath === null){
-        //         console.error("No series adding path has been provided");
-        //         return null;
-        //     }
-        //     //Check if path exist
-        //     if(!await fsutils.exists(this.addPath)){
-        //         console.error("Series adding path not existing ",this.addPath);
-        //         return null;
-        //     }
-
-        //     //Retreive infos from the movie db
-        //     let infos = await moviedb.tvInfo({"id":movieDBId});
-        //     let serieFolderTitle = infos.original_name+" ("+infos.first_air_date.substring(0,4)+")";
-        //     console.log("Adding serie ",serieFolderTitle);
-        //     console.log("infos",infos);
-
-        //     //Check if serie already exists
-        //     if(await fsutils.exists(this.addPath+serieFolderTitle)){
-                
-        //     }
-
-        //     // Create serie folder
-        //     await fsutils.mkdirp(this.addPath+serieFolderTitle);
-        //     // if (!fs.existsSync(dir)){
-        //     //     fs.mkdirSync(dir);
-        //     // }
-
-        //     ;
-
-        //     // Add serie to database
-        //     var sql = "INSERT INTO `series` (`release_date`,`rating`,`rating_count`,"
-        //         "`number_of_seasons`,`number_of_episodes`,`original_name`,"
-        //         "`original_language`) "
-        //         " VALUES("+infos.first_air_date+", "+infos.vote_average+", "+infos.vote_count
-        //         +", "+infos.number_of_seasons+", "+infos.number_of_episodes+", "+infos.original_name
-        //         +", "+infos.original_language+")";
-
-            
-        // } catch (e) {
-        //     console.error("Failing adding serie from TheMovieDB",movieDBId,e);
-        //     return null;
-        // }
-
     }
 
     async findSerieFromMoviedbId(movieDBId){

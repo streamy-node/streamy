@@ -22,10 +22,6 @@ class TranscoderManager{
         this.lastProgressions = {};
         this.lastProgressions.offline={};
         this.lastProgressions.live={};
-        // this.lastProgressions.offline.series = {};
-        // this.lastProgressions.offline.films = {};
-        // this.lastProgressions.live.series = {};
-        // this.lastProgressions.live.films = {};
     }
 
     getProgressions(){
@@ -35,14 +31,6 @@ class TranscoderManager{
     async addMedia(file,original_name,mediaId,userId = null){
         this.convertFileToOfflineMpd(file,original_name,mediaId,userId);
     }
-
-    // async addEpisodeMedia(file,original_name,episodeId){
-    //     this.convertFileToOfflineMpd(file,original_name,episodeId,null);
-    // }
-
-    // async addFilmMedia(file,original_name,film_id){
-    //     this.convertFileToOfflineMpd(file,original_name,null,film_id);
-    // }
 
     async loadAddFileTasks(){
         let tasks = await this.dbMgr.getAddFileTasks();
@@ -63,11 +51,6 @@ class TranscoderManager{
             if(!workingFolderHint){
                 let mpds = [];
                 mpds = await this.dbMgr.getMdpFiles(mediaId);
-                // if(episodeId){
-                //     mpds = await this.dbMgr.getSeriesMdpFiles(episodeId);
-                // }else if(filmId){
-                //     mpds = await this.dbMgr.getFilmsMdpFiles(filmId);
-                // }
                 if(mpds.length > 0){
                     workingFolderHint = mpds[0].folder;
                 }
@@ -95,12 +78,7 @@ class TranscoderManager{
             return null;
         }
 
-        // let extension = path.extname(path.extnametask.file);
-        // if(extension == ".srt"){
-        //     this.addSubtitleFile(filename,episodeId,filmId,task_id);
-        // }else{
         await this.convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,userId,false, true);
-        // }
     }
 
     async generateLiveMpd(episodeId,original_name,filmId,workingFolder = null){
@@ -165,35 +143,6 @@ class TranscoderManager{
             this.dbMgr.removeAddFileSubTasks(task_id);
         }
 
-        //insertAddFileSubTask(task_id,command,done)
-       
-       
-        // //Check if a task for this file is not already added
-        // let task = await this.dbMgr.getAddFileTask(filename);
-
-        // //If task not existing, create and id
-        // let task_id = null;
-        // var workingFolder;
-        // if(!task){
-        //     workingFolder = shortId.generate();
-        //     //Add this file to insert tasks table (in case of shutdown to avoid to download again the file)
-        //     task_id = await this.dbMgr.insertAddFileTask(filename,workingFolder,episodeId,filmId);
-        // }else{
-        //     workingFolder = task.working_folder;
-        //     task_id = task.id;
-        // }
-
-        // if(!task_id){
-        //     console.error("TranscodeMgr: Cannot add file in db ",filename);
-        //     return null;
-        // }
-
-        // // Create target folder if not already done
-        // var targetFolder = await this._getTargetFolder(episodeId,filmId);
-        // var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
-        // if(! await fsutils.exists(absoluteWorkingFolder)){
-        //     await fsutils.mkdirp(absoluteWorkingFolder);
-        // }
         // Create target folder if not already done
         var targetFolder = await this._getTargetFolder(media/*episodeId,filmId*/);
         var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
@@ -220,15 +169,6 @@ class TranscoderManager{
         //Get video resolutions
         let resolutions;
         resolutions = await this.dbMgr.getTranscodingResolutions(media.category_id);
-        // if(filmId){
-        //     resolutions = await this.dbMgr.getFilmsTranscodingResolutions();
-        // }else if(episodeId){
-        //     resolutions = await this.dbMgr.getSeriesTranscodingResolutions();
-        // }else{
-        //     console.error("TranscodeMgr: cannot transcode video without ids");
-        //     return null;
-        // }
-
 
         let absoluteSourceFile = this.settings.upload_path+"/"+filename;
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
@@ -256,8 +196,6 @@ class TranscoderManager{
                     let subtask = subTasks[k];
                     if(subtask.done === 0){
                         // TODO think if path update is really necessary
-                        // let command = subtask.command.replace(/_WORKING_FOLDER_/g,absoluteWorkingFolder);
-                        // ffmpegCmds.push(command.replace(/_FILE_SRC_/g,absoluteSourceFile));
                         ffmpegCmds.push(subtask.command);
                         subTasksIds.push(subtask.id);
                     }
@@ -301,12 +239,7 @@ class TranscoderManager{
                 //insertAddFileSubTask(task_id,command,done)
                 ffmpegCmds.push(await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels));    
             }
-            //command
-            ///let dashName = "all.mpd";
 
-            //insertAddFileSubTask(task_id,command,done)
-            ///var ffmpegCmd = await this._generateFfmpegCmd(absoluteSourceFile,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels);
-            
             let mdpFileUpdated = false;
             var hasVideoOrAudio = false;
             self.updateProgressions(media,0,3,type);
@@ -460,7 +393,6 @@ class TranscoderManager{
 
     extractUploadedSubtitleinfos(filename){
         let infos = null;
-        //let index = filename.indexOf("srt_");
         if(path.extname(filename) === ".vtt" || path.extname(filename) === ".srt"){
             return this.extractProcessedSubtitleinfos(filename);
         }else{
@@ -481,9 +413,6 @@ class TranscoderManager{
         }else{
             console.warn("Cannot extract subtitles info from it's name ",filename)
         }
-
-        //infos.language = filename.substring(4,6);
-        //infos.title = filename.substring(7,filename.length-4);
         return infos;
     }
 
@@ -510,34 +439,19 @@ class TranscoderManager{
     }
 
     updateProgressions(media,progression,state_code,type = "offline",message = null){
-        //let id = episodeId == null ? filmId : episodeId;
         let id = media.id;
         let progressionFilter = progression;
         if(!progressionFilter){
             progressionFilter = 0;
         }
-        // if(!this.lastProgressions[type].has(media.category)){
-        //     this.lastProgressions[type].category = {}
-        // }
 
         this.lastProgressions[type][id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
-
-        // if(episodeId){
-        //     this.lastProgressions[type][media.category][id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
-        // }else if(filmId){
-        //     this.lastProgressions[type].films[id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
-        // }
 
         //Clear from lastProgressions after 30 secs
         var self = this;
         if(state_code == 0){
             setTimeout(function(){
                 delete self.lastProgressions[type][id];
-                // if(media.id){
-                //     delete self.lastProgressions[type].series[id];
-                // }else if(filmId){
-                //     delete this.lastProgressions[type].films[id];
-                // } 
             },30000);
         }
     }
@@ -570,9 +484,6 @@ class TranscoderManager{
 
         //Generate output streams
         let bestVideoStream = this._getBestVideoStream(infos.streams);
-        //let videoOutputIndex = 0;
-        //let audioOutputIndex = 0;
-        //let audioVideoIndex = 0;
         for(var i=0; i<infos.streams.length; i++){
             let stream = infos.streams[i];
 
@@ -589,21 +500,13 @@ class TranscoderManager{
                     output_stream.title = stream.title;
                     output_stream.tags = stream.tags;
                     output_stream.r_frame_rate = stream.r_frame_rate;
-
-                    //output_stream._video_index = videoOutputIndex;
                     output_stream.width = valid_resolutions[j].width;
                     output_stream.height = src_height*output_stream.width/src_width;
-                    //output_stream.index = audioVideoIndex;
                     output_stream._src_index = stream.index;
                     output_streams.push(output_stream);
                     adaptation_index++;
-                    // mappingArgs.push('-map');
-                    // mappingArgs.push("0:"+stream.index);
-                    //videoOutputIndex++;
-                    //audioVideoIndex++;
                 }
             }else if(stream.codec_type === "audio"){
-                //stream._audio_index = audio_idx++;
                 let tags = null;
                 //If ffbrobe failed to get lang infos
                 if(!stream.tags || !stream.tags.language){
@@ -663,10 +566,7 @@ class TranscoderManager{
                     }
 
                 }
-
                 output_streams.push(output_stream);
-                    //_generateSubtitlePart
-                    //globalIndex++;
             }
         }
 
@@ -694,7 +594,6 @@ class TranscoderManager{
         streamArgs = await this._generateStreamsArgs(output_streams);
 
         //Build complete command
-        //Array.prototype.push.apply(args,mappingArgs);
         Array.prototype.push.apply(args,streamArgs);
 
         //If there is a video create mpd otherwise do not
@@ -720,23 +619,19 @@ class TranscoderManager{
             let stream = streams[i];
             stream.index = i;
             if(stream.codec_type === "video"){ //Take only first video stream
-                //stream.index = video_audio_index;
                 stream._video_index = videoOutputIndex;
                 let resolution = await this._getResolution(stream.width);
                 let cmd_part = await this._generateX264Part(stream,resolution);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
                 video_audio_mapping.push("0:"+stream._src_index);
-                //video_audio_index++;
                 videoOutputIndex++;
             }else if(stream.codec_type === "audio"){
-                //stream.index = video_audio_index;
                 stream._audio_index = audioOutputIndex;
                 let cmd_part = await this._generateFdkaacPart(stream);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
                 video_audio_mapping.push("0:"+stream._src_index);
-                //video_audio_index++;
                 audioOutputIndex++;
             }else if(stream.codec_type == "subtitle"){
                 let cmd_part = await this._generateSubtitlePart(stream);
@@ -750,80 +645,9 @@ class TranscoderManager{
         return global_command;
     }
 
-    // /**
-    //  * Import dash files to streamy and return global mdp file id associated
-    //  * @param {*} workingdir 
-    //  * @param {*} cmd 
-    //  */
-    // async importDashStream(episodeId,filmId,workingdir,dashName){
-    //     var dataFile = this.settings.upload_path+"/"+workingdir+"/"+dataFileName;
-    //     var dashFile = this.settings.upload_path+"/"+workingdir+"/"+dashName;
-    //     var targetFolder = await this._getTargetFolder(episodeId,filmId);
-    //     var targetDataFile = targetFolder + "/"+workingdir+"/" + dataFileName;
-    //     var targethDashFile = targetFolder + "/"+workingdir + "/" + dashName;
-    //     var mergeDashFile = targetFolder + "/"+workingdir+ "/all.mpd";
-
-    //     //create dir
-    //     await fsutils.mkdirp(targetFolder+"/"+workingdir);
-
-    //     //Moving file
-    //     console.log("Moving file "+dataFile+" to "+targetDataFile);
-    //     await fsutils.rename(dataFile,targetDataFile);
-    //     console.log("Moving file "+dashFile+" to "+targethDashFile);
-    //     await fsutils.rename(dashFile,targethDashFile);
-
-    //     if(await this.updateMPDFile(targethDashFile,mergeDashFile)){
-    //         console.log("Merge "+targethDashFile+" and "+mergeDashFile+" succeed");
-
-    //         // add infos to db
-    //         var mpdinfos = await this.getMPD(episodeId,filmId,workingdir);
-    //         var mpdId = null
-
-    //         //If not already in db, add it
-    //         if(!mpdinfos){
-    //             mpdId = await this.addMPD(episodeId,filmId,workingdir,0);
-    //         }else{
-    //             mpdId = mpdinfos.id;
-    //         }
-
-    //         return mpdId;
-            
-    //     }else{
-    //         console.error("Failed to merge mdp files ",targethDashFile,mergeDashFile);
-    //         return null;
-    //     }
-    // }
-
-    //Not used
-    // async updateMPDFile(targethDashFile,mergeDashFile){
-    //     //To prevent multiple concurent update (due to awaits) of the same mpd file, use mutex
-    //     var release = null;
-    //     if(!this.mpdSemaphores.has(mergeDashFile)){
-    //         this.mpdSemaphores.set(mergeDashFile,new Semaphore(1));
-    //     }
-    //     release = await this.mpdSemaphores.get(mergeDashFile).acquire();
-    //     //Moving file
-    //     var mergedMpd = await mpdUtils.mergeMpdFiles(targethDashFile,mergeDashFile);
-    //     var saved = await mergedMpd.save(mergeDashFile+".tmp");
-    //     if(saved){
-    //         await fsutils.rename(mergeDashFile+".tmp",mergeDashFile);
-    //         release();
-    //         return true;
-    //     }else{
-    //         release();
-    //         return false;
-    //     }
-    //     //TODO remove semaphore if not used
-    // }
-
     async getMPD(mediaId,workingdir){
         var mpdinfos = null;
         mpdinfos = await this.dbMgr.getMpdFileFromMedia(mediaId,workingdir);
-        // if(episodeId){
-        //     mpdinfos = await this.dbMgr.getSerieMpdFileFromEpisode(episodeId,workingdir,type);
-        // }else if(filmId){
-        //     mpdinfos = await this.dbMgr.getFilmMpdFile(filmId,workingdir,type);
-        // }
         return mpdinfos;
     }
 
@@ -835,11 +659,6 @@ class TranscoderManager{
         }
 
         mpdId = await this.dbMgr.insertMPDFile(mediaId,workingdir,complete)
-        // if(episodeId){
-        //     await this.dbMgr.insertSerieMPDFile(episodeId,mpdId);
-        // }else if(filmId){
-        //     await this.dbMgr.insertFilmMPDFile(filmId,mpdId);
-        // }
         return mpdId;
     }
 
@@ -852,124 +671,15 @@ class TranscoderManager{
         }else{
             //TODO remove mpd if no child has it
         }
-        
-
-        // let serieId = await this.dbMgr.getSerieIdFromEpisode(episodeId);
-        // let videoId = null;
-        // if(episodeId){
-        //     videoId = await this.dbMgr.setSerieEpisodeHasMPD(episodeId,hasMpd);
-        //     await this.dbMgr.setSerieHasMPD(serieId,hasMpd);
-        // }else if(filmId){
-        //     videoId = await this.dbMgr.setFilmHasMPD(filmId,hasMpd);
-        // }
-        // return videoId;
     }
-    // async setVideoMpdStatus(episodeId,filmId,hasMpd){
-    //     let serieId = await this.dbMgr.getSerieIdFromEpisode(episodeId);
-    //     let videoId = null;
-    //     if(episodeId){
-    //         videoId = await this.dbMgr.setSerieEpisodeHasMPD(episodeId,hasMpd);
-    //         await this.dbMgr.setSerieHasMPD(serieId,hasMpd);
-    //     }else if(filmId){
-    //         videoId = await this.dbMgr.setFilmHasMPD(filmId,hasMpd);
-    //     }
-    //     return videoId;
-    // }
-    //bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, series_seasons.season_number,  series_episodes.episode_number
 
     async _getTargetFolder(media){
         var mainFolder;
         //let media = await this.dbMgr.getMedia(mediaId);
         let brick = await this.dbMgr.getBrick(media.brick_id);
         return brick.brick_path +"/"+ media.path;
-        // if(episodeId){
-        //     var res = await this.dbMgr.getEpisodePath(episodeId);
-        //     mainFolder = res.brick_path + "/series/" + res.serie_name + " ("+res.serie_release_date.getFullYear()+")/season_"+res.season_number.toString()+"/episode_"+res.episode_number.toString();
-        // }else if(filmId){
-        //     var res = await this.dbMgr.getFilmPath(filmId);
-        //     mainFolder = res.brick_path+"/films/"+res.original_name+" ("+films.serie_release_date.getFullYear()+")";
-        // }
-        // return mainFolder;
     }
 
-    // async _getProcessedFiles(media,workingDir){
-    //     var mainFolder = await this._getTargetFolder(media);
-    //     if(await fsutils.exists(mainFolder+"/"+workingDir)){
-    //         return await fsutils.readir(mainFolder+"/"+workingDir);
-    //     }else{
-    //         return[];
-    //     }
-    // }
-
-    // async _getBestResolution(media){
-    //     var mainFolder = await this._getTargetFolder(media);
-    //     return await fsutils.readir(mainFolder);
-    // }
-    //////////
-    
-    // const PROCESS_STATUS = {
-    //   NONE: 'NONE',
-    //   QUEUED: 'QUEUED',
-    //   RUNNING: 'RUNNING',
-    //   WAITING: 'WAITING',
-    //   STOPPED: 'STOPPED',
-    //   TERMINATED: 'TERMINATED'
-    // }
-    /////
-    // async _addVideoStream(file,video_stream, target_resolutions,workingDir,existingFiles,episodeId,filmId){
-    //     var original_resolution = await this._getResolution(video_stream.width);
-
-    //     //Filter achievable resolution
-    //     var validResolutions = [];
-    //     for(var i=0; i<target_resolutions.length; i++){
-    //         let target_resolution = target_resolutions[i];
-
-    //         if(original_resolution.width >= target_resolution.width){
-    //             validResolutions.push(target_resolution);
-    //         }
-    //     }
-
-    //     //If the file has a too low resolution add it anyway (TODO add a setting for this)
-    //     if(validResolutions.length == 0){
-    //         validResolutions.push(original_resolution);
-    //     }
-        
-    //     //Send transcoding commands
-    //     for(var i=0; i<validResolutions.length; i++){
-    //         let target_resolution = validResolutions[i];
-    //         let cmd = await this._generateX264Command(file,video_stream,target_resolution,workingDir);
-
-    //         //Check if command will produce already existing file in target folder
-    //         // If it the case, skip this file
-    //         if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
-    //             continue;
-    //         }
-    //         this.launchOfflineTranscodingCommand(cmd,workingDir,
-    //             async function(){
-    //                 //This callback is called when the transcoding of one stream succeed
-    //                 var mpdId = await self.importDashStream(episodeId,filmId,workingDir,cmd.dashName,cmd.targetName);
-
-    //                 if(!mpdId){
-    //                     console.error("Failed to create mdp entry in db ",workingDir);
-    //                     return;
-    //                 }
-
-    //                 // add video
-    //                 var id = null;
-    //                 if(episodeId){
-    //                     id = await self.dbMgr.insertSerieVideo(mpdId,target_resolution.id);
-    //                 }else if(filmId){
-    //                     id = await self.dbMgr.insertFilmVideo(mpdId,target_resolution.id);
-    //                 }
-    //                 if(id === null){
-    //                     console.error("Failed to create video entry in db ",mpdId,target_resolution.id);
-    //                 }
-                        
-    //                 console.log("Dash file updated: "+mpdId);
-
-    //         },function(msg){});
-    //     }
-    // }
     async _generateSubtitlePart(stream){
         let lang = "00";
 
@@ -1028,19 +738,6 @@ class TranscoderManager{
         }
         return bestStream;
     }
-    
-    // async _generateX264Parts(stream,target_resolutions){
-    //     let results = [];
-    //     var original_resolution = await this._getResolution(stream.width);
-    //     for(var i=0; i<target_resolutions.length; i++){
-    //         let target_resolution = target_resolutions[i];
-
-    //         if(original_resolution.width >= target_resolution.width){
-    //             Array.prototype.push.apply(results, this._generateX264Part(target_resolution));
-    //         }
-    //     }
-    //     return results;
-    // }
 
     async _generateX264Part(stream,target_resolution){
         let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
@@ -1162,54 +859,6 @@ class TranscoderManager{
         return parseInt(arrayOfStrings[0])/parseInt(arrayOfStrings[1]);
     }
 
-    // async _addAudioStream(file,audio_stream,targetChannelsList,workingDir,existingFiles,episodeId,filmId){
-    //     var self = this;
-    //     //Send transcoding commands
-    //     for(var i=0; i<targetChannelsList.length; i++){
-    //         let targetChannels = targetChannelsList[i];
-    //         let cmd = await this._generateFdkaacCommand(file,audio_stream,targetChannels,workingDir);
-
-    //         //Check if command will produce already existing file in target folder
-    //         // If it the case, skip this file
-    //         if(cmd.targetName in existingFiles && cmd.dashName in existingFiles){
-    //             console.log("Skipping already done transcoding for episode ",episodeId," file: ",cmd.targetName);
-    //             continue;
-    //         }
-
-    //         this.launchOfflineTranscodingCommand(cmd,workingDir,
-    //             async function(){
-    //              //This callback is called when the transcoding of one stream succeed
-    //              var mpdId = await self.importDashStream(episodeId,filmId,workingDir,cmd.dashName,cmd.targetName);
-                            
-    //              if(!mpdId){
-    //                  console.error("Failed to create mdp entry in db ",workingDir);
-    //                  return;
-    //              }
-
-    //             let langInfos = await self.dbMgr.getLangFromIso639_2(audio_stream.tags.language);
-    //             let lang_id = null;
-
-    //             if(!langInfos){
-    //                 console.log("Unknown audio lang ...",);
-    //             }else{
-    //                 lang_id = langInfos.language_id;
-    //             }
-
-    //             var id = null;
-    //             if(episodeId){
-    //                 id = await self.dbMgr.insertSerieAudio(mpdId,lang_id,targetChannels);
-    //             }else if(filmId){
-    //                 id = await self.dbMgr.insertFilmAudio(mpdId,lang_id,targetChannels);
-    //             }
-    //             if(id === null){
-    //                 console.error("Failed to create audio entry in db ",mpdId,target_resolution.id);
-    //             }else{
-    //                 console.log("Dash file updated: "+mpdId);
-    //             }       
-    //         },function(msg){});
-    //     }
-    // }
-
     launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError,onProgressions){//TODO 
         var hw = new Hardware(1,0,0,0);
         var process = new Process("ffmpeg",cmd.args,10,hw,true)
@@ -1275,66 +924,6 @@ class TranscoderManager{
         bitrate.toString()+"K",
         ];
     }
-
-//     async _generateFdkaacCommand(inputfile,stream,target_channels,workingDir){
-//         var output = {};
-
-//         //Width determine resolution category
-//         //width*height induce bitrate
-//         let bitrate = await this.dbMgr.getAudioBitrate(target_channels);
-        
-//         var segmentduration = this.settings.global.segment_duration;
-//         let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
-//         let lang_639_1 = "unknown";
-
-//         if(!langInfos){
-//             console.log("Unknown lang ",stream.tags.language);
-//         }else{
-//             lang_639_1 = langInfos.iso_639_1;
-//         }
-
-//         output.targetName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mp4";
-//         output.dashName = "audio_aac_ch"+target_channels.toString()+"_"+lang_639_1+".mpd";
-//         output.args = [
-//             '-i',
-//             inputfile,
-//             '-y',
-//             '-vn',
-//             '-sn',
-//             '-c:a:'+stream.audio_index,
-//             'libfdk_aac',
-//             '-ac',
-//             target_channels.toString(),
-//             '-ab',
-//             bitrate.toString()+"K",
-//             '-use_timeline',
-//             '0',
-//             '-use_template',
-//             '0',
-//             '-single_file',
-//             '1',
-//             '-single_file_name',
-//             output.targetName,
-//             '-min_seg_duration',
-//             segmentduration,
-//             '-f',
-//             'dash',
-//             workingDir+"/"+output.dashName
-//         ];
-// //         /opt/ffmpeg/bin/ffmpeg -re -i ../output.mp4 -vn -sn -c:a libfdk_aac \
-// // -ac 2 -ab 128k -vn \
-// // -use_timeline 1 -use_template 1 -single_file 1 -single_file_name audio1.mp4 \
-// // -f dash ./audio1.mpd
-
-//         //-preset slow
-
-//         return output;
-//     }
-
-    // sync checkHasMpd(){
-
-    //     await self.setVideoMpdStatus(episodeId,filmId,1);
-    // }
 }
 
 module.exports = TranscoderManager;

@@ -7,7 +7,6 @@ class SerieController{
         this.blocksWithProgression = new Map();
     }
 
-
     genericRender(target,template,viewData){
         var rendered = Mustache.render(template, viewData);
         return $(target).html(rendered);
@@ -21,35 +20,15 @@ class SerieController{
     renderSerie(target,serieID){
         //Get serie infos
         var self = this;
-        //var rendered = Mustache.render(template, viewData);
         this.genericRender(target,this.templates.serie,{lang:this.langs.active,dyn:{}}).ready(function(){
             self.setupSerie();
         });
     }
 
     // serie.html
-
     appendToContainer(containerId,elem){
         $(containerId).first().append(elem);
-        //$(containerId).first().after(elem);
     }
-
-    // renderSerie_episode(serieInfos){
-    //     var template = $("#poster_tpl").clone();
-    //     //template.attr("id","serie_"+parseInt(serieInfos.id));
-    //     console.log(template.html());
-    //     console.log(template.text());
-    //     console.log(template);
-    //     template.find("img").attr("src","/data/series/"+serieInfos.brick_id+"/"+serieInfos.original_name+" ("+serieInfos.release_date.substr(0,4)+")/fanart/img500.jpg");
-    //     template.find(".series_titles").html(serieInfos.language.title+" ("+serieInfos.release_date.substr(0,4)+")");
-    //     template.find(".series_rating").html(serieInfos.rating);
-    //     template.find(".series_link").attr("href","#serie_"+serieInfos.id);
-        
-    //     var videoBock = new VideoBlock();
-    //     videoBock.setup(template);
-
-    //     return template.html();
-    // }
 
     renderSerie_elements(seriesInfos){
         for(var i=0; i<seriesInfos.length; i++){ 
@@ -59,9 +38,6 @@ class SerieController{
 
     renderSerie_season(brickId,seasonInfos){
         var template = $("#serie_season_tpl").clone();
-        //template.attr("id","serie_"+parseInt(serieInfos.id));
-        // console.log(template.html());
-        // console.log(template.text());
         console.log("template: ",template);
         template.attr('id','');
         template.removeClass("hidden");
@@ -147,11 +123,6 @@ class SerieController{
             });
         });
 
-
-        // $(".box").each(function(elem) {
-
-        // });
-
         //Connect buttons
         $("#addtitle").click(function(){
             
@@ -169,17 +140,8 @@ class SerieController{
                 });
             }
         });
-
-        
     }
     
-    // <div class="container" id="all-series">
-    // <div class="row">
-    //     <div class="col-sm-3">
-    //         One of three columns
-    //     </div>
-    // Series display
-
     updateProgressions(progressions){
         if(location.hash.includes("#serie_") && progressions){
             for(let items of this.blocks){
