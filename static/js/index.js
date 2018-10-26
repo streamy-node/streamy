@@ -6,6 +6,7 @@ class ContentManager{
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
     this.serieMgr = new SerieController(this.templates,this.langs);
     this.workersMgr = new WorkerController(this.templates);
+    this.ws = io('/notifications');
 
     var self = this;
     //Pull progressions
@@ -79,6 +80,11 @@ class ContentManager{
       console.error("Not implemented hash ", type);
     }
   }
+
+  //////////////// Notifications //////////////////////
+  //this.ws.on("")
+
+  ////////////////////////////////////////////////////
 
   updateProgressions(){
     var self = this;

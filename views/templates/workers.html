@@ -1,30 +1,15 @@
 <!-- Create movies content page skeleton -->
 <div id="tpl_worker" >
     <div class="container-fluid no-gutters nopad" >
-        <h1 >Workers</h1>
+        <h1 >{{#__}}Workers{{/__}}</h1>
 
         <ul class="list-group" id="worker_list">
-            <li class="list-group-item d-flex align-items-center">
-                <div class="">192.168.1.10:7000</div>
-                <div class="status alert-danger ml-2 mr-auto">Offline</div>
-                <button type="button" class="btn btn-danger">Remove</button>
-            </li>
-            <li class="list-group-item d-flex align-items-center">
-                <div class="">192.168.1.11:7000</div>
-                <div class="status alert-success ml-2 mr-auto">Online</div>
-                <button type="button" class="btn btn-warning mr-2">Pause</button>
-                <button type="button" class="btn btn-danger">Remove</button>
-            </li>
-            <li class="list-group-item d-flex align-items-center">
-                <div class="">192.168.1.10:7000</div>
-                <div class="status alert-danger ml-2 mr-auto">Offline</div>
-                <button type="button" class="btn btn-danger">Remove</button>
-            </li>
+            <!-- workers status here-->
         </ul>
-
     </div>
 
-    <label for="worker_host" class="mt-4">{{AddWorker}}:</label>
+    <!-- add worker line here -->
+    <label for="worker_host" class="mt-4">{{#__}}AddWorker{{/__}}:</label>
     <div class="input-group mb-3">
         <div class="input-group-prepend">
             <span class="input-group-text" id="descIp">IP</span>
@@ -35,7 +20,7 @@
         </div>
         <input type="number" class="port_input form-control" placeholder="7000" min="0" max="65535" aria-describedby="descPort">
         <div class="input-group-append">
-            <button class="btn btn-success" type="button" id="addWorkerButton">Button</button>
+            <button class="btn btn-success" type="button" id="addWorkerButton">{{#__}}Add{{/__}}</button>
         </div>
     </div>  
 </div>
@@ -44,9 +29,10 @@
 <div id="worker_status_tpl" class="hidden">
     <li class="list-group-item d-flex align-items-center">
         <div class="worker_ip">192.168.1.11:7000</div>
-        <div class="status alert-success ml-2 mr-auto">Online</div>
-        <button type="pause_worker_btn button" class="btn btn-warning mr-2">Stop</button>
-        <button type="start_worker_btn button" class="btn btn-success mr-2">Start</button>
-        <button type="remove_worker_btn button" class="btn btn-danger">{{Remove}}</button>
+        <div class="online_status status alert-success ml-2 mr-auto hidden">Online</div>
+        <div class="offline_status status alert-danger ml-2 mr-auto">Offline</div>
+        <button type="button" class="disable_worker_btn btn btn-warning mr-2">{{#__}}Disable{{/__}}</button>
+        <button type="button" class="enable_worker_btn btn btn-success mr-2">{{#__}}Enable{{/__}}</button>
+        <button type="button" class="remove_worker_btn btn btn-danger">{{#__}}Remove{{/__}}</button>
     </li>
 </div>

@@ -77,6 +77,12 @@ class Process extends EventEmitter{
       this.emit('final',msg);
     }
   }
+
+  clearWorkerInfos(){
+    process.ws = null
+    process.worker = null;
+    process.progression = 0;
+  }
 }
 
 class Worker{
@@ -93,6 +99,7 @@ class Worker{
     this.failures = 0;
     this.waitingProcesses = [];
     this.stoppedProcesses = [];
+    this.status = "offline";
   }  
 }
 
@@ -109,14 +116,63 @@ class FfmpegProcessManager extends EventEmitter{
     return this.workers;
   }
 
-  enableWorker(id,value){
+  enableWorkerFromId(id,value){
     for(let i=0; i<this.workers.length; i++){
       let worker = this.workers[i];
       if(worker.id == id){
-        worker.enabled = value;
-        this.emit('workerEnabled',worker);
+        this.enableWorker(value)
         break;
       }
+    }
+  }
+
+  enableWorker(worker,value){
+    if(worker.enabled != value){
+      worker.enabled = value;
+      if(value){
+          this.emit('workerEnabled',worker);
+          this.fillupWorker(worker);
+      }else{
+        this.removeWorkerProcesses(worker)
+        this.emit('workerDisabled',worker);
+      }
+    }
+  }
+
+  // Remove all processes on a worker and queue them
+  removeWorkerProcesses(worker){
+    let socketsToClose = []
+    let processesToRelaunch = []
+
+    //Transfert active processes
+    for(let i=0; i<worker.processes.length; i++){
+      socketsToClose.push(worker.processes[i].ws);
+      worker.processes[i].clearWorkerInfos();
+    }
+    processesToRelaunch = processesToRelaunch.concat(worker.processes);
+
+    //Transfert waiting processes
+    for(let i=0; i<worker.waitingProcesses.length; i++){
+      socketsToClose.push(worker.waitingProcesses[i].ws);
+      worker.waitingProcesses[i].clearWorkerInfos();
+    }
+    processesToRelaunch = processesToRelaunch.concat(worker.waitingProcesses);
+
+    //Transfert stopped processes
+    for(let i=0; i<worker.stoppedProcesses.length; i++){
+      socketsToClose.push(worker.stoppedProcesses[i].ws);
+      worker.stoppedProcesses[i].clearWorkerInfos();
+    }
+    stoppedProcesses = this.waitingProcesses.concat(worker.stoppedProcesses);
+
+    //Close all sockets
+    for(let i=0; i<socketsToClose.length; i++){
+      socketsToClose[i].close();
+    }
+
+    //Re-launch all active processes
+    for(let i=0; i<processesToRelaunch.length; i++){
+      this.launchProcess(processesToRelaunch[i]);
     }
   }
 
@@ -148,6 +204,7 @@ class FfmpegProcessManager extends EventEmitter{
       };
       //hwInfos = {core:1.0,gpu:1.6,vaapi:0.0,omx:0.0};
       var worker = new Worker(ip,port,ffmpegInfos,hwInfos);
+      worker.status = "online"
       this.workers.push(worker);
       if(this.workers.length == 1){
         this.emit('workerAvailable',worker);
@@ -159,6 +216,7 @@ class FfmpegProcessManager extends EventEmitter{
       return true;
     }catch(err){
       console.error("Failed to add worker: ",ip," ",err);
+      worker.status = "offline"
       return false;
     } 
   }
@@ -328,9 +386,11 @@ class FfmpegProcessManager extends EventEmitter{
           },
           (error)=>{
             process._onFinal(new FinalMsg(2,"Socket send error",error));
-            worker.enabled = false;
-            worker.error = error
-            this.emit('workerDisabled',worker);
+            //worker.enabled = false;
+            worker.error = error;
+            worker.status = "offline"
+            this.enableWorker(worker,false);
+            //this.emit('workerDisabled',worker);
           }
         );
       });
@@ -397,6 +457,7 @@ class FfmpegProcessManager extends EventEmitter{
   }
 
   // API Start stopped launched process
+  // TODO POSSIBLE BUG: worker.processes not updated here 
   startProcess(process){
     console.log("Starting process ",process);
     //var self = this;
@@ -429,14 +490,16 @@ class FfmpegProcessManager extends EventEmitter{
         if(available && process.status != PROCESS_STATUS.RUNNING){
           process.status = PROCESS_STATUS.RUNNING;//Reserve it now
           sendAsJson(process.ws,{ command:"kill",signal:"SIGCONT" }
-            ,() => { process._onStart(); }
+            ,() => { process._onStart();process.worker.status = "online" }
             ,(error) => {
             //The worker made a socker error => disable it
             if(error){
               process._onFinal(new FinalMsg(2,"Socket send error",error));
-              process.worker.enabled = false;
+              //process.worker.enabled = false;
               process.worker.error = error
-              this.emit('workerDisabled',worker);
+              process.worker.status = "offline"
+              this.enableWorker(worker,false);
+              //this.emit('workerDisabled',worker);
             }
           });
           return true;
@@ -478,9 +541,12 @@ class FfmpegProcessManager extends EventEmitter{
             //The worker made a socker error => disable it
             if(error){
               process._onFinal(new FinalMsg(2,"Socket send error",error));
-              process.worker.enabled = false;
+              //process.worker.enabled = false;
               process.worker.error = error
-              this.emit('workerDisabled',worker);
+              process.worker.status = "online"
+              this.enableWorker(worker,false);
+              
+              //this.emit('workerDisabled',worker);
               //self.fillupWorker(process.worker);
             }
           });
@@ -515,7 +581,9 @@ class FfmpegProcessManager extends EventEmitter{
 
   //OnWorker process Done, try to push as many task as possible
   fillupWorker(worker){
-
+    if(!worker.enabled){
+      return;
+    }
     //First try to autostart local stopped processes if there are no higher task in queue
     worker.waitingProcesses.sort(this.compareProcesses);
     this.waitingProcesses.sort(this.compareProcesses);

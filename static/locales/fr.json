@@ -12,5 +12,10 @@
 	"Password": "Password",
 	"AddMovieFromUpload": "Upload Movie",
 	"AddMovieFromFile": "Import Movie",
-	"Workers": "Workers"
+	"Workers": "Workers",
+	"AddWorker": "AddWorker",
+	"Add": "Add",
+	"Disable": "Disable",
+	"Enable": "Enable",
+	"Remove": "Remove"
 }

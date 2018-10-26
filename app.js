@@ -6,7 +6,9 @@ var express = require('express')
 var session = require('express-session');
 var formidable = require('formidable');
 var MySQLStore = require('express-mysql-session')(session);
-
+/// Setup express server
+var app = express()
+var server  = require('http').createServer(app);
 
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
@@ -35,6 +37,8 @@ var resumable = new Resumable()
 var multipart = require('connect-multiparty');
 var crypto = require('crypto');
 
+// Notifications
+var io = require('socket.io').listen(server);
 
 if(process.argv.length <= 2){
   console.error("Moviedb key missing");
@@ -173,9 +177,6 @@ function startApp(){
     });
   });
 
-  /// Setup express server
-  var app = express()
-
   /// Setup more secure option in production
   if (app.get('env') === 'production') {
     //minimale security
@@ -289,12 +290,16 @@ function startApp(){
     res.sendFile(__dirname + '/views/templates/addvideo.html');// TODO template here
   })
   app.get('/workers.html', loggedIn, function (req, res) {
-    res.render('templates/workers.html');
+    res.render('templates/workers.html',req.lang);
   })
 
   //static files from node_modules
   app.get('/js/shaka/*', loggedIn, safePath, function (req, res) {
     res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
+  })
+
+  app.get('/js/socket.io/*', loggedIn, safePath, function (req, res) {
+    res.sendFile(__dirname + '/node_modules/socket.io-client/dist/' + req.params[0]);
   })
 
   app.get('/css/material-icons/*', loggedIn, safePath, function (req, res) {
@@ -364,24 +369,6 @@ function startApp(){
     res.setHeader('Access-Control-Allow-Origin', '*');//Compulsory for casting
     res.sendFile(brick.brick_path+"/" + req.params[0]);
   })
-
-  ////////////////// Workers  //////////////
-  app.get('/workers', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
-      var lang = req.query.lang;
-      var userId = 1;//TODO get userId
-
-      //Set default lang
-      if(!lang){
-        lang = 'en';
-      }
-
-      let workers = processesMgr.getWorkers();
-
-      res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify(workers));
-    }
-  });
 
   ////////////////// Series specific //////////////
 
@@ -511,11 +498,52 @@ function startApp(){
     }
   });
 
-  
+  ////////////////// Workers  //////////////
+  app.get('/workers', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var lang = req.query.lang;
+      var userId = 1;//TODO get userId
 
-  //app.use(multipart()); // for upload
+      //Set default lang
+      if(!lang){
+        lang = 'en';
+      }
 
-  var server = app.listen(8080, function () {
+      let workers = processesMgr.getWorkers();
+
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(workers));
+    }
+  });
+
+  ///////// Notifications ///////
+  var wsNotifs = io.of('/notifications');
+  wsNotifs.on('connection', function (socket) {
+      console.log('Websocket connected');
+  });
+
+  processesMgr.on('workerAdded', function(worker){
+    io.to("workers").emit('workerAdded',worker)
+  });
+  processesMgr.on('workerEnabled', function(worker){
+    io.to("workers").emit('workerAdded',worker.ip,worker.port)
+  });
+  processesMgr.on('workerDisabled', function(worker){
+    io.to("workers").emit('workerAdded',worker.ip,worker.port)
+  });
+  processesMgr.on('workerRemoved', function(worker){
+    io.to("workers").emit('workerAdded',worker.ip,worker.port)
+  });
+
+
+  // Restart failed or not finished add file tasks
+  // as soon as there is a ffmpeg worker available
+  processesMgr.on('workerAvailable', function(){
+    transcodeMgr.loadAddFileTasks();
+  });
+    
+  ///////// Start the server ///////
+  server.listen(8080, function () {
 
     var host = server.address().address
     var port = server.address().port
@@ -523,11 +551,7 @@ function startApp(){
     console.log("Streamy node listening at http://%s:%s", host, port)
   });
 
-  // Restart failed or not finished add file tasks
-  // as soon as there is a ffmpeg worker available
-  processesMgr.on('workerAvailable', function(){
-    transcodeMgr.loadAddFileTasks();
-  });
+
 
   appstarted = true;
   // TODO properly shutdown
