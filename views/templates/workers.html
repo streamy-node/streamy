@@ -18,7 +18,7 @@
         <div class="input-group-append">
             <span class="input-group-text" id="descPort">Port</span>
         </div>
-        <input type="number" class="port_input form-control" placeholder="7000" min="0" max="65535" aria-describedby="descPort">
+        <input id="worker_port" type="number" class="port_input form-control" value="7000" min="0" max="65535" aria-describedby="descPort">
         <div class="input-group-append">
             <button class="btn btn-success" type="button" id="addWorkerButton">{{#__}}Add{{/__}}</button>
         </div>
@@ -29,10 +29,13 @@
 <div id="worker_status_tpl" class="hidden">
     <li class="list-group-item d-flex align-items-center">
         <div class="worker_ip">192.168.1.11:7000</div>
-        <div class="online_status status alert-success ml-2 mr-auto hidden">Online</div>
-        <div class="offline_status status alert-danger ml-2 mr-auto">Offline</div>
+        <div class="online_status status alert-success ml-2 hidden">Online</div>
+        <div class="offline_status status alert-danger ml-2 ">Offline</div>
+        <div class="enabled_status status alert-primary ml-2 mr-success mr-auto">Enabled</div>
+        <div class="disabled_status status alert-warning ml-2 mr-success mr-auto">Disabled</div>
+        <button type="button" class="remove_worker_btn btn btn-danger mr-2">{{#__}}Remove{{/__}}</button>
         <button type="button" class="disable_worker_btn btn btn-warning mr-2">{{#__}}Disable{{/__}}</button>
         <button type="button" class="enable_worker_btn btn btn-success mr-2">{{#__}}Enable{{/__}}</button>
-        <button type="button" class="remove_worker_btn btn btn-danger">{{#__}}Remove{{/__}}</button>
+        
     </li>
 </div>

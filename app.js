@@ -136,6 +136,11 @@ function startApp(){
     saveUninitialized: false
   };
 
+  //Handle reconnection
+  dbMgr.on("connected",function(connection){
+    sess.store = new MySQLStore({},connection);
+  })
+
   /// Setup auth
   var failedConnectionAttempt = 0;
   passport.use(new LocalStrategy(
@@ -509,30 +514,79 @@ function startApp(){
         lang = 'en';
       }
 
-      let workers = processesMgr.getWorkers();
+      let workers = processesMgr.getLightWorkers();
 
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(workers));
     }
   });
 
-  ///////// Notifications ///////
-  var wsNotifs = io.of('/notifications');
-  wsNotifs.on('connection', function (socket) {
-      console.log('Websocket connected');
+  app.post('/workers', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var ip = req.body.ip;
+      var port = req.body.port;
+      if(ip && ip.length > 0 && port > 0){
+        processesMgr.addWorker(ip,port);
+        res.sendStatus(200)
+      }else{
+        console.warn("Cannot add worker with invalid ip and port"  )
+        res.sendStatus(500)
+      }
+    }else{
+      res.sendStatus(500)
+    }
   });
 
+  app.post('/workers/:id/status', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var id = req.params.id;
+      var statusValue = req.body.status;
+      processesMgr.enableWorkerFromId(id,statusValue);
+      res.sendStatus(200)
+    }else{
+      res.sendStatus(500)
+    }
+  });
+
+  app.delete('/workers/:id', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var id = req.params.id;
+      if(processesMgr.removeWorker(id)){
+        res.sendStatus(200)
+      }else{
+        res.sendStatus(500)
+      }
+    }else{
+      res.sendStatus(500)
+    }
+  });
+
+  ///////// Notifications ///////
+  // var wsNotifs = io.of('/notifications');
+  // wsNotifs.on('connection', function (socket) {
+  //     console.log('Websocket connected');
+  //     // once a client has connected, we expect to get a ping from them saying what room they want to join
+  //     socket.on('join_room', function(room) {
+  //       socket.join(room);
+  //     });
+  //     socket.on('leave_room', function(room) {
+  //       socket.leave(room);
+  //     });
+  // });
+  //io.join("workers")
+  
+  var wsNotifs = io.of('/notifications/workers');
   processesMgr.on('workerAdded', function(worker){
-    io.to("workers").emit('workerAdded',worker)
+    wsNotifs.emit('workerAdded',processesMgr.getLightWorker(worker))
   });
   processesMgr.on('workerEnabled', function(worker){
-    io.to("workers").emit('workerAdded',worker.ip,worker.port)
+    wsNotifs.emit('workerEnabled',worker.ip,worker.port)
   });
   processesMgr.on('workerDisabled', function(worker){
-    io.to("workers").emit('workerAdded',worker.ip,worker.port)
+    wsNotifs.emit('workerDisabled',worker.ip,worker.port)
   });
   processesMgr.on('workerRemoved', function(worker){
-    io.to("workers").emit('workerAdded',worker.ip,worker.port)
+    wsNotifs.emit('workerRemoved',worker.ip,worker.port)
   });
 
 

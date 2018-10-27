@@ -2,11 +2,15 @@ class ContentManager{
   constructor(){
     this.langs = {};
     this.templates = {};
+    this.sharedWebsocket = new SharedWebSocket;
     this.moviesMgr = new MoviesContent(this.templates,this.langs);
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
     this.serieMgr = new SerieController(this.templates,this.langs);
-    this.workersMgr = new WorkerController(this.templates);
-    this.ws = io('/notifications');
+    this.workersMgr = new WorkerController(this.templates,this.sharedWebsocket);
+    
+    // socket.on('connect', function(){});
+    // socket.on('event', function(data){});
+    // socket.on('disconnect', function(){});
 
     var self = this;
     //Pull progressions

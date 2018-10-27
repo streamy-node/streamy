@@ -1,13 +1,14 @@
 class WorkerController{
-    constructor(templates,langs){
+    constructor(templates,sws){
         this.templates = templates;
         this.workersStatus = {};
         this.isInitialized = false;
+        this.sws = sws;
     }
 
     render(div){
         if(!this.isInitialized){
-            this.setup();
+            this.initialize();
             this.isInitialized = true;
         }
 
@@ -16,25 +17,96 @@ class WorkerController{
         $.getJSON( "workers", function( workers ) {
             self.renderWorkers(workers);;
         });
+
+        $("#addWorkerButton").click(function(){
+            let ip = $("#worker_host").val()
+            let port = parseInt($("#worker_port").val())
+            let data = {ip:ip,port:port}
+            postAsJson(data,"/workers", function(response){
+            },function(response){
+                alert("Failed to add worker "+response);
+            },false)
+        });
     }
 
-    setup(){
+    initialize(){
+        var self = this;
         //Websocket
+        //var ws = io('/notifications/workers');
+        var ws_worker = this.sws.subscribe('/notifications/workers')
+        // this.ws.emit('join_room', "workers");
+        // this.ws.on('connect', function() {
+        //     // Connected, let's sign-up for to receive messages for this room
+        //     this.ws.emit('join_room', "workers");
+        // });
+        //this.ws.emit('join_room', "workers");
+            // this.ws.join('workers')
+        ws_worker.on('workerAdded', function(worker){
+            self.appendWorker(worker);
+        });
+        ws_worker.on('workerEnabled', function(ip,port){
+            self.setWorkerEnabled(ip+":"+port,true)
+        });
+        ws_worker.on('workerDisabled', function(ip,port){
+            self.setWorkerEnabled(ip+":"+port,false)
+        });
+        ws_worker.on('workerRemoved', function(ip,port){
+            self.removeWorker(ip+":"+port)
+        });
     }
 
     renderWorkers(workers){
         for(var i=0; i<workers.length; i++){ 
-            this.appendToContainer("#worker_list",this.renderWorker(workers[i]));
+            this.appendWorker(workers[i]);
         } 
+    }
+
+    appendWorker(worker){
+        this.appendToContainer("#worker_list",this.renderWorker(worker));
     }
     
     renderWorker(worker){
         var template = $("#worker_status_tpl").clone();
         template.attr('id','');
         template.removeClass("hidden");
-        template.find(".worker_ip").textContent = (worker.ip+":"+worker.port);
-        let id = worker.ip+":"+worker.port;
+        template.find(".worker_ip").text(worker.ip+":"+worker.port);
+        var id = worker.ip+":"+worker.port;
         this.workersStatus[id] = template;
+
+        //connect buttons
+        //'/workers/:id/status'
+        template.find(".disable_worker_btn").click(function(){
+            let data = {status:false}
+            postAsJson(data,"/workers/"+id+"/status", function(response){
+            },function(response){
+                alert("Failed to disable serie "+response);
+            },false)
+        });
+        template.find(".enable_worker_btn").click(function(){
+            let data = {status:true}
+            postAsJson(data,"/workers/"+id+"/status", function(response){
+            },function(response){
+                alert("Failed to enable serie "+response);
+            },false)
+        });
+        template.find(".remove_worker_btn").click(function(){
+            var r = confirm("You will remove the worker "+id);
+            if(r){
+                deleteReq("/workers/"+encodeURIComponent(id));
+            }
+        });
+        template.find(".disable_worker_btn").click(function(){
+            let data = {status:false}
+            postAsJson(data,"/workers/"+id+"/status", function(response){
+            },function(response){
+                alert("Failed to disable serie "+response);
+            },false)
+        });
+
+        // <button type="button" class="disable_worker_btn btn btn-warning mr-2">{{#__}}Disable{{/__}}</button>
+        // <button type="button" class="enable_worker_btn btn btn-success mr-2">{{#__}}Enable{{/__}}</button>
+        // <button type="button" class="remove_worker_btn btn btn-danger">{{#__}}Remove{{/__}}</button>
+
 
         this.setWorkerEnabled(id,worker.enabled);
         this.setWorkerStatus(id,worker.status);
@@ -47,10 +119,14 @@ class WorkerController{
             workerElem.find(".enable_worker_btn").addClass("hidden");
             workerElem.find(".disable_worker_btn").removeClass("hidden");
             workerElem.find(".remove_worker_btn").addClass("hidden");
+            workerElem.find(".enabled_status").removeClass("hidden");
+            workerElem.find(".disabled_status").addClass("hidden");
         }else{
             workerElem.find(".enable_worker_btn").removeClass("hidden");
             workerElem.find(".disable_worker_btn").addClass("hidden");
-            workerElem.find(".remove_worker_btn").removeClass("hidden");     
+            workerElem.find(".remove_worker_btn").removeClass("hidden");
+            workerElem.find(".enabled_status").addClass("hidden");
+            workerElem.find(".disabled_status").removeClass("hidden");   
         }
     }
 
@@ -63,6 +139,12 @@ class WorkerController{
             workerElem.find(".offline_status").removeClass("hidden");
             workerElem.find(".online_status").addClass("hidden");    
         }
+    }
+
+    removeWorker(workerId){
+        let workerElem = this.workersStatus[workerId];
+        workerElem.remove();
+        
     }
     // <div class="online_status alert-success ml-2 mr-auto">Online</div>
     // <div class="offline_status alert-danger ml-2 mr-auto">Offline</div>

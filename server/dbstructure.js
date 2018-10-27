@@ -1,9 +1,11 @@
 var fs = require('fs');
 var moviedb = require('./moviedb.js');
 var mysql = require('mysql');
+const EventEmitter = require('events');
 
-class DBStructure{
+class DBStructure extends EventEmitter{
     constructor(){
+        super();
         this.con = null;
         this.dboptions = null;
         this.langs = new Map();
@@ -85,15 +87,19 @@ class DBStructure{
             }else{
                 console.log("Connected to db :)");
                 if(statuscb) statuscb();
+                self.emit("connected",self.con);
             }                                    
 
         });                                    
 
         this.con.on('error', function(err) {
             console.log('db error', err);
+            self.emit("disconnected");
+            this.con.destroy();
             if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
                 self.handleDisconnect(statuscb);                         // lost due to either server restart, or a
-            } else {                                      // connnection idle timeout (the wait_timeout
+            } else {                                     // connnection idle timeout (the wait_timeout
+                console.error("DB error")
                 throw err;                                  // server variable configures this)
             }
         });
@@ -1178,7 +1184,7 @@ class DBStructure{
     async insertWorker(ipv4,port,enabled){
         try{
             var sql = "INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) "
-            + " VALUES(INET_ATON("+ipv4+"), "+port+", "+enabled+")";
+            + " VALUES(INET_ATON('"+ipv4+"'), "+port+", "+enabled+")";
             var sqlres = await this.query(sql);
             var id = sqlres.insertId;
             return id;
@@ -1191,7 +1197,7 @@ class DBStructure{
     async setWorkerEnabled(ipv4,port,enabled){
         try{
             var sql = "UPDATE `ffmpeg_workers` SET `enabled` = "+enabled.toString()+
-            " WHERE `ipv4` = INET_ATON("+ipv4+") AND `port` = "+port;
+            " WHERE `ipv4` = INET_ATON('"+ipv4+"') AND `port` = "+port;
             var sqlres = await this.query(sql);
             var id = sqlres.insertId;
             return id;
@@ -1204,7 +1210,7 @@ class DBStructure{
     async removeWorker(ipv4,port){
         try{
             let sql = "DELETE FROM `ffmpeg_workers` "
-            + " WHERE `ipv4` = INET_ATON("+ipv4+") AND `port` = "+port;
+            + " WHERE `ipv4` = INET_ATON('"+ipv4+"') AND `port` = "+port;
             let sqlres = await this.query(sql);
             return sqlres;
         }catch(err){

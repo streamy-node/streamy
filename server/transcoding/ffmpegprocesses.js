@@ -120,7 +120,7 @@ class FfmpegProcessManager extends EventEmitter{
     for(let i=0; i<this.workers.length; i++){
       let worker = this.workers[i];
       if(worker.id == id){
-        this.enableWorker(value)
+        this.enableWorker(worker,value)
         break;
       }
     }
@@ -163,7 +163,7 @@ class FfmpegProcessManager extends EventEmitter{
       socketsToClose.push(worker.stoppedProcesses[i].ws);
       worker.stoppedProcesses[i].clearWorkerInfos();
     }
-    stoppedProcesses = this.waitingProcesses.concat(worker.stoppedProcesses);
+    this.stoppedProcesses = this.stoppedProcesses.concat(worker.stoppedProcesses);
 
     //Close all sockets
     for(let i=0; i<socketsToClose.length; i++){
@@ -190,9 +190,10 @@ class FfmpegProcessManager extends EventEmitter{
         break;
       }
     }
+    return true;
   }
 
-  async addWorker(ip,port){
+  async addWorker(ip,port,enabled=true){
     try{
       var ffmpegInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/ffmpeg_infos" ));
       var rawHwInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/hw_infos" ));
@@ -205,6 +206,7 @@ class FfmpegProcessManager extends EventEmitter{
       //hwInfos = {core:1.0,gpu:1.6,vaapi:0.0,omx:0.0};
       var worker = new Worker(ip,port,ffmpegInfos,hwInfos);
       worker.status = "online"
+      worker.enabled = enabled;
       this.workers.push(worker);
       if(this.workers.length == 1){
         this.emit('workerAvailable',worker);
@@ -216,7 +218,6 @@ class FfmpegProcessManager extends EventEmitter{
       return true;
     }catch(err){
       console.error("Failed to add worker: ",ip," ",err);
-      worker.status = "offline"
       return false;
     } 
   }
@@ -647,12 +648,37 @@ class FfmpegProcessManager extends EventEmitter{
     }
   }
 
+  getLightWorker(worker){
+    let lightWorker = {}
+    lightWorker.ip = worker.ip;
+    lightWorker.port = worker.port;
+    lightWorker.processes = worker.processes;
+    lightWorker.hw = worker.hw;
+    lightWorker.ws_uri = worker.ws_uri;
+    lightWorker.id = worker.id;
+    lightWorker.enabled = worker.enabled;
+    lightWorker.failures = worker.failures;
+    lightWorker.waitingProcesses = worker.waitingProcesses;
+    lightWorker.stoppedProcesses = worker.stoppedProcesses;
+    lightWorker.status = worker.status;
+    return lightWorker;
+  }
+
+  getLightWorkers(){
+    let workers = []
+    for(let i=0; i<this.workers.length; i++){
+      let worker = this.getLightWorker(this.workers[i]);
+      workers.push(worker)
+    }
+    return workers;
+  }
+
   /////////// OPTIONAL METHODS /////////////
   async addWorkersFromDB(dbMgr,linkWithDB){
     let workers = await dbMgr.getFfmpegWorkers()
     for(let i=0; i<workers.length; i++){
       let worker = workers[i];
-      await this.addWorker(worker.ipv4,worker.port);
+      await this.addWorker(worker.ipv4,worker.port,worker.enabled);
     }
     if(linkWithDB){
       this._linkWithDB(dbMgr)
@@ -670,7 +696,7 @@ class FfmpegProcessManager extends EventEmitter{
       dbMgr.setWorkerEnabled(worker.ip,worker.port,worker.enabled)
     });
     this.on('workerRemoved', function(worker){
-      dbMgr.insertWorker(worker.ip,worker.port,worker.enabled)
+      dbMgr.removeWorker(worker.ip,worker.port)
     });
   }
 }
