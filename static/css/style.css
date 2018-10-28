@@ -440,6 +440,14 @@ a.article, a.article:hover {
     color: rgb(226, 19, 19);
 }
 
+.progression_running{
+    color: rgb(123, 226, 6);
+}
+
+.progression_stopped{
+    color: rgb(34, 34, 34);
+}
+
 /* TRANSCODING */
 .media_name{
     overflow: hidden;

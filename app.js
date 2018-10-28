@@ -280,23 +280,19 @@ function startApp(){
     res.send(sessInfos);
   })
 
-  app.get('/progression-infos', loggedIn, function (req, res) {
-    res.send(transcodeMgr.getProgressions());
-  })
 
-  // templates
-
+  ////////////////////// templates //////////////////////////////////////////
   app.get('/movies.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/movies.html');// TODO template here
+    res.sendFile(__dirname + '/views/templates/movies.html');// TODO mustache here
   })
   app.get('/series.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/series.html');// TODO template here
+    res.sendFile(__dirname + '/views/templates/series.html');// TODO mustache here
   })
   app.get('/serie.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/serie.html');// TODO template here
+    res.render('templates/serie.html');
   })
   app.get('/addvideo.html', loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/addvideo.html');// TODO template here
+    res.sendFile(__dirname + '/views/templates/addvideo.html');// TODO mustache here
   })
   app.get('/workers.html', loggedIn, function (req, res) {
     res.render('templates/workers.html',req.lang);
@@ -617,19 +613,6 @@ function startApp(){
 
 
   /////////////////////// Notifications ///////////////////////////
-
-  // var wsNotifs = io.of('/notifications');
-  // wsNotifs.on('connection', function (socket) {
-  //     console.log('Websocket connected');
-  //     // once a client has connected, we expect to get a ping from them saying what room they want to join
-  //     socket.on('join_room', function(room) {
-  //       socket.join(room);
-  //     });
-  //     socket.on('leave_room', function(room) {
-  //       socket.leave(room);
-  //     });
-  // });
-  //io.join("workers")
   
   var wsWorkers = io.of('/notifications/workers');
   processesMgr.on('workerAdded', function(worker){
@@ -655,14 +638,9 @@ function startApp(){
   transcodeMgr.on('taskUpdated', function(task){
     wsTranscode.emit('taskUpdated',task)
   });
-  transcodeMgr.on('taskRemoved', function(worker){
-    wsWorkers.emit('taskRemoved',worker.ip,worker.port)
+  transcodeMgr.on('taskRemoved', function(task){
+    wsWorkers.emit('taskRemoved',task.filename)
   });
-
-  // transcodeMgr.on('taskRemoved', function(taskId){
-  //   wsTranscode.emit('taskRemoved',taskId)
-  // });
-  
   
 
   // Restart failed or not finished add file tasks

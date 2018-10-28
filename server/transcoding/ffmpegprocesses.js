@@ -767,7 +767,7 @@ class FfmpegProcessManager extends EventEmitter{
 
   //OnWorker process Done, try to push as many task as possible
   fillupWorker(worker){
-    if(!worker.enabled){
+    if(!worker.enabled || worker.status == "offline"){
       return;
     }
     //First try to autostart local stopped processes if there are no higher task in queue
@@ -821,11 +821,12 @@ class FfmpegProcessManager extends EventEmitter{
 
   getConnectedWorker(){
     for(let i=0; i<this.workers.length; i++){
-      let worker = this.worker[i];
+      let worker = this.workers[i];
       if(worker.status == "online"){
         return worker;
       }
     }
+    return null;
   }
 
   async ffprobe(file){
@@ -835,7 +836,11 @@ class FfmpegProcessManager extends EventEmitter{
       }
       //For the moment take first online worker
       var worker = this.getConnectedWorker();
-      return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
+      if(worker){
+        return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
+      }else{
+
+      }
     }catch(err){
       this.setWorkerStatus(worker,"offline");
       console.error("ffprobe failed with file ",file,err);

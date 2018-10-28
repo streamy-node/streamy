@@ -58,7 +58,7 @@ class TranscodingController{
         var template = $("#task_status_tpl").clone();
         template.attr('id','');
         template.removeClass("hidden");
-        this.tasksStatus[task.id] = template;
+        this.tasksStatus[task.filename] = template;
         
         this.updateTask(task);
         //connect buttons
@@ -87,13 +87,13 @@ class TranscodingController{
     }
 
     updateTask(task){
-        let taskElement = this.tasksStatus[task.id]
+        let taskElement = this.tasksStatus[task.filename]
         if(!taskElement){
             resetRender(div)
             return;
         }
         taskElement.find(".media_name").text(task.original_name);
-        this.setTaskState(task.id,task.state_code,task.has_error);
+        this.setTaskState(task.filename,task.state_code,task.has_error);
                
         let tasksDone = 0;
         //let globalProgression = 0;
@@ -117,8 +117,8 @@ class TranscodingController{
         this.transcodeText
     }
 
-    setTaskState(taskId,state,hasError){
-        let taskElem = this.tasksStatus[taskId]
+    setTaskState(filename,state,hasError){
+        let taskElem = this.tasksStatus[filename]
 
         switch(state){
             case 0: // done
@@ -190,8 +190,8 @@ class TranscodingController{
         }
     }
 
-    removeTask(taskId){
-        let taskElem = this.tasksStatus[taskId];
+    removeTask(filename){
+        let taskElem = this.tasksStatus[filename];
         taskElem.remove();
     }
     // <div class="online_status alert-success ml-2 mr-auto">Online</div>

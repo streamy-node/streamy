@@ -59,10 +59,18 @@ class VideoBlock{
         $progress.addClass('d-none');
     }
 
-    showProgression(progression){
+    showProgression(progression,stopped = false){
         let $progress = this.element.find('.video_progress');
         $progress.text(progression+"%");
         $progress.removeClass('d-none');
+
+        if(stopped){
+            $progress.removeClass('progression_running');
+            $progress.addClass('progression_stopped');
+        }else{
+            $progress.addClass('progression_running');
+            $progress.removeClass('progression_stopped');
+        }
     }
 
     hideDownloadProgression(){
@@ -93,6 +101,10 @@ class VideoBlock{
         }else if(state == 3){
             if(!this.hasMpd) this.setBroken(true,waiting_color);
             this.showProgression(progression);
+            this.setError(false);
+        }else if(state == 4){
+            if(!this.hasMpd) this.setBroken(true,waiting_color);
+            this.showProgression(progression,true);
             this.setError(false);
         }
     }

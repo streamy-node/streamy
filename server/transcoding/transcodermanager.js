@@ -62,7 +62,7 @@ class TranscoderManager extends EventEmitter{
     }
 
     async startTask(filename){
-        await this.dbMgr.setAddFileTaskStoppedByFile(filename,true);
+        await this.dbMgr.setAddFileTaskStoppedByFile(filename,0);
         if(this.filesProcesses[filename]){
             let fileInfos = this.filesProcesses[filename]
             let media = fileInfos.media;
@@ -541,7 +541,7 @@ class TranscoderManager extends EventEmitter{
              msg:msg,subtasks:new Array(subtasksLength).fill(null),
              name:media.original_name,
              has_error:false,
-             id:media.id,
+             media_id:media.id,
              filename:filename,
              original_name:original_name,
              progression:"0"

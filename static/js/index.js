@@ -5,7 +5,7 @@ class ContentManager{
     this.sharedWebsocket = new SharedWebSocket;
     this.moviesMgr = new MoviesContent(this.templates,this.langs);
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
-    this.serieMgr = new SerieController(this.templates,this.langs);
+    this.serieMgr = new SerieController(this.templates,this.sharedWebsocket);
     this.workersMgr = new WorkerController(this.templates,this.sharedWebsocket);
     this.transcodingMgr = new TranscodingController(this.templates,this.sharedWebsocket)
     // socket.on('connect', function(){});
@@ -14,9 +14,9 @@ class ContentManager{
 
     var self = this;
     //Pull progressions
-    setInterval(function(){
-      self.updateProgressions();
-    },5000)
+    // setInterval(function(){
+    //   self.updateProgressions();
+    // },5000)
 
   }
 
@@ -76,8 +76,8 @@ class ContentManager{
     }else if(type.substr(0,6) === "#serie" && type.length > 7){//#serie_id
       //Extract id
       var serieId = parseInt(type.substr(7));
-      this.serieMgr.renderSerie(div,serieId);
-      this.updateProgressions();
+      this.serieMgr.render(div,serieId);
+      //this.updateProgressions();
     }else if(type === "#workers"){
       this.workersMgr.render(div)
     }else if(type === "#transcoding"){
@@ -94,17 +94,17 @@ class ContentManager{
 
   ////////////////////////////////////////////////////
 
-  updateProgressions(){
-    var self = this;
-    if(location.hash.includes("serie") || location.hash.includes("films")){
-      $.getJSON("progression-infos",function(data){
-        self.moviesMgr.updateProgressions(data);
-        self.seriesMgr.updateProgressions(data);
-        self.serieMgr.updateProgressions(data);
-      });
-    }
+  // updateProgressions(){
+  //   var self = this;
+  //   if(location.hash.includes("serie") || location.hash.includes("films")){
+  //     $.getJSON("progression-infos",function(data){
+  //       self.moviesMgr.updateProgressions(data);
+  //       self.seriesMgr.updateProgressions(data);
+  //       self.serieMgr.updateProgressions(data);
+  //     });
+  //   }
 
-  }
+  // }
 
   start(){
     var self = this;
