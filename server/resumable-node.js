@@ -116,8 +116,8 @@ class Resumable{
         var chunkSize = fields['resumableChunkSize'];
         var totalSize = fields['resumableTotalSize'];
         var identifier = this.cleanIdentifier(fields['resumableIdentifier']);
-        var filename = fields['resumableFilename'];
-        var original_filename = fields['resumableIdentifier'];
+        var original_filename = fields['resumableFilename'];
+        var filename = fields['resumableIdentifier'];
         var self = this
 
         let result = {
@@ -157,7 +157,7 @@ class Resumable{
             if(currentTestChunk >= numberOfChunks){
                 if(automerge){
                     let files = this.getAllChunkFilenames(numberOfChunks,identifier)
-                    let targetFileName = identifier+path.extname(filename)
+                    let targetFileName = identifier+path.extname(original_filename)
                     let concatReult = await fsutils.concat(files,this.temporaryFolder+"/"+targetFileName)
                     if(concatReult){
                         await fsutils.unlinkFiles(files);

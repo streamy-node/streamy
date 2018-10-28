@@ -74,7 +74,11 @@ dbMgr.initialize(dbOptions,async function(err) {
     // This callback is called each time there is a reconnection
     // with the db
     if(!appstarted){
-      startApp();
+      try{
+        startApp();
+      }catch(error){
+        console.error("Unexpected error ",error);
+      }
     }
   }
 });
@@ -297,6 +301,9 @@ function startApp(){
   app.get('/workers.html', loggedIn, function (req, res) {
     res.render('templates/workers.html',req.lang);
   })
+  app.get('/transcoding.html', loggedIn, function (req, res) {
+    res.render('templates/transcoding.html',req.lang);
+  })
 
   //static files from node_modules
   app.get('/js/shaka/*', loggedIn, safePath, function (req, res) {
@@ -506,17 +513,10 @@ function startApp(){
   ////////////////// Workers  //////////////
   app.get('/workers', loggedIn, async function (req, res) {
     if(req.user){ //TODO check rights
-      var lang = req.query.lang;
-      var userId = 1;//TODO get userId
-
-      //Set default lang
-      if(!lang){
-        lang = 'en';
-      }
-
       let workers = processesMgr.getLightWorkers();
 
       res.setHeader('Content-Type', 'application/json');
+      //console.log(workers)
       res.send(JSON.stringify(workers));
     }
   });
@@ -533,7 +533,7 @@ function startApp(){
         res.sendStatus(500)
       }
     }else{
-      res.sendStatus(500)
+      res.sendStatus(401)
     }
   });
 
@@ -544,7 +544,7 @@ function startApp(){
       processesMgr.enableWorkerFromId(id,statusValue);
       res.sendStatus(200)
     }else{
-      res.sendStatus(500)
+      res.sendStatus(401)
     }
   });
 
@@ -557,11 +557,56 @@ function startApp(){
         res.sendStatus(500)
       }
     }else{
-      res.sendStatus(500)
+      res.sendStatus(401)
     }
   });
 
-  ///////// Notifications ///////
+  ////////////////// Processes  //////////////
+
+  app.get('/transcoding_tasks', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      let progressions = transcodeMgr.getProgressions();
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(progressions));
+    }
+  });
+
+  app.post('/transcoding_tasks/:filename/stop', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var filename = req.params.filename;
+      transcodeMgr.stopTask(filename);
+      res.sendStatus(200)
+    }else{
+      res.sendStatus(401)
+    }
+  });
+
+  app.post('/transcoding_tasks/:filename/start', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var filename = req.params.filename;
+      transcodeMgr.startTask(filename);
+      res.sendStatus(200)
+    }else{
+      res.sendStatus(401)
+    }
+  });
+
+  app.delete('/transcoding_tasks/:filename', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var filename = req.params.filename;
+      if(transcodeMgr.removeTask(filename)){
+        res.sendStatus(200)
+      }else{
+        res.sendStatus(500)
+      }
+    }else{
+      res.sendStatus(401)
+    }
+  });
+
+
+  /////////////////////// Notifications ///////////////////////////
+
   // var wsNotifs = io.of('/notifications');
   // wsNotifs.on('connection', function (socket) {
   //     console.log('Websocket connected');
@@ -575,20 +620,36 @@ function startApp(){
   // });
   //io.join("workers")
   
-  var wsNotifs = io.of('/notifications/workers');
+  var wsWorkers = io.of('/notifications/workers');
   processesMgr.on('workerAdded', function(worker){
-    wsNotifs.emit('workerAdded',processesMgr.getLightWorker(worker))
+    wsWorkers.emit('workerAdded',processesMgr.getLightWorker(worker))
   });
   processesMgr.on('workerEnabled', function(worker){
-    wsNotifs.emit('workerEnabled',worker.ip,worker.port)
+    wsWorkers.emit('workerEnabled',worker.ip,worker.port)
   });
   processesMgr.on('workerDisabled', function(worker){
-    wsNotifs.emit('workerDisabled',worker.ip,worker.port)
+    wsWorkers.emit('workerDisabled',worker.ip,worker.port)
   });
   processesMgr.on('workerRemoved', function(worker){
-    wsNotifs.emit('workerRemoved',worker.ip,worker.port)
+    wsWorkers.emit('workerRemoved',worker.ip,worker.port)
   });
 
+  var wsTranscode = io.of('/notifications/transcoding');
+  transcodeMgr.on('taskAdded', function(task){
+    wsTranscode.emit('taskAdded',task)
+  });
+  transcodeMgr.on('taskUpdated', function(task){
+    wsTranscode.emit('taskUpdated',task)
+  });
+  transcodeMgr.on('taskRemoved', function(worker){
+    wsWorkers.emit('taskRemoved',worker.ip,worker.port)
+  });
+
+  // transcodeMgr.on('taskRemoved', function(taskId){
+  //   wsTranscode.emit('taskRemoved',taskId)
+  // });
+  
+  
 
   // Restart failed or not finished add file tasks
   // as soon as there is a ffmpeg worker available

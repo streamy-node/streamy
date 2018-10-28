@@ -264,6 +264,7 @@ CREATE TABLE `add_file_tasks` (
   `working_folder` VARCHAR(255) NOT NULL,
   `media_id` int,
   `user_id` int,
+  `stopped` TINYINT(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,

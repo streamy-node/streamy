@@ -48,6 +48,9 @@ st_menu{
     max-width: 90px;
     min-width: 90px;
 }
+
+
+
 /* flex: 0 0 60px;
 -ms-flex: 0 0 60px; */
 
@@ -437,7 +440,10 @@ a.article, a.article:hover {
     color: rgb(226, 19, 19);
 }
 
-
+/* TRANSCODING */
+.media_name{
+    overflow: hidden;
+}
 /* .episode_number,.episode_title {
     display: inline-block;
 } */

@@ -17,5 +17,8 @@
 	"Add": "Add",
 	"Disable": "Disable",
 	"Enable": "Enable",
-	"Remove": "Remove"
+	"Remove": "Remove",
+	"Transcoding": "Transcoding",
+	"Stop": "Stop",
+	"Start": "Start"
 }

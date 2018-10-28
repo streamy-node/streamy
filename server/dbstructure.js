@@ -95,7 +95,6 @@ class DBStructure extends EventEmitter{
         this.con.on('error', function(err) {
             console.log('db error', err);
             self.emit("disconnected");
-            this.con.destroy();
             if(err.code === 'PROTOCOL_CONNECTION_LOST') { // Connection to the MySQL server is usually
                 self.handleDisconnect(statuscb);                         // lost due to either server restart, or a
             } else {                                     // connnection idle timeout (the wait_timeout
@@ -1051,6 +1050,29 @@ class DBStructure extends EventEmitter{
         let sql = "SELECT * FROM `add_file_tasks` ";
         let results = await this.query(sql);
         return results;
+    }
+
+    async setAddFileTaskStopped(id,stopped){
+        let _stopped = stopped ? 1 : 0;
+        var sql = "UPDATE `add_file_tasks`  "
+        + " SET stopped = "+_stopped
+        + " WHERE id = "+id+"";
+        var sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+    async setAddFileTaskStoppedByFile(file,stopped){
+        try{
+            let _stopped = stopped ? 1 : 0;
+            var sql = "UPDATE `add_file_tasks`  "
+            + " SET stopped = "+_stopped
+            + " WHERE file = '"+file+"'";
+            var sqlres = await this.query(sql);
+            return sqlres;
+        }catch(err){
+            console.warn("Cannot stop file ",err)
+            return null;
+        }
     }
 
     async removeAddFileTask(id){

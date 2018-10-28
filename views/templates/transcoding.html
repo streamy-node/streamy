@@ -1,0 +1,29 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_transcoding" >
+    <div class="container-fluid no-gutters nopad" >
+        <h1 >{{#__}}Transcoding{{/__}}</h1>
+
+        <ul class="list-group" id="tasks_list">
+            <!-- transcoding status here-->
+        </ul>
+    </div>
+</div>
+
+<!-- Templates -->
+<div id="task_status_tpl" class="hidden">
+    <li class="list-group-item d-flex align-items-center">
+        <div class="done_status status alert-success ml-2 hidden">Done</div>
+        <div class="error_status status alert-danger ml-2 ">Error</div>
+        <div class="transcoding_status status alert-primary ml-2 mr-success">Transcoding</div>
+        <div class="waiting_status status alert-warning ml-2 mr-success">Waiting</div>
+        <div class="stopped_status status alert-dark ml-2 mr-success">Stopped</div>
+
+        <div class="media_name ml-2">SomeName</div>
+        <div class="task_progression ml-2 mr-auto">5%</div>
+        
+        <button type="button" class="remove_process_btn btn btn-danger ml-1 mr-1">{{#__}}Remove{{/__}}</button>
+        <button type="button" class="stop_process_btn btn btn-warning ml-1 mr-1">{{#__}}Stop{{/__}}</button>
+        <button type="button" class="start_task_btn btn btn-success ml-1 mr-1">{{#__}}Start{{/__}}</button>
+    </li>
+
+</div>

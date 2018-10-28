@@ -32,5 +32,8 @@
 	"AddWorker": "Add a new worker",
 	"Disable": "Disable",
 	"Enable": "Enable",
-	"Remove": "Remove"
+	"Remove": "Remove",
+	"Transcoding": "Transcoding",
+	"Stop": "Stop",
+	"Start": "Start"
 }

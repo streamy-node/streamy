@@ -9,19 +9,21 @@ var Hardware = require('./ffmpegprocesses').Hardware;
 
 var MPD = require("./mpdutils").MPDFile;
 var mpdUtils = require("./mpdutils").MPDUtils;
+const EventEmitter = require('events');
 
-const Semaphore = require("await-semaphore").Semaphore;//TODO remove
+//const Semaphore = require("await-semaphore").Semaphore;//TODO remove
 
-
-class TranscoderManager{
+class TranscoderManager extends EventEmitter{
     constructor(processManager,dbMgr, settings){
+        super()
         this.processManager = processManager;
         this.dbMgr = dbMgr;
         this.settings = settings;
-        this.mpdSemaphores = new Map();
+        //this.mpdSemaphores = new Map();
         this.lastProgressions = {};
         this.lastProgressions.offline={};
         this.lastProgressions.live={};
+        this.filesProcesses = {}
     }
 
     getProgressions(){
@@ -36,8 +38,60 @@ class TranscoderManager{
         let tasks = await this.dbMgr.getAddFileTasks();
         for(let i=0; i<tasks.length; i++){
             let task = tasks[i];
-            await this.convertFileToOfflineMpd(task.file,task.original_name,task.media_id,task.user_id,task.working_folder);
+            if(!task.stopped){
+                await this.convertFileToOfflineMpd(task.file,task.original_name,task.media_id,task.user_id,task.working_folder);
+            }else{
+                // Create a progression so that any client can start it
+                let media = await this.dbMgr.getMedia(task.media_id)
+                this.createProgression(media,"offline",task.file,task.original_name,4,"");
+            }
+            
         }
+    }
+
+    async stopTask(filename){
+        if(this.filesProcesses[filename]){
+            let processes = this.filesProcesses[filename].processes
+            //delete this.filesProcesses[filename]
+            await this.dbMgr.setAddFileTaskStoppedByFile(filename,1);
+            for(let i=0; i<processes.length; i++){
+                await this.processManager.stopProcess(processes[i]);
+            }
+        }
+        
+    }
+
+    async startTask(filename){
+        await this.dbMgr.setAddFileTaskStoppedByFile(filename,true);
+        if(this.filesProcesses[filename]){
+            let fileInfos = this.filesProcesses[filename]
+            let media = fileInfos.media;
+            let type = fileInfos.type;
+            let processes = fileInfos.processes;
+            for(let i=0; i<processes.length; i++){
+                this.processManager.startProcess(processes[i]);
+                this.updateSubProgression(media,type,filename,i,null,3);
+            }            
+        }else{
+            let task = await this.dbMgr.getAddFileTask(filename);
+            if(task){
+                await this.convertFileToOfflineMpd(task.file,task.original_name,task.media_id,task.user_id,task.working_folder);
+            }
+        }
+    }
+
+    async removeTask(filename){
+        let task = await this.dbMgr.getAddFileTask(filename);
+                
+        //Remove add file task
+        if(task){
+            await this.stopTask(filename);
+            await this.dbMgr.removeAddFileTask(task.id);
+            //Delete upload file
+            let absoluteSourceFile = this.settings.upload_path+"/"+task.file;
+            await fsutils.unlink(absoluteSourceFile);
+            this.emit('taskRemoved',filename)
+        }        
     }
 
     async convertFileToOfflineMpd(filename,original_name,mediaId,userId,workingFolderHint = null, isLive = false){
@@ -174,7 +228,7 @@ class TranscoderManager{
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
 
         if(infos === null){
-            self.updateProgressions(media,0,1,type,"no worker available, cannot run ffprobe",type);
+            self.createProgression(media,type,filename,original_name,1,"no worker available, cannot run ffprobe");
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
@@ -242,21 +296,33 @@ class TranscoderManager{
 
             let mdpFileUpdated = false;
             var hasVideoOrAudio = false;
-            self.updateProgressions(media,0,3,type);
+            //self.updateProgressions(media,0,3,type);
+            self.createProgression(media,type,filename,original_name,3,ffmpegCmds.length);
 
             let remainingCommands = ffmpegCmds.length;
+            let failedCommandCount = 0;
             let hasError = false;
-            let progressions = [];
+            let firstErrorMsg = "";
+
+            this.filesProcesses[filename] = {processes:[],media:media,type:type}
+
+            //let progressions = [];
             for(let i=0; i<ffmpegCmds.length; i++){
-                progressions.push(0);
-                this.launchOfflineTranscodingCommand(ffmpegCmds[i],absoluteWorkingFolder,
+                //progressions.push(0);
+                let proc = this.launchOfflineTranscodingCommand(ffmpegCmds[i],absoluteWorkingFolder,
                     async function(){
                         //This callback is called when the transcoding of one stream succeed
                         remainingCommands--;
-
+                        self.updateSubProgression(media,type,filename,i,100,0);
 
                         //If it's the last command
                         if(remainingCommands === 0){
+
+                            if(hasError){
+                                self.updateProgression(media,type,filename,1,firstErrorMsg);
+                                console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
+                                return;
+                            }
                             //Parse main mpd file
                             //Merge subtask if needed
                             if(splitProcessing){
@@ -352,12 +418,14 @@ class TranscoderManager{
                             //Delete upload file
                             await fsutils.unlink(absoluteSourceFile);
                                 
-                            progressions[i] = 100;
-                            self.updateProgressions(media,jsutils.arrayGetMean(progressions),0,type);
+                            //progressions[i] = 100;
+                            self.updateProgression(media,type,filename,0);
+                            //self.updateProgressions(media,jsutils.arrayGetMean(progressions),0,type);
                             console.log("Offline transcoding done for: "+absoluteWorkingFolder);
         
                         }else{
-                            //Set subtask done (TODO move this before the if and tak care of the case we)
+                            //Set subtask done (TODO move this before the if and take care of the case when 
+                            // all subtask are done but not the merge)
                             if(subTasksIds.length > 0){
                                 await self.dbMgr.setAddFileSubTaskDone(subTasksIds[i]);
                             }
@@ -365,17 +433,31 @@ class TranscoderManager{
                 },
                 function(msg){//OnError
                     remainingCommands--;
-                    hasError = true;
+
+                    //Unexpected error
+                    failedCommandCount++;
                     let error_msg = msg.msg;
                     if(!error_msg){
                         error_msg = null;
                     }
-                    progressions[i] = msg.progression;
-                    self.updateProgressions(media,jsutils.arrayGetMean(progressions),1,type,error_msg);
+
+                    if(!hasError){
+                        firstErrorMsg = error_msg;
+                        hasError = true;
+                    }
+                    self.updateSubProgression(media,type,filename,i,msg.progression,1,error_msg);
+
+                    if(remainingCommands == 0){
+                        self.updateProgression(media,type,filename,1,firstErrorMsg);
+                        console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
+                        return;
+                    }
+                    //self.updateProgressions(media,jsutils.arrayGetMean(progressions),1,type,error_msg);
                 },
                 async function(msg){//On Progress
-                    progressions[i] = msg.progression;
-                    self.updateProgressions(media,jsutils.arrayGetMean(progressions),2,type);
+                    //progressions[i] = msg.progression;
+                    ///self.updateProgressions(media,jsutils.arrayGetMean(progressions),2,type);
+                    self.updateSubProgression(media,type,filename,i,msg.progression,2);
                     if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
                         // if(subtitles_streams.length > 0){
                         //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
@@ -383,7 +465,19 @@ class TranscoderManager{
                         // }
                         
                     }
-                });
+                },
+                function(autorestart){ //On stop
+                    if(autorestart){
+                        self.updateSubProgression(media,type,filename,i,null,3);
+                    }else{
+                        self.updateSubProgression(media,type,filename,i,null,4);
+                    }
+                },
+                function(){ //On start
+                    self.updateSubProgression(media,type,filename,i,null,2);
+                }       
+            );
+                this.filesProcesses[filename].processes.push(proc);
             }
         }else{
             console.error("Cannot split uploadded file: ",file.path);
@@ -438,22 +532,105 @@ class TranscoderManager{
         return outputs;
     }
 
-    updateProgressions(media,progression,state_code,type = "offline",message = null){
+    createProgression(media,type,filename,original_name,state_code,subtasksLength,msg=""){
+        // Create understable name
+
+        let task = {state_code:state_code,
+             msg:msg,subtasks:new Array(subtasksLength).fill(null),
+             name:media.original_name,
+             has_error:false,
+             id:media.id,
+             filename:filename,
+             original_name:original_name
+            };
+        if(! (media.id in this.lastProgressions[type])){
+            this.lastProgressions[type][media.id] = {}
+        }
+        let fileAlreadyExists = filename in this.lastProgressions[type][media.id];
+        this.lastProgressions[type][media.id][filename] = task;
+        
+        //this.lastProgressions[type][media.id] = task;
+        if(fileAlreadyExists){
+            this.emit('taskUpdated',task);
+        }else{
+            this.emit('taskAdded',task);
+        }
+        
+    }
+
+    updateSubProgression(media,type,filename,subTaskIndex,progression,state_code,message = null){
+
+        let task = null;
+        if(media.id in this.lastProgressions[type]){
+            task = this.lastProgressions[type][media.id][filename]
+            
+            let realProgression = progression;
+            if(progression == null && task.subtasks[subTaskIndex]){
+                //Try to get last progression
+                realProgression = parseFloat(task.subtasks[subTaskIndex].progression)  
+            }
+            realProgression = realProgression ? realProgression : 0
+
+            task.subtasks[subTaskIndex] = {progression:realProgression.toPrecision(3), state_code:state_code, msg:message};
+        }else{
+            console.warn("Failed to update progression of subtask ",subTaskIndex);
+            return;
+        }
+        //.progression = jsutils.arrayGetMean(progressions)
+
+        //If there is an error forward to main progression
+        if(state_code == 1 && task.state_code != 1){
+            task.has_error = true;
+            task.msg = message;
+        }
+
+        //If tasks are progression forward to main progression
+        if(state_code == 2 && task.state_code != 1){
+            task.state_code = 2;
+        }
+
+        //Set main task paused if other sub tasks are either pause, done or error
+        if(state_code == 4 && task.state_code != 4){
+            let taskPaused = true;
+            for(let i=0; i<task.subtasks.length; i++){
+                if(!(task.subtasks[i].state_code == 4
+                     || task.subtasks[i].state_code == 0
+                     || task.subtasks[i].state_code == 1)){
+                    taskPaused = false;
+                    break;
+                }
+            }
+            if(taskPaused){
+                task.state_code = 4;
+            }
+        }else // if a subtask is waiting, the main task should also be waiting
+        if(state_code == 3 && task.state_code == 4){
+            task.state_code = 3;
+        }
+
+        this.emit('taskUpdated',task);
+    }
+
+    updateProgression(media,type,filename,state_code,message = null){
         let id = media.id;
-        let progressionFilter = progression;
-        if(!progressionFilter){
-            progressionFilter = 0;
-        }
+        let task = this.lastProgressions[type][id][filename];
+        //let progressionFilter = progression ? progression : 0
 
-        this.lastProgressions[type][id] = {progression:progressionFilter.toPrecision(3), state_code:state_code, msg:message};
+        task.state_code = state_code;
+        task.message = message;
 
+        this.emit('taskUpdated',task);
+        //this.lastProgressions[type][id] = {state_code:state_code, msg:message};
+
+        delete this.lastProgressions[type][id];
         //Clear from lastProgressions after 30 secs
-        var self = this;
-        if(state_code == 0){
-            setTimeout(function(){
-                delete self.lastProgressions[type][id];
-            },30000);
-        }
+        // var self = this;
+        // if(state_code == 0){
+        //     setTimeout(function(){
+        //         delete self.lastProgressions[type][id];
+        //         self.emit('taskRemoved',id);
+        //     },30000);
+        // }
     }
 
     _normalizeStreams(streams){
@@ -859,11 +1036,17 @@ class TranscoderManager{
         return parseInt(arrayOfStrings[0])/parseInt(arrayOfStrings[1]);
     }
 
-    launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError,onProgressions){//TODO 
+    launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError,onProgressions,onStop,onStart){//TODO 
         var hw = new Hardware(1,0,0,0);
         var process = new Process("ffmpeg",cmd.args,10,hw,true)
-        .on('start',()=>{console.log("on start "+workingDir+" "+cmd.targetName);})
-        .on('stop',(restart)=>{console.log("on stop "+workingDir+" "+cmd.targetName,restart);})
+        .on('start',()=>{
+            console.log("on start "+cmd.targetName);
+            onStart()
+        })
+        .on('stop',(restart)=>{
+            console.log("on stop "+cmd.targetName,restart);
+            onStop(restart)
+        })
         .on('progression',(msg)=>{
             console.log("on progression "+workingDir+" "+cmd.targetName,msg);
             if(onProgressions) onProgressions(msg);
@@ -880,7 +1063,7 @@ class TranscoderManager{
             }
         });
         this.processManager.launchProcess(process);
-
+        return process;
     }
 
     _getAudiosChannelsByLangs(streams){

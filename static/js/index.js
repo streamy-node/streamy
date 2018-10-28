@@ -7,7 +7,7 @@ class ContentManager{
     this.seriesMgr = new SeriesContent(this.templates,this.langs);
     this.serieMgr = new SerieController(this.templates,this.langs);
     this.workersMgr = new WorkerController(this.templates,this.sharedWebsocket);
-    
+    this.transcodingMgr = new TranscodingController(this.templates,this.sharedWebsocket)
     // socket.on('connect', function(){});
     // socket.on('event', function(data){});
     // socket.on('disconnect', function(){});
@@ -40,13 +40,15 @@ class ContentManager{
       $.get("series.html"),
       $.get("serie.html"),
       $.get("addvideo.html"),
-      $.get("workers.html")).done(function(a1,a2,a3,a4,a5){
+      $.get("workers.html"),
+      $.get("transcoding.html")).done(function(a1,a2,a3,a4,a5,a6){
         var templates = {}
         templates.movies =  a1[0];
         templates.series =  a2[0];
         templates.serie =  a3[0];
         templates.addvideo =  a4[0];
         templates.workers =  a5[0];
+        templates.transcoding =  a6[0];
       // the code here will be executed when all four ajax requests resolve.
       // a1, a2, a3 and a4 are lists of length 3 containing the response text,
       // status, and jqXHR object for each of the four ajax calls respectively.
@@ -78,6 +80,8 @@ class ContentManager{
       this.updateProgressions();
     }else if(type === "#workers"){
       this.workersMgr.render(div)
+    }else if(type === "#transcoding"){
+      this.transcodingMgr.render(div)
     }else{
       $(div).html("<div id=\"\">Work in progress</div>");
       //this.emptyMgr.render(div);

@@ -486,12 +486,27 @@ class FfmpegProcessManager extends EventEmitter{
         //waitingProcesses.push(proc);
       }
 
+      //
+
       //The process is on a worker
       if(process.ws.readyState == WebSocket.OPEN ){
         if(available && process.status != PROCESS_STATUS.RUNNING){
           process.status = PROCESS_STATUS.RUNNING;//Reserve it now
+          var previousStatus = process.status;
           sendAsJson(process.ws,{ command:"kill",signal:"SIGCONT" }
-            ,() => { process._onStart();process.worker.status = "online" }
+            ,() => { 
+              process._onStart();
+              process.worker.status = "online"
+              let succeed = false;
+              if(previousStatus == PROCESS_STATUS.WAITING){
+                succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
+              }else{
+                succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
+              }
+              if(!succeed){
+                console.warn("Cannot start process that should be stopped or waiting ",process);
+              }
+            }
             ,(error) => {
             //The worker made a socker error => disable it
             if(error){
@@ -505,6 +520,10 @@ class FfmpegProcessManager extends EventEmitter{
           });
           return true;
         }else if(!available){
+          if(process.status == PROCESS_STATUS.STOPPED){
+            process.status = PROCESS_STATUS.WAITING;
+            succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.waitingProcesses);
+          }
           return false;
         }
       }else if(process.ws.readyState == WebSocket.CONNECTING){
@@ -652,14 +671,14 @@ class FfmpegProcessManager extends EventEmitter{
     let lightWorker = {}
     lightWorker.ip = worker.ip;
     lightWorker.port = worker.port;
-    lightWorker.processes = worker.processes;
+    lightWorker.processes_count = worker.processes.length;
     lightWorker.hw = worker.hw;
     lightWorker.ws_uri = worker.ws_uri;
     lightWorker.id = worker.id;
     lightWorker.enabled = worker.enabled;
     lightWorker.failures = worker.failures;
-    lightWorker.waitingProcesses = worker.waitingProcesses;
-    lightWorker.stoppedProcesses = worker.stoppedProcesses;
+    lightWorker.waitingProcesses_count = worker.waitingProcesses.length;
+    lightWorker.stoppedProcesses_count = worker.stoppedProcesses.length;
     lightWorker.status = worker.status;
     return lightWorker;
   }
