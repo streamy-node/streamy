@@ -541,7 +541,8 @@ class TranscoderManager extends EventEmitter{
              has_error:false,
              id:media.id,
              filename:filename,
-             original_name:original_name
+             original_name:original_name,
+             progression:"0"
             };
         if(! (media.id in this.lastProgressions[type])){
             this.lastProgressions[type][media.id] = {}
@@ -561,21 +562,38 @@ class TranscoderManager extends EventEmitter{
     updateSubProgression(media,type,filename,subTaskIndex,progression,state_code,message = null){
 
         let task = null;
-        if(media.id in this.lastProgressions[type]){
-            task = this.lastProgressions[type][media.id][filename]
-            
-            let realProgression = progression;
-            if(progression == null && task.subtasks[subTaskIndex]){
-                //Try to get last progression
-                realProgression = parseFloat(task.subtasks[subTaskIndex].progression)  
-            }
-            realProgression = realProgression ? realProgression : 0
-
-            task.subtasks[subTaskIndex] = {progression:realProgression.toPrecision(3), state_code:state_code, msg:message};
-        }else{
+        if(!(media.id in this.lastProgressions[type])){
             console.warn("Failed to update progression of subtask ",subTaskIndex);
             return;
         }
+
+        task = this.lastProgressions[type][media.id][filename]
+
+        let lastProgression = null;
+        if(task.subtasks[subTaskIndex]){
+            //Try to get last progression
+            lastProgression = parseFloat(task.subtasks[subTaskIndex].progression)  
+        }
+        
+        let realProgression = progression;
+        if(progression == null){
+            //Try to get last progression
+            realProgression = lastProgression;  
+        }
+        realProgression = realProgression ? realProgression : 0
+
+        
+        task.subtasks[subTaskIndex] = {progression:realProgression.toPrecision(3), state_code:state_code, msg:message};
+        let currentProgression = parseFloat(task.subtasks[subTaskIndex].progression)
+
+        //Update main progression if changed
+        if(lastProgression && lastProgression != currentProgression){
+            let mainProgression = parseFloat(task.progression)
+            mainProgression -= lastProgression/task.subtasks.length;
+            mainProgression += currentProgression/task.subtasks.length;
+            task.progression = mainProgression.toPrecision(3)
+        }
+
         //.progression = jsutils.arrayGetMean(progressions)
 
         //If there is an error forward to main progression

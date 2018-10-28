@@ -96,19 +96,19 @@ class TranscodingController{
         this.setTaskState(task.id,task.state_code,task.has_error);
                
         let tasksDone = 0;
-        let globalProgression = 0;
+        //let globalProgression = 0;
         for(let i=0; i<task.subtasks.length; i++){
             let subtask = task.subtasks[i];
             if(subtask){ 
                 if(subtask.state_code == 0){//Done
                     tasksDone++;
                 }
-                globalProgression += subtask.progression/task.subtasks.length
+                //globalProgression += subtask.progression/task.subtasks.length
             }else{
                 //Subtask not yet launched
             }
         }
-        let progression = globalProgression+" % "+tasksDone+"/"+task.subtasks.length;
+        let progression = task.progression+" % "+tasksDone+"/"+task.subtasks.length;
         taskElement.find(".task_progression").text(progression);
         
     }

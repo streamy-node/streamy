@@ -148,8 +148,15 @@ class SerieController{
                 let videoId = items[0];
                 let videoBlock = items[1];
                 if(progressions.offline[videoId]){
-                    let progressionInfos = progressions.offline[videoId];
-                    videoBlock.updateStatus(progressionInfos.state_code,progressionInfos.progression,progressionInfos.msg);
+                    let progressionsOnMedia = Object.values(progressions.offline[videoId]);
+                    let bestProgression = null;
+                    for(let i=0; i<progressionsOnMedia.length; i++){
+                        let progression = progressionsOnMedia[i];
+                        if(!bestProgression || bestProgression.progression<progression.progression){
+                            bestProgression = progression;
+                        }
+                    }
+                    videoBlock.updateStatus(bestProgression.state_code,bestProgression.progression,bestProgression.msg);
     
                 }
             }
