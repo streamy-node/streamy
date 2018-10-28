@@ -80,9 +80,8 @@ class TranscoderManager extends EventEmitter{
         }
     }
 
-    async removeTask(filename){
+    async removeOfflineTask(filename){
         let task = await this.dbMgr.getAddFileTask(filename);
-                
         //Remove add file task
         if(task){
             await this.stopTask(filename);
@@ -90,6 +89,7 @@ class TranscoderManager extends EventEmitter{
             //Delete upload file
             let absoluteSourceFile = this.settings.upload_path+"/"+task.file;
             await fsutils.unlink(absoluteSourceFile);
+            this.removeProgression("offline",task.media_id,filename)
             this.emit('taskRemoved',filename)
         }        
     }
@@ -634,23 +634,15 @@ class TranscoderManager extends EventEmitter{
     updateProgression(media,type,filename,state_code,message = null){
         let id = media.id;
         let task = this.lastProgressions[type][id][filename];
-        //let progressionFilter = progression ? progression : 0
-
         task.state_code = state_code;
         task.message = message;
 
         this.emit('taskUpdated',task);
-        //this.lastProgressions[type][id] = {state_code:state_code, msg:message};
+        //delete this.lastProgressions[type][id];
+    }
 
-        delete this.lastProgressions[type][id];
-        //Clear from lastProgressions after 30 secs
-        // var self = this;
-        // if(state_code == 0){
-        //     setTimeout(function(){
-        //         delete self.lastProgressions[type][id];
-        //         self.emit('taskRemoved',id);
-        //     },30000);
-        // }
+    removeProgression(type,media_id,filename){
+        delete this.lastProgressions[type][media_id][filename];
     }
 
     _normalizeStreams(streams){

@@ -221,17 +221,21 @@ class FSUtils{
         return new Promise((resolve, reject) => {
             fs.unlink(file, (err) => {
                 if(err) {
-                    console.log(err);
-                    reject(err);
+                    //console.log(err);
+                    resolve(err);
                 }else{
-                    resolve(true);
+                    resolve(null);
                 }
             });
         });
     }
 
     async unlinkFiles(files){
-        await files.map(async file => { return await this.unlink(file) })
+        
+            await files.map(async file => { 
+                    return await this.unlink(file) 
+                })
+            return true;
     }
 
     async readir(dir){

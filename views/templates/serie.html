@@ -57,7 +57,7 @@
         <div class="float-left gap-right episode-bloc position-relative">
             <div class="video_header container-fluid position-absolute">
                     <div class="video_broken material-icons float-right" data-toggle="tooltip" title="no video available for this title">broken_image</div>
-                    <div class="video_progress float-right d-none">0%</div>
+                    <a class="video_progress float-right d-none" href="#transcoding">0%</a>
                     <div class="video_error material-icons float-right"  data-toggle="tooltip" title="error adding last video file">error</div>
                     <div class="download_progress float-right d-none">0%</div>
             </div>
@@ -74,21 +74,12 @@
             </form>
                         
             <div class="episode-menu float-right">
-                <a class="d-inline d-none">
-                        <img class="browse" src="img/pause.png"/>
-                </a>
-                <a class="d-inline d-none">
-                        <img class="browse" src="img/play.png"/>
-                </a>
-                <a class="d-inline">
-                        <img class="browse" src="img/download.png"/>
-                </a>
+                <div class="cancel_upload material-icons d-none" data-toggle="tooltip" title="cancel upload">cloud_off</div>
+                <a class="browse material-icons">cloud_upload</a>
                 <!--label for="file-1" class="d-inline">
                         <img src="img/download.png"/>
                 </label-->
-                <div class="d-inline">
-                    <img src="img/parameters24.png" />
-                </div>
+                <div class="material-icons">settings</div>
             </div>
         </div>
         

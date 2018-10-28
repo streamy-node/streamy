@@ -448,6 +448,10 @@ a.article, a.article:hover {
     color: rgb(34, 34, 34);
 }
 
+.cancel_upload{
+    color: rgb(226, 19, 19);
+}
+
 /* TRANSCODING */
 .media_name{
     overflow: hidden;

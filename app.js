@@ -456,24 +456,28 @@ function startApp(){
       res.status(401).send('You need to login');
     }
   })
-
+  
   ////////////////////// UPLOAD ///////////////////////////////
 
   // Handle uploads through Resumable.js
   let tmpUploadPath = settings.getUploadPath()+"/tmp"
   fsUtils.mkdirp(tmpUploadPath);
-  resumable.setTemporaryFolder(settings.getUploadPath())
+  resumable.setTargetFolder(settings.getUploadPath())
 
-  // retrieve file id. invoke with /fileid?filename=my-file.jpg
+  // retrieve file id. invoke with /fileid?filename=my-file.jpg&size=158624&id=445
   app.get('/fileid', loggedIn, function(req, res){
     if(req.user){
-      if(!req.query.filename){
+      if(!req.query.filename || !req.query.size){
         return res.status(500).end('query parameter missing');
+      }
+      let name = req.query.filename+req.query.size;
+      if(req.query.id){
+        name += req.query.id;
       }
       // create md5 hash from filename
       res.end(
         crypto.createHash('md5')
-        .update(req.query.filename)
+        .update(name)
         .digest('hex')
       );
     }else{
@@ -482,7 +486,11 @@ function startApp(){
   });
 
   var multipartMiddleware = multipart({uploadDir:tmpUploadPath});
-  app.post('/upload/media/:media_id', loggedIn, multipartMiddleware, async function(req,res){
+  var uploadErrorHandler = function(err, req, res, next) {
+    resumable.cancelRequest(req);
+    res.status(424).send('Request cancelled');
+  }
+  app.post('/upload/media/:media_id', loggedIn, multipartMiddleware, uploadErrorHandler, async function(req,res){
     var id = req.params.media_id;
     if(req.user){ //TODO check rights
       let result = await resumable.post(req, true);
@@ -601,7 +609,7 @@ function startApp(){
   app.delete('/transcoding_tasks/:filename', loggedIn, async function (req, res) {
     if(req.user){ //TODO check rights
       var filename = req.params.filename;
-      if(transcodeMgr.removeTask(filename)){
+      if(transcodeMgr.removeOfflineTask(filename)){
         res.sendStatus(200)
       }else{
         res.sendStatus(500)
@@ -638,8 +646,8 @@ function startApp(){
   transcodeMgr.on('taskUpdated', function(task){
     wsTranscode.emit('taskUpdated',task)
   });
-  transcodeMgr.on('taskRemoved', function(task){
-    wsWorkers.emit('taskRemoved',task.filename)
+  transcodeMgr.on('taskRemoved', function(filename){
+    wsTranscode.emit('taskRemoved',filename)
   });
   
 

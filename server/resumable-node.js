@@ -3,6 +3,7 @@ var path = require('path')
 var util = require('util')
 var Stream = require('stream').Stream
 var fsutils = require('./fsutils')
+const shortId = require('shortid');
 
 class Resumable{
     constructor(){
@@ -11,9 +12,11 @@ class Resumable{
         this.fileParameterName = 'file';
     }
 
-    async setTemporaryFolder(temporaryFolder){
-        this.temporaryFolder = temporaryFolder;
+    async setTargetFolder(targetFolder){
+        this.targetFolder = targetFolder;
+        this.temporaryFolder = targetFolder+"/tmp";
         try {
+            await fsutils.mkdirp(targetFolder);
             await fsutils.mkdirp(temporaryFolder);
         }catch(e){}
     }
@@ -104,90 +107,115 @@ class Resumable{
         }
     }
 
+    //Multiparty remove it's own file, we only need to remove ours
+    async cancelRequest(req){
+        //console.log("Upload cancelled "+identifier)
+        try{
+            var fields = req.query;
+            var chunkSize = fields['resumableChunkSize'];
+            var totalSize = fields['resumableTotalSize'];
+            var identifier = this.cleanIdentifier(fields['resumableIdentifier']);
+            var numberOfChunks = Math.max(Math.floor(totalSize/(chunkSize*1.0)), 1);
+            let files = this.getAllChunkFilenames(numberOfChunks,identifier);
+            await fsutils.unlinkFiles(files);
+        }catch(err){
+            console.error("Failed to cleanup cancelled upload",err)
+        }
+    }
+
     //'partly_done', filename, original_filename, identifier
     //'done', filename, original_filename, identifier
     //'invalid_resumable_request', null, null, null
     //'non_resumable_request', null, null, null
     async post(req, automerge = false){
+        try{
+            var fields = req.body;
+            var files = req.files;
+            var chunkNumber = fields['resumableChunkNumber'];
+            var chunkSize = fields['resumableChunkSize'];
+            var totalSize = fields['resumableTotalSize'];
+            var identifier = this.cleanIdentifier(fields['resumableIdentifier']);
+            var original_filename = fields['resumableFilename'];
+            var filename = fields['resumableIdentifier'];
+            var self = this
 
-        var fields = req.body;
-        var files = req.files;
-        var chunkNumber = fields['resumableChunkNumber'];
-        var chunkSize = fields['resumableChunkSize'];
-        var totalSize = fields['resumableTotalSize'];
-        var identifier = this.cleanIdentifier(fields['resumableIdentifier']);
-        var original_filename = fields['resumableFilename'];
-        var filename = fields['resumableIdentifier'];
-        var self = this
-
-        let result = {
-            status:200,
-            message:"",
-            filename:filename, 
-            original_filename:original_filename,
-            identifier:identifier
-        }
-
-        if(!files[this.fileParameterName] || !files[this.fileParameterName].size) {
-            result.status = 400
-            result.message = 'invalid_resumable_request'
-            return result;
-        }
-
-        var validation = this.validateRequest(chunkNumber, chunkSize, totalSize, identifier, files[this.fileParameterName].size);
-        if(validation=='valid') {
-            var chunkFilename = this.getChunkFilename(chunkNumber, identifier);
-
-            // Save the chunk (TODO: OVERWRITE)
-            console.log("renaming ",files[this.fileParameterName].path," to ",chunkFilename)
-            await fsutils.rename(files[this.fileParameterName].path, chunkFilename)
-            result.filename = chunkFilename
-
-            // Do we have all the chunks?
-            var currentTestChunk = 1;
-            if(this.activeIdentifier.has(identifier)){
-                currentTestChunk = this.activeIdentifier.get(identifier) + 1;
-                this.activeIdentifier.set(identifier,currentTestChunk)
-            }else{
-                this.activeIdentifier.set(identifier,currentTestChunk)
+            let result = {
+                status:200,
+                message:"",
+                filename:filename, 
+                original_filename:original_filename,
+                identifier:identifier
             }
-            var numberOfChunks = Math.max(Math.floor(totalSize/(chunkSize*1.0)), 1);
-            
-            //If all chunck received, merge them
-            if(currentTestChunk >= numberOfChunks){
-                if(automerge){
-                    let files = this.getAllChunkFilenames(numberOfChunks,identifier)
-                    let targetFileName = identifier+path.extname(original_filename)
-                    let concatReult = await fsutils.concat(files,this.temporaryFolder+"/"+targetFileName)
-                    if(concatReult){
-                        await fsutils.unlinkFiles(files);
+
+            if(!files[this.fileParameterName] || !files[this.fileParameterName].size) {
+                result.status = 400
+                result.message = 'invalid_resumable_request'
+                return result;
+            }
+
+            var validation = this.validateRequest(chunkNumber, chunkSize, totalSize, identifier, files[this.fileParameterName].size);
+            if(validation=='valid') {
+                var chunkFilename = this.getChunkFilename(chunkNumber, identifier);
+
+                // Save the chunk (TODO: OVERWRITE)
+                console.log("renaming ",files[this.fileParameterName].path," to ",chunkFilename)
+                await fsutils.rename(files[this.fileParameterName].path, chunkFilename)
+                result.filename = chunkFilename
+
+                // Do we have all the chunks?
+                //var currentTestChunk = 1;
+                let totalChuncks = 1;
+                if(this.activeIdentifier.has(identifier)){
+                    //currentTestChunk = this.activeIdentifier.get(identifier) + 1;
+                    let chuncksSet = this.activeIdentifier.get(identifier)
+                    chuncksSet.add(chunkNumber)
+                    totalChuncks = chuncksSet.size;
+                    //this.activeIdentifier.set(identifier,currentTestChunk)
+                }else{
+                    let chuncks = new Set([chunkNumber])
+                    this.activeIdentifier.set(identifier,chuncks)
+                }
+                var numberOfChunks = Math.max(Math.floor(totalSize/(chunkSize*1.0)), 1);
+                
+                //If all chunck received, merge them
+                if(totalChuncks >= numberOfChunks){
+                    if(automerge){
+                        let files = this.getAllChunkFilenames(numberOfChunks,identifier)
+                        let targetFileName = shortId.generate()+path.extname(original_filename)
+                        let concatReult = await fsutils.concat(files,this.targetFolder+"/"+targetFileName)
+                        if(concatReult){
+                            this.activeIdentifier.delete(identifier)
+                            await fsutils.unlinkFiles(files);
+                            result.status = 201
+                            result.message = 'done'
+                            result.filename = targetFileName
+                            return result
+                        }else{
+                            console.error("Failed to concat uploaded files ",identifier)
+                            result.status = 500
+                            result.message = 'Failed to concat uploaded files'
+                            return result
+                        } 
+                    }else{
+                        //callback('done', filename, original_filename, identifier);
                         result.status = 201
                         result.message = 'done'
-                        result.filename = targetFileName
                         return result
-                    }else{
-                        console.error("Failed to concat uploaded files ",identifier)
-                        result.status = 500
-                        result.message = 'Failed to concat uploaded files'
-                        return result
-                    } 
+                    }
                 }else{
-                    //callback('done', filename, original_filename, identifier);
-                    result.status = 201
-                    result.message = 'done'
-                    return result
+                    result.status = 200
+                    result.message = 'added'
+                    return result  
                 }
-            }else{
-                result.status = 200
-                result.message = 'added'
-                return result  
+                //await this.testChunkExists(currentTestChunk,numberOfChunks,identifier,filename,original_filename,callback);
+            } else {
+                result.status = 406
+                result.message = validation
+                return result
+                //callback(validation, filename, original_filename, identifier);
             }
-            //await this.testChunkExists(currentTestChunk,numberOfChunks,identifier,filename,original_filename,callback);
-        } else {
-            result.status = 406
-            result.message = validation
-            return result
-            //callback(validation, filename, original_filename, identifier);
+        }catch(err){
+            console.error("Resumable error ",err)
         }
     }
 

@@ -463,7 +463,7 @@ class MPDUtils{
         for(let i=0; i<streams.length; i++){
             let stream = streams[i];
             if(stream.codec_type == "subtitle"){
-                src_mpd.addSubtitleAdaptationSet(stream.tags.language,'subs/srt_'+stream.tags.language+"_"+stream.tags.title+".vtt");
+                src_mpd.addSubtitleAdaptationSet(stream.tags.language,'subs/'+stream.tags.title+"_"+stream.tags.language+".vtt");
             }
         }
         await src_mpd.save(destination);

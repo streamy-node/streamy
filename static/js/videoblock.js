@@ -120,7 +120,7 @@ class VideoBlock{
      * @param {*} id episode id or film id
      */
     setup(element){
-        let self = this;
+        var self = this;
         self.element = element;
         let $form = element.find('.box');
 
@@ -137,7 +137,9 @@ class VideoBlock{
             simultaneousUploads:4,
             testChunks:false,
             throttleProgressCallbacks:1,
-            generateUniqueIdentifier:this.generateId
+            generateUniqueIdentifier:function(filename){
+                return self.generateId(filename)
+            }
         });
 
         // Resumable.js isn't supported, fall back on a different method
@@ -149,22 +151,47 @@ class VideoBlock{
 
         r.on('fileAdded', function(file, event){
             console.log("On file added ",file,event)
-            r.upload()
+            r.upload();
+            self.showCancelUpload(true);
         });
         r.on('fileSuccess', function(file, message){
             console.log("On file success ",file, message)
+            self.showCancelUpload(false);
+            self.hideDownloadProgression();
         });
         r.on('fileError', function(file, message){
             console.error("On file error ",file, message)
+            self.showCancelUpload(false);
+            self.hideDownloadProgression();
         });
         r.on('fileProgress', function(file){
             console.log("fileProgress ",file)
             self.showDownloadProgression(Math.floor(file.progress()*1000)/10)
         });
+
+        //Link cancel upload button
+        element.find(".cancel_upload").click(function(){
+            r.cancel();
+            self.showCancelUpload(false);
+            self.hideDownloadProgression();
+        });
+
+        //Link to transcode
+        // element.find(".video_progress").click(function(){
+        // })
+    }
+
+    showCancelUpload(enabled){
+        let $elem = this.element.find('.cancel_upload');
+        if(!enabled){
+            $elem.addClass('d-none');
+        }else{
+            $elem.removeClass('d-none');
+        }
     }
 
     generateId(file){
         // generate id by asynchronously calling express endpoint
-        return $.get("/fileid?filename=" + encodeURI(file.name));
+        return $.get("/fileid?filename=" + encodeURI(file.name)+"&size="+file.size+"&id="+this.id);
     }
 }
