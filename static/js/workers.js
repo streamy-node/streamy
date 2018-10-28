@@ -53,6 +53,9 @@ class WorkerController{
         ws_worker.on('workerRemoved', function(ip,port){
             self.removeWorker(ip+":"+port)
         });
+        ws_worker.on('workerStatus', function(ip,port,status){
+            self.setWorkerStatus(ip+":"+port,status)
+        });
     }
 
     renderWorkers(workers){
@@ -79,14 +82,14 @@ class WorkerController{
             let data = {status:false}
             postAsJson(data,"/workers/"+id+"/status", function(response){
             },function(response){
-                alert("Failed to disable serie "+response);
+                alert("Failed to disable worker "+response);
             },false)
         });
         template.find(".enable_worker_btn").click(function(){
             let data = {status:true}
             postAsJson(data,"/workers/"+id+"/status", function(response){
             },function(response){
-                alert("Failed to enable serie "+response);
+                alert("Failed to enable worker "+response);
             },false)
         });
         template.find(".remove_worker_btn").click(function(){
@@ -95,11 +98,10 @@ class WorkerController{
                 deleteReq("/workers/"+encodeURIComponent(id));
             }
         });
-        template.find(".disable_worker_btn").click(function(){
-            let data = {status:false}
-            postAsJson(data,"/workers/"+id+"/status", function(response){
+        template.find(".connect_worker_btn").click(function(){
+            postAsJson({},"/workers/"+id+"/connect", function(response){
             },function(response){
-                alert("Failed to disable serie "+response);
+                alert("Failed to reconnect worker "+response);
             },false)
         });
 
@@ -133,9 +135,11 @@ class WorkerController{
     setWorkerStatus(workerId,status){
         let workerElem = this.workersStatus[workerId]
         if(status == "online"){
+            workerElem.find(".connect_worker_btn").addClass("hidden");
             workerElem.find(".online_status").removeClass("hidden");
             workerElem.find(".offline_status").addClass("hidden");
         }else{
+            workerElem.find(".connect_worker_btn").removeClass("hidden");
             workerElem.find(".offline_status").removeClass("hidden");
             workerElem.find(".online_status").addClass("hidden");    
         }

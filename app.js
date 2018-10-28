@@ -105,7 +105,7 @@ function startApp(){
   var processesMgr = new ProcessesMgr();
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,settings);
 
-  //TODO add worker from config file and/or web page
+  processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
   processesMgr.addWorkersFromDB(dbMgr,true);
   //processesMgr.addWorker("127.0.0.1",7000);
 
@@ -548,6 +548,17 @@ function startApp(){
     }
   });
 
+  app.post('/workers/:id/connect', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      var id = req.params.id;
+      processesMgr.tryConnectWorker(id);
+      res.sendStatus(200)
+    }else{
+      res.sendStatus(401)
+    }
+  });
+  
+
   app.delete('/workers/:id', loggedIn, async function (req, res) {
     if(req.user){ //TODO check rights
       var id = req.params.id;
@@ -632,6 +643,9 @@ function startApp(){
   });
   processesMgr.on('workerRemoved', function(worker){
     wsWorkers.emit('workerRemoved',worker.ip,worker.port)
+  });
+  processesMgr.on('workerStatus', function(ip,port,status){
+    wsWorkers.emit('workerStatus',ip,port,status)
   });
 
   var wsTranscode = io.of('/notifications/transcoding');

@@ -1075,6 +1075,21 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async setAddFileTaskHasErrorByFile(file,has_error,msg){
+        try{
+            let _stopped = stopped ? 1 : 0;
+            var sql = "UPDATE `add_file_tasks`  "
+            + " SET had_error = "+has_error
+            +", msg = '"+msg+"'"
+            + " WHERE file = '"+file+"'";
+            var sqlres = await this.query(sql);
+            return sqlres;
+        }catch(err){
+            console.warn("Cannot stop file ",err)
+            return null;
+        }
+    }
+
     async removeAddFileTask(id){
         let sql = "DELETE FROM `add_file_tasks`  "
         + " WHERE id = "+id;

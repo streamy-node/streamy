@@ -138,8 +138,8 @@ class TranscodingController{
                 taskElem.find(".waiting_status").addClass("hidden");
                 taskElem.find(".stopped_status").addClass("hidden");
                 taskElem.find(".remove_process_btn").removeClass("hidden");
-                taskElem.find(".stop_process_btn").removeClass("hidden");
-                taskElem.find(".start_process_btn").addClass("hidden");
+                taskElem.find(".stop_process_btn").addClass("hidden");
+                taskElem.find(".start_process_btn").removeClass("hidden");
                 break;
             case 2: //transcoding
                 taskElem.find(".done_status").addClass("hidden");

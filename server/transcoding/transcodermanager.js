@@ -319,6 +319,7 @@ class TranscoderManager extends EventEmitter{
                         if(remainingCommands === 0){
 
                             if(hasError){
+                                await self.dbMgr.setAddFileTaskHasErrorByFile(filename,true,firstErrorMsg);
                                 self.updateProgression(media,type,filename,1,firstErrorMsg);
                                 console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
                                 return;
@@ -448,6 +449,7 @@ class TranscoderManager extends EventEmitter{
                     self.updateSubProgression(media,type,filename,i,msg.progression,1,error_msg);
 
                     if(remainingCommands == 0){
+                        self.dbMgr.setAddFileTaskHasErrorByFile(filename,true,firstErrorMsg);
                         self.updateProgression(media,type,filename,1,firstErrorMsg);
                         console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
                         return;
