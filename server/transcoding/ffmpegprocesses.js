@@ -819,15 +819,25 @@ class FfmpegProcessManager extends EventEmitter{
     return 0;
   }
 
+  getConnectedWorker(){
+    for(let i=0; i<this.workers.length; i++){
+      let worker = this.worker[i];
+      if(worker.status == "online"){
+        return worker;
+      }
+    }
+  }
+
   async ffprobe(file){
     try{
       if(this.workers.length == 0){
         return null;
       }
-      //For the moment take only last worker to do ffprobe
-      var worker = this.workers[this.workers.length-1];
+      //For the moment take first online worker
+      var worker = this.getConnectedWorker();
       return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
     }catch(err){
+      this.setWorkerStatus(worker,"offline");
       console.error("ffprobe failed with file ",file,err);
       return null;
     }
