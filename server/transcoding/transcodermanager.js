@@ -364,28 +364,21 @@ class TranscoderManager extends EventEmitter{
                                     id = await self.dbMgr.insertVideo(mpdId,resolution.id,user_id);
                                     hasVideoOrAudio = true;
                                 }else if(stream.codec_type == "audio"){
-                                    let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
-        
-                                    if(!langInfos){
-                                        console.error("Unknown lang code ",stream.tags.language);
-                                        langInfos = {};
-                                        langInfos.language_id = null;
+                                    let langid = null
+                                    let langInfos = await self.dbMgr.getLangFromString(stream.tags.language)
+                                    if(langInfos){
+                                        langid = langInfos.id;
                                     }
-
-                                    id = await self.dbMgr.insertAudio(mpdId,langInfos.language_id,null,stream.channels,user_id);
+                                    id = await self.dbMgr.insertAudio(mpdId,langid,null,stream.channels,user_id);
                                     hasVideoOrAudio = true;
                                 }else if(stream.codec_type === "subtitle"){
                                     //subtitles_streams.push(stream);
                                     let langid = null;
-                                    if(stream.tags.language && stream.tags.language.length === 3){
-                                        let langInfos = await self.dbMgr.getLangFromIso639_2(stream.tags.language);
-                                        if(!langInfos){
-                                            console.error("Unknown lang code ",stream.tags.language);
-                                        }else{
-                                            langid = langInfos.language_id;
-                                        }
+                                    let langInfos = await self.dbMgr.getLangFromString(stream.tags.language)
+                                    if(langInfos){
+                                        langid = langInfos.id;
                                     }else{
-                                        langid = await self.dbMgr.getLangsId(stream.tags.language);
+                                        langid = null;
                                     }
         
                                     let name = stream.tags.title;
@@ -486,6 +479,8 @@ class TranscoderManager extends EventEmitter{
         }
 
     }
+
+
 
     extractUploadedSubtitleinfos(filename){
         let infos = null;
@@ -873,7 +868,8 @@ class TranscoderManager extends EventEmitter{
         let lang = "00";
 
         if(stream.tags.language && stream.tags.language.length === 3){
-            let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
+            let langInfos = await this.dbMgr.getLangFromString(stream.tags.language)
+            //let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
             if(langInfos){
                 lang = langInfos.iso_639_1
             }else{

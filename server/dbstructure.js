@@ -59,18 +59,6 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    async getLangFromIso639_2(langCode){
-        var sql = "SELECT * FROM `languages`,`languages_iso_639_2` WHERE languages.id = languages_iso_639_2.language_id AND iso_639_2 = '"+langCode+"'";
-        var result = await this.query(sql);
-
-        if(result.length == 0 ){
-            console.error("Cannot get lang from 639_2 norme ",langCode);
-            return null;
-        }else{
-            return result[0];
-        }
-    }
-
     getConnection(){
         return this.con;
     }
@@ -159,6 +147,48 @@ class DBStructure extends EventEmitter{
             return results;
         }
     }
+
+    async getLangFromIso639_2(langCode){
+        var sql = "SELECT * FROM `languages`,`languages_iso_639_2` WHERE languages.id = languages_iso_639_2.language_id AND iso_639_2 = '"+langCode+"'";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            console.error("Cannot get lang from 639_2 norme ",langCode);
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async getLangFromIso_639_1(langCode){
+        var sql = "SELECT * FROM `languages` WHERE iso_639_1 = '"+langCode+"'";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            console.error("Cannot get lang from iso_639_1 norme ",langCode);
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async getLangFromString(langStr){
+        let lang = null;
+        if(!langStr){
+            return null;
+        }
+        if(langStr.length == 3){
+            lang = await this.getLangFromIso639_2(langStr);
+            // if(!langInfos){
+            //     console.error("Unknown lang code ",langStr);
+            // }else{
+            //     lang = langInfos;getBrick
+            // }
+        }else if(langStr.length == 2){
+            lang = await this.getLangFromIso_639_1(langStr);
+        }
+        return lang;
+    }
     
 
     getLangsId(langCode){
@@ -170,50 +200,54 @@ class DBStructure extends EventEmitter{
     //     `iso_639_1` char(2) CHARACTER SET utf8 DEFAULT NULL,
     //     PRIMARY KEY (`id`),
 
-    async getSeries(){
-        var sql = "SELECT * FROM `series`";
-        var results = await this.query(sql);
+    // async getSeries(){
+    //     var sql = "SELECT * FROM `series`";
+    //     var results = await this.query(sql);
 
-        return results;
-    }
+    //     return results;
+    // }
 
-    async getSerie(serieId){
-        var sql = "SELECT * FROM `series` WHERE id = "+serieId+"";
-        var result = await this.query(sql);
 
-        if(result.length == 0 ){
-            console.error("Cannot get serie ",serieId);
-            return null;
-        }else{
-            return result[0];
-        }
-    }
 
-    async getSerieFromEpisode(episodeId){
-        var sql = "SELECT series.*, saison.season_number, ep.episode_number  FROM `series`, `series_episodes` AS ep, `series_seasons` AS saison"+
-        " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id AND saison.serie_id = series.id";
-        var result = await this.query(sql);
 
-        if(result.length == 0 ){
-            console.error("Cannot get serie ",serieId);
-            return null;
-        }else{
-            return result[0];
-        }
-    }
 
-    async getSerieIdFromEpisode(episodeId){
-        var sql = "SELECT * FROM `series_episodes` AS ep, `series_seasons` AS saison"+
-        " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id";
-        var result = await this.query(sql);
+    // async getSerie(serieId){
+    //     var sql = "SELECT * FROM `series` WHERE id = "+serieId+"";
+    //     var result = await this.query(sql);
 
-        if(result.length == 0 ){
-            console.error("Cannot get serie ",serieId);
-            return null;
-        }else{
-            return result[0].serie_id;
-        }
-    }
+    //     if(result.length == 0 ){
+    //         console.error("Cannot get serie ",serieId);
+    //         return null;
+    //     }else{
+    //         return result[0];
+    //     }
+    // }
+
+    // async getSerieFromEpisode(episodeId){
+    //     var sql = "SELECT series.*, saison.season_number, ep.episode_number  FROM `series`, `series_episodes` AS ep, `series_seasons` AS saison"+
+    //     " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id AND saison.serie_id = series.id";
+    //     var result = await this.query(sql);
+
+    //     if(result.length == 0 ){
+    //         console.error("Cannot get serie ",serieId);
+    //         return null;
+    //     }else{
+    //         return result[0];
+    //     }
+    // }
+
+    // async getSerieIdFromEpisode(episodeId){
+    //     var sql = "SELECT * FROM `series_episodes` AS ep, `series_seasons` AS saison"+
+    //     " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id";
+    //     var result = await this.query(sql);
+
+    //     if(result.length == 0 ){
+    //         console.error("Cannot get serie ",serieId);
+    //         return null;
+    //     }else{
+    //         return result[0].serie_id;
+    //     }
+    // }
     
     // async getSeriesWithMpd(){
     //     var sql = "SELECT * FROM `series_episodes` AS s, `series_mpd_files` AS mdp "+
@@ -240,16 +274,16 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
-    async setSerieEpisodeHasMPD(episodeId,hasMpd){
-        if( (!this.checkId(episodeId))){
-            console.error("setSerieEpisodeHasMPD: Invalid entries ");
-            return null;
-        }
-        var sql = "UPDATE `series_episodes` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+episodeId.toString();
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
-        return id;
-    }
+    // async setSerieEpisodeHasMPD(episodeId,hasMpd){
+    //     if( (!this.checkId(episodeId))){
+    //         console.error("setSerieEpisodeHasMPD: Invalid entries ");
+    //         return null;
+    //     }
+    //     var sql = "UPDATE `series_episodes` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+episodeId.toString();
+    //     var sqlres = await this.query(sql);
+    //     var id = sqlres.insertId;
+    //     return id;
+    // }
 
     // async getSeriesLightTranslations(lang){
     //     var sql = "SELECT * FROM `series` AS s "+
@@ -280,6 +314,22 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async getMediaCategoryOnBrick(category_id,brickId){
+        var sql = "SELECT * FROM `media`"+
+            " WHERE category_id = "+category_id+" AND brick_id = "+brickId;
+        var results = await this.query(sql);
+
+        return results;
+    }
+
+    async getMediaUsingMpdOnBrick(brickId){
+        var sql = "SELECT * FROM `media`"+
+            " WHERE use_mpd = 1 AND brick_id = "+brickId;
+        var results = await this.query(sql);
+
+        return results;
+    }
+
     //Get all media and it's children paths
     // Note: Only child of depth 3 for now
     async getMediaRecursivePaths(mediaId){
@@ -292,6 +342,21 @@ class DBStructure extends EventEmitter{
         " WHERE parent_id = "+mediaId+" OR id = "+mediaId+
         " UNION "+
         " SELECT path FROM `media`"+
+        " WHERE parent_id IN (SELECT id FROM streamy.media WHERE parent_id = "+mediaId+")"
+        var results = await this.query(sql);
+
+        return results;
+    }
+
+    //Get all media and it's children paths
+    // Note: Only child of depth 3 for now
+    async getChildChildren(mediaId){
+        if(!this.checkId(mediaId)){
+            console.error("getChildChildrenIds: Invalid entries ");
+            return null;
+        }
+
+        var sql = " SELECT * FROM `media`"+
         " WHERE parent_id IN (SELECT id FROM streamy.media WHERE parent_id = "+mediaId+")"
         var results = await this.query(sql);
 
@@ -796,7 +861,7 @@ class DBStructure extends EventEmitter{
     }
 
     async insertMedia(release_date,rating,rating_count,original_name,original_language,
-        brickId,has_mpd,path, category_id, parent_id = null){
+        brickId,has_mpd,use_mpd,path, category_id, parent_id = null){
         if( !this.checkId(brickId)){
             console.error("insertMedia: Invalid entries ");
             return null;
@@ -804,10 +869,10 @@ class DBStructure extends EventEmitter{
 
         try{
             var sql = "INSERT INTO `media` (`release_date`,`rating`,`rating_count`,"+
-            "`original_name`,`original_language`, `brick_id`, `has_mpd`, `path`, `category_id`, `parent_id`) "+
+            "`original_name`,`original_language`, `brick_id`, `has_mpd`,`use_mpd`, `path`, `category_id`, `parent_id`) "+
             " VALUES ('"+release_date+"', "+rating+", "+rating_count+
             ", '"+original_name.replace(/'/g,"\\'")+
-            "', '"+original_language+"', "+brickId+", "+has_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
+            "', '"+original_language+"', "+brickId+", "+has_mpd+", "+use_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
 
             var sqlres = await this.query(sql);
             var id = sqlres.insertId;
@@ -886,16 +951,16 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    async setFilmHasMPD(filmId,hasMpd){
-        if( (!this.checkId(serieId))){
-            console.error("setFilmHasMPD: Invalid entries ");
-            return null;
-        }
-        var sql = "UPDATE `films` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+filmId.toString();
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
-        return id;
-    }
+    // async setFilmHasMPD(filmId,hasMpd){
+    //     if( (!this.checkId(serieId))){
+    //         console.error("setFilmHasMPD: Invalid entries ");
+    //         return null;
+    //     }
+    //     var sql = "UPDATE `films` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+filmId.toString();
+    //     var sqlres = await this.query(sql);
+    //     var id = sqlres.insertId;
+    //     return id;
+    // }
 
     async getFilmsMdpFiles(filmId){
         if(!this.checkId(filmId)){
@@ -1119,37 +1184,9 @@ class DBStructure extends EventEmitter{
     }
 
 
-        // async getSeriesLightTranslations(lang){
-    //     var sql = "SELECT * FROM `series` AS s "+
-    //     "LEFT JOIN `series_translations` AS t  ON s.id = t.lang_id "+
-    //     "LEFT JOIN `series_translations` AS t_en ON s.id = 1";
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         console.error("Cannot get serie ",serieId);
-    //         return null;
-    //     }else{
-    //         return result[0];
-    //     }
-    // }
-
-    // CREATE TABLE `series_seasons` (
-    //     `id` int NOT NULL AUTO_INCREMENT,
-    //     `serie_id` int NOT NULL,
-    //     `release_date` datetime NOT NULL,
-    //     `season_number` int NOT NULL,
-    //     `number_of_episodes` int NOT NULL,
-
-    //     CREATE TABLE `series_seasons_translations` (
-    //         `id` int NOT NULL AUTO_INCREMENT,
-    //         `season_id` int NOT NULL,
-    //         `lang_id` int(10) unsigned NOT NULL,
-    //         `title` VARCHAR(255),
-    //         `overview` VARCHAR(765),
-
-
+    ///////////// Brick /////////////////////
     async getBrick(brickId){
-        var sql = "SELECT `id`, `brick_alias`, `brick_path` FROM `bricks` WHERE `id`="+brickId+"";
+        var sql = "SELECT * FROM `bricks` WHERE `id`="+brickId+"";
         var result = await this.query(sql);
 
         if(result.length == 0 ){
@@ -1158,6 +1195,52 @@ class DBStructure extends EventEmitter{
             return result[0];
         }
     }
+
+    async getBrickByAlias(alias){
+        var sql = "SELECT * FROM `bricks` WHERE `brick_alias`="+alias+"";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async getBrickByPath(brick_path){
+        var sql = "SELECT * FROM `bricks` WHERE `brick_path`="+brick_path+"";
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async getBrickByAliasOrPath(brick_path,alias){
+        var sql = 'SELECT * FROM `bricks` WHERE `brick_path`="'+brick_path+'" or `brick_alias`="'+alias+'"';
+        var result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async insertBrick(brick_alias,brick_path,enabled = 1){
+        if( brick_alias.length == 0 || brick_path.length == 0){
+            console.error("insertBrick: Invalid entries ");
+            return null;
+        }
+        var sql = "INSERT INTO `bricks` (`brick_alias`,`brick_path`,`enabled`) "
+        + ' VALUES( "'+brick_alias+'", "'+brick_path+'", '+enabled+")";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
 
     async getTranscodingResolutions(categoryId){
         var sql = "SELECT res.* FROM `"+this.categories.get(categoryId)+"_transcoding_resolutions` AS tres, `resolutions` AS res "+

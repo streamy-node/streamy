@@ -37,6 +37,9 @@ var resumable = new Resumable()
 var multipart = require('connect-multiparty');
 var crypto = require('crypto');
 
+//Importer
+var Importer = require('./server/importer.js')
+
 // Notifications
 var io = require('socket.io').listen(server);
 
@@ -104,6 +107,7 @@ function startApp(){
 
   var processesMgr = new ProcessesMgr();
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,settings);
+  var importer = new Importer(dbMgr,transcodeMgr,serieMgr);
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
   processesMgr.addWorkersFromDB(dbMgr,true);
@@ -429,16 +433,14 @@ function startApp(){
 
       //For the moment only moviedb id
       if(req.body.moviedbId != null){
-        //Check if serie already added
-        let serieId = await serieMgr.findSerieFromMoviedbId(req.body.moviedbId);
 
         // prepare response
         res.setHeader('Content-Type', 'application/json');
-        if(serieId === null){
-          //The serie don't exist, create it
-          console.log("Adding a new serie");
-          serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
-        }
+
+        //The serie don't exist, create it
+        console.log("Adding a new serie");
+        serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
+
         
         if(serieId !== null){
           res.status(200).send(JSON.stringify({id:serieId}));
@@ -666,7 +668,9 @@ function startApp(){
     console.log("Streamy node listening at http://%s:%s", host, port)
   });
 
-
+  //importer.importBrick('/data/streamy',"brick1");
+  //importer.refreshBrickMetadata(0);
+  //importer.refreshBrickData(0)
 
   appstarted = true;
   // TODO properly shutdown

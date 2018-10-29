@@ -190,33 +190,6 @@ class FSUtils{
         });
     }
 
-    async writeAt(file,data,offset,erase=true){
-        return new Promise((resolve, reject) => {
-            var wstream = fs.createWriteStream(file, {flags: "r+"});
-            wstream.on('finish', function () {
-                resolve(true);
-            });
-
-            wstream.pos = offset;
-            wstream.write(data,{encoding:'utf8'});
-            wstream.end();
-
-            // var foo = fs.open(file,'w+',function(err, fd){
-            //     if (err) {
-            //         if (err.code === 'EEXIST') {
-            //             console.error('myfile already exists');
-            //             return;
-            //         }
-            //         reject(err);
-            //     }
-            //     fs.write(file,)
-            // });
-            // fs.write(fd, data, offset, 'utf8', function(err,));
-            // fs.close(foo);
-        });
-    }
-
-
     async unlink(file){
         return new Promise((resolve, reject) => {
             fs.unlink(file, (err) => {
@@ -302,6 +275,15 @@ class FSUtils{
         }catch(err){
             console.log("FS error appendJson failed ",err);
             return false;
+        }
+    }
+
+    async parseJsonFile(fileName){
+        try{
+            let content = await this.read(fileName);
+            return JSON.parse(content);
+        }catch(err){
+            return null;
         }
     }
 

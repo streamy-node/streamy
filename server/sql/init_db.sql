@@ -34,13 +34,16 @@ CREATE TABLE `genres` (
 CREATE TABLE `bricks` (
   `id` int NOT NULL,
   `brick_alias` char(49) CHARACTER SET utf8 NOT NULL,
-  `brick_path` VARCHAR(255),
-  PRIMARY KEY (`id`)
+  `brick_path` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
+  `enabled` TINYINT(2) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  CONSTRAINT UNIQUE(`brick_alias`),
+  CONSTRAINT UNIQUE(`brick_path`)
 );
 
 CREATE TABLE `resolutions` (
   `id` int NOT NULL,
-  `name` varchar(50) NOT NULL,
+  `name` varchar(50)  CHARACTER SET utf8 NOT NULL,
   `width` int NOT NULL,
   `height` int NOT NULL,
    PRIMARY KEY (`id`),
@@ -52,14 +55,14 @@ CREATE TABLE `resolutions` (
 
 CREATE TABLE `roles` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(255) NOT NULL,
+  `name` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`)
 );
 
 CREATE TABLE `users` (
   `id` int NOT NULL AUTO_INCREMENT,
-  `username` VARCHAR(255) NOT NULL,
-  `password` VARCHAR(255) NOT NULL,
+  `username` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+  `password` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
   `role_id` int NOT NULL,
   `qos_priority` TINYINT UNSIGNED NOT NULL,
   `last_connection` datetime,
@@ -121,12 +124,13 @@ CREATE TABLE `media` (
   `release_date` datetime,
   `rating` decimal(3,1) DEFAULT '0.0',
   `rating_count` int UNSIGNED DEFAULT '0',
-  `original_name` VARCHAR(255),
+  `original_name` VARCHAR(255) CHARACTER SET utf8,
   `original_language` char(2) CHARACTER SET utf8,
   `brick_id` int,
   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
   `has_mpd` TINYINT(2) NOT NULL,
-  `path` VARCHAR(255),
+  `use_mpd` TINYINT(2) NOT NULL,
+  `path` VARCHAR(255) CHARACTER SET utf8,
   `category_id` int ,
   `parent_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -134,7 +138,7 @@ CREATE TABLE `media` (
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
   FOREIGN KEY (`category_id`) REFERENCES categories(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`parent_id`) REFERENCES media(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`original_name`,`release_date`)
+  CONSTRAINT UNIQUE (`original_name`,`release_date`,`brick_id`)
 );
 
 CREATE TABLE `media_translations` (
@@ -151,7 +155,7 @@ CREATE TABLE `media_translations` (
 CREATE TABLE `mpd_files` (
   `id` int NOT NULL AUTO_INCREMENT,
   `media_id` int NOT NULL,
-  `folder` VARCHAR(255) NOT NULL,
+  `folder` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
   `complete` TINYINT(2) NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE 
@@ -173,7 +177,7 @@ CREATE TABLE `mpd_audios` (
   `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned,
   `lang_subtag_id` int(10) unsigned,
-  `channels` int NOT NULL,
+  `channels` int,
   `user_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
@@ -187,7 +191,7 @@ CREATE TABLE `mpd_srts` (
   `mpd_id` int NOT NULL,
   `lang_id` int(10) unsigned  NOT NULL,
   `lang_subtag_id` int(10) unsigned,
-  `name` VARCHAR(255),
+  `name` VARCHAR(255) CHARACTER SET utf8,
   `user_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
@@ -259,9 +263,9 @@ CREATE TABLE `media_progressions` (
 CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `creation_time` datetime DEFAULT CURRENT_TIMESTAMP,
-  `file` VARCHAR(255) NOT NULL,
-  `original_name` VARCHAR(255) NOT NULL,
-  `working_folder` VARCHAR(255) NOT NULL,
+  `file` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+  `original_name` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+  `working_folder` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `media_id` int,
   `user_id` int,
   `stopped` TINYINT(1) DEFAULT 0,
@@ -277,8 +281,8 @@ CREATE TABLE `add_file_tasks` (
 CREATE TABLE `add_file_subtasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `task_id` int NOT NULL,
-  `command` VARCHAR(2048) NOT NULL,
-  `output` VARCHAR(255) NOT NULL,
+  `command` VARCHAR(2048)  CHARACTER SET utf8 NOT NULL,
+  `output` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
   `done` TINYINT(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`task_id`) REFERENCES add_file_tasks(`id`) ON DELETE CASCADE
@@ -727,8 +731,9 @@ INSERT INTO `episodes_transcoding_resolutions` VALUES(1, 4);
 INSERT INTO `episodes_transcoding_resolutions` VALUES(2, 3);
 
 -- dev
-INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 1, 'brick1','/data/streamy');
-INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 2, 'brick_upload','/data/upload');
+INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 1, 'brick_upload','/data/upload');
+-- INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 2, 'brick1','/data/streamy');
+
 UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
-UPDATE `global_settings` SET `int` = 2 WHERE `key` = 'upload_brick' ;
+UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'upload_brick' ;
 INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) VALUES (INET_ATON("127.0.0.1"),7000,1);

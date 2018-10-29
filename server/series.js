@@ -33,7 +33,7 @@ class SeriesMgr{
         return outputFiles;
     }
     
-    async addSerie(serieInfos,serieImages,serieHints){
+    async addSerie(serieInfos,serieImages,brickId = null,serieHints){
         //Check if serie is already in an adding state (the original name is suffiscient)
         if(this.current_series_creating.has(serieInfos.original_name)){
             console.error("Already adding serie ",serieInfos.original_name);
@@ -44,13 +44,16 @@ class SeriesMgr{
 
         try{ 
             //Check if new serie brick setted
-            if(this.settings.global.new_video_brick === null){
-                console.error("No new video brick has been provided");
+            let targetBrickId = brickId;
+            if(targetBrickId == null && this.settings.global.new_video_brick === null){
+                console.error("No new video brick has been provided for new series");
                 return null;
+            }else if(targetBrickId == null){
+                targetBrickId = this.settings.global.new_video_brick;
             }
 
             //Check if the brick is reachable
-            var brick = await this.con.getBrick(this.settings.global.new_video_brick);
+            var brick = await this.con.getBrick(targetBrickId);
             if(!("brick_path" in brick) || !await fsutils.exists(brick.brick_path)){
                 console.error("Video brick not reachable ",brick.brick_path);
                 return null;
@@ -62,6 +65,7 @@ class SeriesMgr{
                 serieInfos.rating_count,serieInfos.original_name,
                 serieInfos.original_language,
                  brick.id,
+                 0,
                  0,
                  seriePath,
                  1);
@@ -90,6 +94,7 @@ class SeriesMgr{
                     serieInfos.original_language,
                     brick.id,
                     0,
+                    0,
                     seasonPath,
                     2,
                     serieMediaId);
@@ -117,6 +122,7 @@ class SeriesMgr{
                         serieInfos.original_language,
                         brick.id,
                         0,
+                        1,
                         episodePath,
                         3,
                         seasonMediaId);
@@ -206,7 +212,13 @@ class SeriesMgr{
         return "https://image.tmdb.org/t/p/w"+size.toString()+""+imgId;
     }
 
-    async addSerieFromMovieDB(movieDBId){
+    async addSerieFromMovieDB(movieDBId,brickId = null){
+        //Check if serie already added
+        let serieId = await this.findSerieFromMoviedbId(movieDBId);
+        if(serieId){
+            console.error("Failing adding serie with TheMovieDB id already used");
+            return null
+        }
         try{
             //Retreive infos from the movie db
             let tmdbInfos = await moviedb.tvInfo({"id":movieDBId,"langage":"en"});
@@ -281,7 +293,7 @@ class SeriesMgr{
             }
 
             //Add serie
-            let mediaId = await this.addSerie(serieInfos,serieImages);
+            let mediaId = await this.addSerie(serieInfos,serieImages,brickId);
 
             if(mediaId !== null){
                 //Add link with moviedb to avoid ducplicates
