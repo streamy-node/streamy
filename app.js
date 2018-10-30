@@ -52,41 +52,31 @@ console.log("API key: ",process.argv[2]);
 
 //For local use
 const MovieDB_KEY = process.argv[2];
-//var helmet = require('helmet');
 
-//Setup db
-var dbOptions = {
+var mysql = require('mysql');
+var dbPool  = mysql.createPool({
+  connectionLimit : 10,
   host: '127.0.0.1',
   port: 3306,
   user: 'streamy',
   password: 'pwd',
   database: 'streamy',
   multipleStatements: true
-};
+});
+
 //var dbConnection = mysql.createConnection(dbOptions).on;
 var dbMgr = new DBStructure();
 var settings = new Settings(dbMgr);
-var appstarted = false;
 
-dbMgr.initialize(dbOptions,async function(err) {
-  if (err) {
+
+
+async function startApp(){
+  if(!await dbMgr.initialize(dbPool)){
     process.exit(1);
-  }else{
-    await settings.pullSettings();
-
-    // This callback is called each time there is a reconnection
-    // with the db
-    if(!appstarted){
-      try{
-        startApp();
-      }catch(error){
-        console.error("Unexpected error ",error);
-      }
-    }
   }
-});
 
-function startApp(){
+  await settings.pullSettings();
+
   //Setup lang
   i18n.configure({
     locales: ['en', 'fr'],
@@ -99,9 +89,7 @@ function startApp(){
     },
   });
 
-
-
-  // setup managers
+  /////////// setup managers //////////////////////
   var mediaMgr = new MediaMgr(dbMgr,settings);
   var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
 
@@ -113,26 +101,6 @@ function startApp(){
   processesMgr.addWorkersFromDB(dbMgr,true);
   //processesMgr.addWorker("127.0.0.1",7000);
 
-  // var con = mysql.createConnection({
-  //   host: "127.0.0.1",
-  //   user: "streamy",
-  //   password: "pwd"
-  // });
-
-  // con.connect(function(err) {
-  //   if (err) throw err;
-  //   console.log("Connected!");
-  // });
-
-  //Https
-  //var https = require('https');
-  //var fs = require('fs');
-
-  // Setup express based server
-  // var ssl_options = {
-  //   key: fs.readFileSync('privatekey.pem'),
-  //   cert: fs.readFileSync('certificate.pem')
-  // };
 
   /// Setup sessions
   var sessionStore = new MySQLStore({},dbMgr.getConnection());
@@ -141,7 +109,8 @@ function startApp(){
     name : 'sessionId',
     store: sessionStore,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    useConnectionPooling: true
   };
 
   //Handle reconnection
@@ -208,20 +177,17 @@ function startApp(){
 
   ///app.use(cors());
   app.use(express.static('static'));
-
   app.use(session(sess));
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(passport.initialize());
   app.use(passport.session());
-
+  app.use(express.json());
 
   //Setup lang
   app.engine('html', consolidate.mustache); // Assign html to mustache engine
   app.set('view engine', 'html'); // Set default extension
   app.set('views', __dirname + '/views');
-  app.use(i18n.init);
-
-  app.use(express.json());
+  //app.use(i18n.init);
 
   //register helper as a locals function wrapped as mustache expects
   function setupLocals(req, res, next){
@@ -233,7 +199,7 @@ function startApp(){
     };
     next();
   }
-  app.use(setupLocals);
+  //app.use(setupLocals);
 
   function loggedIn(req, res, next) {
     if (req.user) {
@@ -269,11 +235,11 @@ function startApp(){
     res.redirect('/index');
   })
 
-  app.get('/login', function (req, res) {
+  app.get('/login', i18n.init, setupLocals, function (req, res) {
     res.render('login.html')
   })
 
-  app.get('/index', loggedIn, function (req, res) {
+  app.get('/index', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('index.html',{UserName:req.user.displayName});
     //res.sendFile(__dirname + '/views/index.html');
   })
@@ -286,22 +252,22 @@ function startApp(){
 
 
   ////////////////////// templates //////////////////////////////////////////
-  app.get('/movies.html', loggedIn, function (req, res) {
+  app.get('/movies.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.sendFile(__dirname + '/views/templates/movies.html');// TODO mustache here
   })
-  app.get('/series.html', loggedIn, function (req, res) {
+  app.get('/series.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.sendFile(__dirname + '/views/templates/series.html');// TODO mustache here
   })
-  app.get('/serie.html', loggedIn, function (req, res) {
+  app.get('/serie.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('templates/serie.html');
   })
-  app.get('/addvideo.html', loggedIn, function (req, res) {
+  app.get('/addvideo.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.sendFile(__dirname + '/views/templates/addvideo.html');// TODO mustache here
   })
-  app.get('/workers.html', loggedIn, function (req, res) {
+  app.get('/workers.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('templates/workers.html',req.lang);
   })
-  app.get('/transcoding.html', loggedIn, function (req, res) {
+  app.get('/transcoding.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('templates/transcoding.html',req.lang);
   })
 
@@ -672,7 +638,9 @@ function startApp(){
   //importer.refreshBrickMetadata(0);
   //importer.refreshBrickData(0)
 
-  appstarted = true;
+
   // TODO properly shutdown
   // sessionStore.close();
 }
+
+startApp();

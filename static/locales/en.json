@@ -24,7 +24,6 @@
 		"Trailer": "Trailer",
 		"AddTitle": "Add title",
 		"GoToTitle": "Go to title"
-		
 	},
 	"Username": "Username",
 	"Password": "Password",
@@ -36,5 +35,6 @@
 	"Transcoding": "Transcoding",
 	"Stop": "Stop",
 	"Start": "Start",
-	"Connect": "Connect"
+	"Connect": "Connect",
+	"Add": "Add"
 }

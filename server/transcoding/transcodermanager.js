@@ -857,6 +857,16 @@ class TranscoderManager extends EventEmitter{
         }
     }
 
+    // async removeMpd(mpdId){
+    //     let mpd = await this.dbMgr.getMpdFile(mpdId);
+    //     if(!mpd){
+    //         console.warn("Cannot remove unexisting mpd file");
+    //         return true;
+    //     }
+
+    //     fsutils.rm
+    // }
+
     async _getTargetFolder(media){
         var mainFolder;
         //let media = await this.dbMgr.getMedia(mediaId);

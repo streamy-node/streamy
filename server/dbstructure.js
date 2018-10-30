@@ -1,6 +1,5 @@
 var fs = require('fs');
 var moviedb = require('./moviedb.js');
-var mysql = require('mysql');
 const EventEmitter = require('events');
 
 class DBStructure extends EventEmitter{
@@ -12,30 +11,19 @@ class DBStructure extends EventEmitter{
         this.categories = new Map()
     }
 
-    initialize(dbOptions,onResult){
+    async initialize(pool,dbOptions,onResult){
         var self = this;
-        this.dboptions = dbOptions;
-
-        this.handleDisconnect((err)=>{
-            if(err){
-                console.error("Cannot connect to db ",err);
-                onResult(err);
-                return;
-            } 
-            // Setup dbase
-            this.setup_database(function(error){
-                if(error){
-                    console.error("Cannot setup the db ",error);
-                    onResult(error);
-                }else{
-                    self._cacheStaticData();
-                    onResult();
-                }
-            });
-        },(error)=>{
-            onResult(error);
-        });
-            
+        ///this.dboptions = dbOptions;
+        this.con = pool;
+        
+        // Setup dbase
+        if(!await this.setup_database()){
+            console.error("Cannot setup the db :'(");
+            return false;
+        }else{
+            this._cacheStaticData();
+            return true;
+        }            
     }
 
     async _cacheStaticData(){
@@ -92,24 +80,24 @@ class DBStructure extends EventEmitter{
         });
     }
 
-    setup_database(onResult){
+    async setup_database(){
         //If the database is available, create tables if necessary
         var sql = fs.readFileSync('server/sql/init_db.sql').toString();
-        this.con.query(sql, function (err, result) {
-                if (err){
-                if(err.errno === 1050){
-                    console.log("Database already initialized");
-                    if(onResult) onResult(null);
-                }else{
-                    console.log("Failed to setup db table: ",err," result: ",result);
-                    if(onResult) onResult(err);
-                }
+
+        try{
+            await this.query(sql);
+            console.log("DB initialized");
+            return true;
+        }catch(err){
+            if(err.errno === 1050){
+                console.log("Database already initialized");
+                return true;
             }else{
-                console.log("DB initialized");
-                if(onResult) onResult(null);
+                console.log("Failed to setup db table: ",err);
+                return false;
             }
-        });
-    }
+        }
+    };
 
     strdb(str){
         if(str === NULL){
@@ -194,74 +182,6 @@ class DBStructure extends EventEmitter{
     getLangsId(langCode){
         return this.langs[langCode];
     }
-    // CREATE TABLE `languages` (
-    //     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-    //     `name` char(49) CHARACTER SET utf8 DEFAULT NULL,
-    //     `iso_639_1` char(2) CHARACTER SET utf8 DEFAULT NULL,
-    //     PRIMARY KEY (`id`),
-
-    // async getSeries(){
-    //     var sql = "SELECT * FROM `series`";
-    //     var results = await this.query(sql);
-
-    //     return results;
-    // }
-
-
-
-
-
-    // async getSerie(serieId){
-    //     var sql = "SELECT * FROM `series` WHERE id = "+serieId+"";
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         console.error("Cannot get serie ",serieId);
-    //         return null;
-    //     }else{
-    //         return result[0];
-    //     }
-    // }
-
-    // async getSerieFromEpisode(episodeId){
-    //     var sql = "SELECT series.*, saison.season_number, ep.episode_number  FROM `series`, `series_episodes` AS ep, `series_seasons` AS saison"+
-    //     " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id AND saison.serie_id = series.id";
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         console.error("Cannot get serie ",serieId);
-    //         return null;
-    //     }else{
-    //         return result[0];
-    //     }
-    // }
-
-    // async getSerieIdFromEpisode(episodeId){
-    //     var sql = "SELECT * FROM `series_episodes` AS ep, `series_seasons` AS saison"+
-    //     " WHERE ep.id = "+episodeId+" AND ep.season_id = saison.id";
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         console.error("Cannot get serie ",serieId);
-    //         return null;
-    //     }else{
-    //         return result[0].serie_id;
-    //     }
-    // }
-    
-    // async getSeriesWithMpd(){
-    //     var sql = "SELECT * FROM `series_episodes` AS s, `series_mpd_files` AS mdp "+
-    //     " WHERE mdp.complete = "+1+
-    //     " AND mdp.episode_id = ";
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         console.error("Cannot get serie ",serieId);
-    //         return null;
-    //     }else{
-    //         return result[0];
-    //     }
-    // }
 
     async setMediaHasMPD(mediaId,hasMpd){
         if( (!this.checkId(mediaId))){
@@ -274,30 +194,6 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
-    // async setSerieEpisodeHasMPD(episodeId,hasMpd){
-    //     if( (!this.checkId(episodeId))){
-    //         console.error("setSerieEpisodeHasMPD: Invalid entries ");
-    //         return null;
-    //     }
-    //     var sql = "UPDATE `series_episodes` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+episodeId.toString();
-    //     var sqlres = await this.query(sql);
-    //     var id = sqlres.insertId;
-    //     return id;
-    // }
-
-    // async getSeriesLightTranslations(lang){
-    //     var sql = "SELECT * FROM `series` AS s "+
-    //     "LEFT JOIN `series_translations` AS t  ON s.id = t.lang_id "+
-    //     "LEFT JOIN `series_translations` AS t_en ON s.id = 1";
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         console.error("Cannot get serie ",serieId);
-    //         return null;
-    //     }else{
-    //         return result[0];
-    //     }
-    // }
     async getMedia(mediaId){
         if(!this.checkId(mediaId)){
             console.error("getMedia: Invalid entries ");
@@ -450,17 +346,7 @@ class DBStructure extends EventEmitter{
 
             let sql = this.getMediaBaseRequest(mediaCategoryId,langCode,userId,true)
             sql += " WHERE m.id = "+mediaId;
-            // var sql = "SELECT * FROM `media` m"+
-            // " JOIN `media_"+this.categories.get(mediaCategoryId)+"` c ON m.id = c.media_id"+
-            // " JOIN `bricks` b ON m.brick_id = b.id"+
-            // " LEFT JOIN `media_translations` t  ON m.id = t.media_id AND t.lang_id = "+langCode;
 
-            // if(userId){
-            //     sql += " LEFT JOIN `media_progressions` p ON p.user_id = "+userId+" AND m.id = p.media_id"
-            // }
-            // sql += " WHERE m.id = "+mediaId;
-
-            //console.log("2",sql)
             var result = await this.query(sql);
 
             if(result.length == 0 ){
@@ -487,22 +373,6 @@ class DBStructure extends EventEmitter{
             if(sortKey){
                 sql += " ORDER BY "+sortKey;
             }
-
-            //" JOIN `bricks` b ON m.brick_id = b.id"+
-            // var sql = "SELECT * FROM `media` m "+
-            // " JOIN `media_"+this.categories.get(categoryId)+"` c ON m.id = c.media_id"+
-            // " LEFT JOIN `media_translations` tr  ON m.id = tr.media_id AND tr.lang_id = "+langId;
-
-            // if(userId){
-            //     sql += " LEFT JOIN `media_progressions` AS p ON p.user_id = "+userId+" AND m.id = p.media_id"
-            // }
-            // sql += " WHERE m.parent_id = "+mediaId;
-
-            // if(sortKey){
-            //     sql += " ORDER BY "+sortKey;
-            // }
-
-            //console.log(sql)
             let results = await this.query(sql);
             return results;
 
@@ -594,22 +464,6 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
-    // async getSerieTranslation(serieId,langCode){
-    //     if(!this.checkId(serieId) || !this.checkId(langCode)){
-    //         console.error("getSerieTranslation: Invalid entries ");
-    //         return null;
-    //     }
-
-    //     var sql = "SELECT * FROM `series_translations`, `languages` WHERE serie_id = "+serieId+" AND series_translations.lang_id = "+langCode;
-    //     var result = await this.query(sql);
-
-    //     if(result.length == 0 ){
-    //         return null;
-    //     }else{
-    //         return result[0];
-    //     }
-    // }
-
     async getSerieSeasons(serieId,langCode){
         if(!this.checkId(serieId) || !this.checkId(langCode)){
             console.error("getSerieSeasons: Invalid entries ");
@@ -682,23 +536,6 @@ class DBStructure extends EventEmitter{
             return results[0];
         }
     }
-    // async getEpisodePath(episodeId){
-    //     if(!this.checkId(episodeId) ){
-    //         console.error("getEpisodePath: Invalid entries ");
-    //         return null;
-    //     }
-
-    //     var sql = "SELECT bricks.path as brick_path, series.original_name as serie_name, series.release_date as serie_release_date, season.season_number,  ep.episode_number"
-    //     +" FROM `series_episodes` AS ep, `series_seasons` AS season, `series`, `bricks` "
-    //     +" WHERE ep.id = "+episodeId+" and ep.season_id = season.id AND season.serie_id = series.id AND bricks.id = series.brick_id";
-    //     var results = await this.query(sql);
-
-    //     if(results.length == 0 ){
-    //         return null;
-    //     }else{
-    //         return results[0];
-    //     }
-    // }
 
     async getMdpFiles(mediaId){
         if(!this.checkId(mediaId)){
@@ -712,18 +549,6 @@ class DBStructure extends EventEmitter{
 
         return results;
     }
-    // async getSeriesMdpFiles(episodeId){
-    //     if(!this.checkId(episodeId)){
-    //         console.error("getEpisodeStreams: Invalid entries ");
-    //         return null;
-    //     }
-
-    //     var sql = "SELECT * FROM `series_mpd_files` AS mdp "+
-    //     " WHERE mdp.episode_id = "+episodeId;
-    //     var results = await this.query(sql);
-
-    //     return results;
-    // }
 
     //TODO delete when replaced
     async getSeriesLiveMdpFiles(episodeId){
@@ -808,6 +633,23 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async getMpdFile(mpdId){
+        if(!this.checkId(mpdId) ){
+            console.error("getMpdFile: Invalid entries ");
+            return null;
+        }
+        var sql = "SELECT * "
+        +" FROM `mpd_files` as s "
+        +" WHERE s.id = "+mpdId;
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0];
+        }
+    }
+
     async getSerieMpdFileFromEpisode(episodeId,workingDir){
         if(!this.checkId(episodeId) && workingDir.length > 0 ){
             console.error("getSerieMpdFileFromEpisode: Invalid entries ");
@@ -824,18 +666,6 @@ class DBStructure extends EventEmitter{
             return results[0];
         }
     }
-
-    // async insertSerieMPDFile(episode_id,mpd_id){
-    //     if( (!this.checkId(episode_id) || !this.checkId(mpd_id))){
-    //         console.error("insertSerieMPDFile: Invalid entries ");
-    //         return null;
-    //     }
-    //     var sql = "INSERT INTO `series_mpd_files` (`episode_id`,`mpd_id`) "
-    //     + " VALUES("+episode_id+", "+mpd_id+")";
-    //     var sqlres = await this.query(sql);
-    //     var id = sqlres.insertId;
-    //     return id;
-    // }
 
     async insertMPDFile(media_id,folder,complete){
         if( folder.length < 0 || !this.checkId(media_id)){
@@ -950,17 +780,6 @@ class DBStructure extends EventEmitter{
             return results[0];
         }
     }
-
-    // async setFilmHasMPD(filmId,hasMpd){
-    //     if( (!this.checkId(serieId))){
-    //         console.error("setFilmHasMPD: Invalid entries ");
-    //         return null;
-    //     }
-    //     var sql = "UPDATE `films` SET `has_mpd` = "+hasMpd.toString()+" WHERE `id` = "+filmId.toString();
-    //     var sqlres = await this.query(sql);
-    //     var id = sqlres.insertId;
-    //     return id;
-    // }
 
     async getFilmsMdpFiles(filmId){
         if(!this.checkId(filmId)){
@@ -1248,20 +1067,6 @@ class DBStructure extends EventEmitter{
         var results = await this.query(sql);
         return results;
     }
-
-    // async getSeriesTranscodingResolutions(){
-    //     var sql = "SELECT res.* FROM `series_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
-    //     " WHERE serie_res.resolution_id = res.id";
-    //     var results = await this.query(sql);
-    //     return results;
-    // }
-
-    // async getFilmsTranscodingResolutions(){
-    //     var sql = "SELECT res.* FROM `films_transcoding_resolutions` AS serie_res, `resolutions` AS res "+
-    //     " WHERE serie_res.resolution_id = res.id";
-    //     var results = await this.query(sql);
-    //     return results;
-    // }
 
     async getResolutions(){
         var sql = "SELECT * FROM `resolutions` "+

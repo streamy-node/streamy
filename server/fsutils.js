@@ -235,6 +235,18 @@ class FSUtils{
         });
     }
 
+    async rmdir(folderName){
+        return new Promise((resolve, reject) => {
+            fs.rmdir(folderName, function (err) {
+                if (err) {
+                    resolve(false);
+                }else{
+                    resolve(true);
+                }
+            });
+        });
+    }
+
     async concat(files, destination){
         return new Promise(async (resolve, reject) => {
             var wstream = fs.createWriteStream(destination, {flags: "a"});
@@ -317,6 +329,8 @@ class FSUtils{
             return false;
         }
     }
+
+
 
 }
 
