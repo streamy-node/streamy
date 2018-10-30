@@ -1056,7 +1056,7 @@ class TranscoderManager extends EventEmitter{
             onStop(restart)
         })
         .on('progression',(msg)=>{
-            console.log("on progression "+workingDir+" "+cmd.targetName,msg);
+            //console.log("on progression "+workingDir+" "+cmd.targetName,msg);
             if(onProgressions) onProgressions(msg);
         })
         .on('final',(msg)=>{
