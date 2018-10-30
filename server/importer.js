@@ -134,6 +134,10 @@ class Importer{
                 continue;
             }
 
+            if(mdpfolder == "EpBGC9DSB"){
+                console.log("STOP")
+            }
+
             //get mpd file
             let mpdFile = media_path+"/"+mdpfolder+"/allsub.mpd"
             if(!await fsutils.exists(mpdFile)){
@@ -146,6 +150,11 @@ class Importer{
             if(!await mpd.parse(mpdFile)){
                 console.warn("Ignoring folder with invalid mpd file:",mpdFile)
                 continue;
+            }
+
+            if(!mpd.sanity.isSane){
+                console.log("Upgrading mpd file "+mpdFile);
+                await this.trMgr.upgradeMpd(mpd);
             }
             
             //Get all representations
@@ -173,8 +182,8 @@ class Importer{
             }else{
                 mpdId = mpdinfos.id;
             }
-            this.trMgr.setMpdStatus(media.id,true)
-
+            this.trMgr.setMpdStatus(media.id,true);
+            
             //Add mpd stream infos to database
             for(let i=0; i<repsInfos.length; i++){
                 let repInfos = repsInfos[i];

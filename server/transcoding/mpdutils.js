@@ -10,9 +10,18 @@ const Semaphore = require("await-semaphore").Semaphore;
 //     }
 // }
 //Class to parse mdfiles (without using xml parser for memory reasons)
+class MpdSanity{
+    constructor(){
+        this.isSane = false;
+        this.noAudioChannelConfiguration = false;
+    }
+}
+
 class MPDFile{
     constructor(){
         this.data;
+        this.location = null;
+        this.sanity = new MpdSanity()
     }
 
     getAdaptationSets(){
@@ -53,11 +62,16 @@ class MPDFile{
     }
 
     async parse(mpdFile){
-
         try{
-            this.data = await fsutils.parseXmlFile(mpdFile);
+            let content = await fsutils.read(mpdFile);
+            if(mpdFile === "/data/streamy/series/Westworld (2016)/season_1/episode_3/7zx7sWfu8/allsub.mpd"){
+                console.log("COUCOU");
+            }
+            this.data = await fsutils.parseXml(content);
+            this.location = mpdFile;
+            this.checkSanity(content);
         }catch(error){
-            console.error("Failed to parse mdp file: ",mpdFile);
+            console.error("Failed to parse mdp file: ",mpdFile,error);
             return false;
         }
 
@@ -72,6 +86,19 @@ class MPDFile{
         }
         
         return true;
+    }
+
+    checkSanity(content){
+        //Tell the user that he should save the file because the file
+        // has not enough info or is not stable by using $RepresentationID$ for example
+        if(content.indexOf('contentType="audio"') >= 0 && 
+            content.indexOf("AudioChannelConfiguration") < 0){
+            this.sanity.noAudioChannelConfiguration = true;
+            this.sanity.isSane = false;
+        }
+        if(content.indexOf('$RepresentationID$') >= 0){
+            this.sanity.isSane = false;
+        }
     }
 
     merge(othermpd){
@@ -181,6 +208,24 @@ class MPDFile{
         return null;        
     }
 
+    getAllRepresentationsByType(type){
+        let representations = [];
+        //merge only video adaptations sets ignoring lang, appends other types
+        let adaptationSets = this.getAdaptationSets();
+        for(let i=0; i< adaptationSets.length; i++){
+            let oaset = adaptationSets[i];
+            let ctype = oaset.$.contentType;
+            if(ctype === type){
+                //Loop over representations
+                for( let j=0; j < oaset.Representation.length; j++){
+                    let orep = oaset.Representation[j];
+                    representations.push(orep);
+                }
+            }
+        }
+        return representations;
+    }
+
     getAllRepresentationsInfos(){
         let representations = [];
         //merge only video adaptations sets ignoring lang, appends other types
@@ -221,6 +266,8 @@ class MPDFile{
         }
         return representations;
     }
+
+
 
 }
 
@@ -278,6 +325,19 @@ class MPDUtils{
         }
         await src_mpd.save(destination);
         release();
+    }
+
+    setAudioChannelConfiguration(representation, nbChannels){
+        if(!representation.AudioChannelConfiguration){
+            representation.AudioChannelConfiguration = [];
+            let conf = {};
+            conf.$ = {};
+            representation.AudioChannelConfiguration.push(conf)
+        }
+        let conf = representation.AudioChannelConfiguration[0];
+        conf.$.schemeIdUri = "urn:mpeg:dash:23003:3:audio_channel_configuration:2011";
+        conf.$.value = nbChannels.toString();
+        '<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="6"/>'
     }
 }
 

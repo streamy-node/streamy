@@ -4,7 +4,7 @@
 var express = require('express')
 //var cors = require('cors'); // Chrome cast
 var session = require('express-session');
-var formidable = require('formidable');
+//var formidable = require('formidable');
 var MySQLStore = require('express-mysql-session')(session);
 /// Setup express server
 var app = express()
@@ -20,11 +20,10 @@ var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
 
 //Lang
-var mustache = require('mustache');
+//var mustache = require('mustache');
 var i18n  = require('i18n');
-var path = require('path');
 var consolidate = require('consolidate');
-
+var path = require('path');
 var fsUtils = require('./server/fsutils.js')
 
 //Ffmpeg manager
@@ -636,9 +635,13 @@ async function startApp(){
 
   //importer.importBrick('/data/streamy',"brick1");
   //importer.refreshBrickMetadata(0);
-  //importer.refreshBrickData(0)
+  importer.refreshBrickData(0)
+  let dostuff = async function (){
+    //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
 
-
+  }
+  setTimeout(dostuff, 1500, 'funky');
+  
   // TODO properly shutdown
   // sessionStore.close();
 }

@@ -329,6 +329,8 @@ class FfmpegProcessManager extends EventEmitter{
         return false;
       }
 
+      this.unreachedWorkers.push(worker);
+
       worker.enabled = enabled;
       let success = await this.reachWorkerInfos(worker)
       if(success){
@@ -830,22 +832,28 @@ class FfmpegProcessManager extends EventEmitter{
   }
 
   async ffprobe(file){
+    var worker = null;
     try{
       if(this.workers.length == 0){
+        console.error("ffprobe cannot be use, no workers availables ");
         return null;
       }
       //For the moment take first online worker
-      var worker = this.getConnectedWorker();
+      worker = this.getConnectedWorker();
       if(worker){
         return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
       }else{
-
+        console.error("ffprobe cannot be use, no workers online ",file,err);
+        return null;
       }
     }catch(err){
-      this.setWorkerStatus(worker,"offline");
+      if(worker){
+        this.setWorkerStatus(worker,"offline");
+      }
       console.error("ffprobe failed with file ",file,err);
       return null;
     }
+    return null;
   }
 
   getLightWorker(worker){

@@ -1,6 +1,7 @@
 const shortId = require('shortid');
 var path = require('path');
 
+
 var fsutils = require('../fsutils');
 var jsutils = require("../jsutils");
 
@@ -396,8 +397,18 @@ class TranscoderManager extends EventEmitter{
         
                             //Add subtitles to mdp file
                             let subtitle_streams = await self.getAvailableVttStreams(absoluteWorkingFolder);
-                            await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitle_streams,absoluteWorkingFolder+"/allsub.mpd");
-        
+                            let finalMpdFile = absoluteWorkingFolder+"/allsub.mpd";
+                            await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitle_streams,finalMpdFile);
+                            
+                            //Check if the produced mpd is sane (it depends from ffmpeg version)
+                            let mpd = new MPD();
+                            if(!await mpd.parse(finalMpdFile)){
+                                console.error("Final mpd not reachable:",finalMpdFile)
+                            }
+                            if(!mpd.sanity.isSane){
+                                await this.upgradeMpd(mpd);
+                            }
+
                             //Mark mpd as complete if audio or video stream added
                             if(hasVideoOrAudio){
                                 await self.dbMgr.setMPDFileComplete(mpdId,1);
@@ -480,7 +491,57 @@ class TranscoderManager extends EventEmitter{
 
     }
 
+    async upgradeMpd(mpd){
+        if(mpd.sanity.noAudioChannelConfiguration){
+            await this.updateMpdAudioChannels(mpd);
+        }
 
+        //Legacy upgrade, to remove after main server upgrade
+        await this.upgradeOldSubsFiles(mpd);
+
+        if(!mpd.sanity.isSane){
+            mpd.save(mpd.location);
+        }
+    }
+
+    //Legacy upgrade, to remove after main server upgrade
+    async upgradeOldSubsFiles(mpd){
+        //Get representations
+        let repsInfos = mpd.getAllRepresentationsByType("text");
+        let absolutPath = path.dirname(mpd.location)
+        //Get init segement from mpd for audio streams
+        for(let i=0; i<repsInfos.length; i++){
+            let repInfos = repsInfos[i];
+
+            //Reach segment
+            if(repInfos.BaseURL && repInfos.BaseURL.length == 1){
+                let baseUrl = repInfos.BaseURL[0];
+                let fileName = path.basename(repInfos.BaseURL[0])
+                let base = path.dirname(repInfos.BaseURL[0])
+                if(fileName.length > 7 && fileName.substring(0,4) === "srt_"){
+                    console.log("Upgrading old subtitle filename");
+                    let baseName = fileName.substring(0,fileName.length-4);
+                    let lang = baseName.substring(4,6)
+                    let description = baseName.substring(7)
+                    let newUrl = description+"_"+lang+".vtt"
+                    if(base.length > 0){
+                        newUrl = base + "/" + newUrl;
+                    }
+                    let srcFile = absolutPath+"/"+baseUrl;
+                    let dstFile = absolutPath+"/"+newUrl;
+                    console.log("renaming sub ",srcFile," to ",dstFile);
+                    try{
+                        await fsutils.rename(srcFile,dstFile)
+                    }catch(err){
+                        console.error("Failed to mv srt file  ",srcFile);
+                        continue;
+                    }
+                    repInfos.BaseURL[0] = newUrl;
+                    mpd.sanity.isSane = false;
+                }
+            }
+        }
+    }
 
     extractUploadedSubtitleinfos(filename){
         let infos = null;
@@ -1125,6 +1186,43 @@ class TranscoderManager extends EventEmitter{
         bitrate.toString()+"K",
         ];
     }
+
+    //Sometimes ffmpeg don't put channel number in mpd, so add it
+    async updateMpdAudioChannels(mpd){
+
+        //Get all representations
+        let repsInfos = mpd.getAllRepresentationsByType("audio");
+        let changeMade = false;
+        //Get init segement from mpd for audio streams
+        for(let i=0; i<repsInfos.length; i++){
+            let repInfos = repsInfos[i];
+
+            //Reach segment
+            if(repInfos.SegmentTemplate && repInfos.SegmentTemplate.length == 1){
+                let segment = repInfos.SegmentTemplate[0];
+                let initFile = segment.$.initialization;
+                let absolutPath = path.dirname(mpd.location)+"/"+initFile;
+                let channels = await this.extractAudioChannelsFromFile(absolutPath)
+                if(channels && channels > 0){
+                    mpdUtils.setAudioChannelConfiguration(repInfos,channels);
+                    changeMade = true;
+                }
+            }
+        }
+    }
+    async extractAudioChannelsFromFile(absoluteSourceFile){
+        var infos = await this.processManager.ffprobe(absoluteSourceFile);
+        if(infos && 'streams' in infos && infos.streams.length > 0){
+            let stream = infos.streams[0];
+            if(stream.codec_type != 'audio'){
+                console.error("Cannot count channels on non audio stream ",stream.codec_type);
+                return null;
+            }
+            return stream.channels
+        }
+        return null;
+    }
+
 }
 
 module.exports = TranscoderManager;
