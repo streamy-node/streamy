@@ -34,6 +34,12 @@ class WorkerController{
         //Websocket
         //var ws = io('/notifications/workers');
         var ws_worker = this.sws.subscribe('/notifications/workers')
+
+        ws_worker.on('reconnect',function(atempts){
+            $.getJSON( "workers", function( workers ) {
+                self.renderWorkers(workers);;
+            });
+        })
         // this.ws.emit('join_room', "workers");
         // this.ws.on('connect', function() {
         //     // Connected, let's sign-up for to receive messages for this room
@@ -59,6 +65,7 @@ class WorkerController{
     }
 
     renderWorkers(workers){
+        $("#worker_list").empty()
         for(var i=0; i<workers.length; i++){ 
             this.appendWorker(workers[i]);
         } 

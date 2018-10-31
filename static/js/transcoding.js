@@ -21,14 +21,15 @@ class TranscodingController{
         });
     }
 
-    resetRender(){
-        render(self.div)
-    }
-
     initialize(){
         var self = this;
         //Websocket
         var ws_worker = this.sws.subscribe('/notifications/transcoding')
+        ws_worker.on('connect',function(atempts){
+            $.getJSON( "transcoding_tasks", function( tasks ) {
+                self.renderTranscodingTasks(Object.values(tasks.offline));
+            });
+        })
 
         ws_worker.on('taskAdded', function(task){
             self.appendTask(task);
@@ -42,6 +43,7 @@ class TranscodingController{
     }
 
     renderTranscodingTasks(tasksByMedia){
+        this.clearTasks();
         for(var i=0; i<tasksByMedia.length; i++){
             let tasks = Object.values(tasksByMedia[i]) 
             for(let j=0; j<tasks.length ; j++){
@@ -50,6 +52,11 @@ class TranscodingController{
         } 
     }
 
+    clearTasks(){
+        $("#tasks_list").empty()
+        this.tasksStatus = {};
+    }
+    
     appendTask(task){
         this.appendToContainer("#tasks_list",this.renderTranscodingTask(task));
     }
@@ -88,10 +95,6 @@ class TranscodingController{
 
     updateTask(task){
         let taskElement = this.tasksStatus[task.filename]
-        if(!taskElement){
-            resetRender(div)
-            return;
-        }
         taskElement.find(".media_name").text(task.original_name);
         this.setTaskState(task.filename,task.state_code,task.has_error);
                
