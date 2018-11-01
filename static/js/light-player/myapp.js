@@ -44,6 +44,7 @@ lightDemo.getURLParameter_ = function(sParam){
 //let type = lightDemo.getURLParameter_("type");
 let id = lightDemo.getURLParameter_("id");
 let folderName = lightDemo.getURLParameter_("folder_name");
+let mpdGenId = lightDemo.getURLParameter_("mpd_gen_id");
 
 var protocol = location.protocol;
 var slashes = protocol.concat("//");
@@ -74,7 +75,12 @@ function addMPDAsset(mpdFile,index = null){
 }
 
 lightDemo.loadMpdFiles = function() {
-  if(folderName){
+  if(mpdGenId){
+    $.getJSON( "/media/"+id+"/gen_mpd_file/"+folderName+"/"+mpdGenId, function( mpdfile ) {
+      addMPDAsset(mpdfile);
+      lightDemo.startPlayer();
+    });
+  }else if(folderName){
     $.getJSON( "/media/"+id+"/mpd_file/"+folderName, function( mpdfile ) {
       addMPDAsset(mpdfile);
       lightDemo.startPlayer();
@@ -84,23 +90,6 @@ lightDemo.loadMpdFiles = function() {
       for(let i=0; i<mpdfiles.length; i++){
         addMPDAsset(mpdfiles[i],i);
       }
-      // for(let i=0; i<mpdfiles.length; i++){
-      //   let mpdfile = mpdfiles[i];
-      //   shakaAssets.enabledAssets.push({
-      //     name: mpdfile.title+" ("+i.toString()+")",//TODO put explicit name
-      //     manifestUri: host+mpdfile.filename,
-      //     encoder: shakaAssets.Encoder.STREAMY,
-      //     source: shakaAssets.Source.STREAMY,
-      //     drm: [],
-      //     features: [
-      //       shakaAssets.Feature.HIGH_DEFINITION,
-      //       shakaAssets.Feature.MP4,
-      //       shakaAssets.Feature.SEGMENT_BASE,
-      //       shakaAssets.Feature.SUBTITLES
-      //     ]
-      //   });
-      // }
-  
       lightDemo.startPlayer();
     });
   }
