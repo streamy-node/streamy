@@ -177,12 +177,7 @@ class VideoBlock{
         });
 
         //Link media content button
-        ///element.find(".mediacontent").attr('href','#mediacontent_'+this.id)
         element.find(".mediacontent").attr("href","#mediacontent_"+this.id);
-        //template.find(".mediacontent").css("href","#mediacontent_"+this.id);
-        //Link to transcode
-        // element.find(".video_progress").click(function(){
-        // })
     }
 
     showCancelUpload(enabled){

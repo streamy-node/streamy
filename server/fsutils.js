@@ -44,19 +44,6 @@ class FSUtils{
                 throw err;
             }
         }
-        // return new Promise((resolve, reject) => {
-        //     fs.stat(file, function(err, stat) {
-        //         if(err == null) {
-        //             resolve(true);
-        //         } else if(err.code == 'ENOENT') {
-        //             // file does not exist
-        //             resolve(false);
-        //         } else {
-        //             console.error('FSUtils.exists: error: ', err.code);
-        //             reject(err);
-        //         }
-        //     });   
-        // });
     }
 
     async read(file, format = 'utf8'){
@@ -276,11 +263,6 @@ class FSUtils{
     async readir(dir){
         return new Promise((resolve, reject) => {
         fs.readdir(dir, (err, files) => {
-            // if(err){
-            //     return resolve(null);
-            // }else{
-            //     resolve(files)
-            // }
                 if(err) reject(err);
                 resolve(files);
             });

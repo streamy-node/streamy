@@ -378,6 +378,16 @@ async function startApp(){
     res.send(JSON.stringify(output));
   })
 
+  app.post('/media/:id/mpd/:folderName/refresh', loggedIn, async function (req, res) {
+    //let type = req.params.type;
+    let id = parseInt(req.params.id);
+    let folderName = req.params.folderName;
+    let output = await mediaMgr.refreshMediaMpd(id,folderName);
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(output));
+  })
+
   app.delete('/media/:mediaId/mpd/:folder/representation/:rep_id', loggedIn, async function (req, res) {
     if(req.user){ //TODO check rights
       //let type = req.params.type;

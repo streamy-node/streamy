@@ -74,7 +74,7 @@ class MediaContentController{
                 r = confirm("You want to remove an mpd with data "+mpdInfo.folder);
             }
             if(r){
-                deleteReq("/media/"+self.mediaId+"/mpd/"+encodeURIComponent(mpdInfo.folder),
+                deleteReq("/media/"+self.mediaId+"/mpd/"+mpdInfo.folder,
                     function(response){
                         template.remove();
                     },
@@ -87,11 +87,17 @@ class MediaContentController{
 
         template.find(".mpd_preview_btn").click(function(){
             var r = true;
-            
             window.open("js/light-player/index.html?id="+self.mediaId+"&folder_name="+mpdInfo.folder, "streamy player");
 
         });
         
+        template.find(".mpd_insert_db_btn").click(function(){
+            postAsJson({},"/media/"+self.mediaId+"/mpd/"+mpdInfo.folder+"/refresh", function(response){
+                template.find(".mpd_insert_db_btn").addClass("d-none")
+            },function(response){
+                alert("Failed to start task "+response);
+            },false)
+        });
 
 
         //if there is not mpd

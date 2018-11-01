@@ -57,7 +57,7 @@ var host = slashes.concat(window.location.hostname)+":"+location.port;
 function addMPDAsset(mpdFile,index = null){
   let title = mpdFile.title;
   if(index){
-    title += +" ("+index.toString()+")";
+    title += " ("+index.toString()+")";
   }
   shakaAssets.enabledAssets.push({
     name: title,//TODO put explicit name

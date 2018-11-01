@@ -17,24 +17,6 @@ class MediaMgr{
         this.current_series_creating = new Set();
     }
 
-    // async getMpdUrlFiles(mediaId){
-    //     let outputFiles = [];
-    //     let media = await this.con.getMedia(mediaId)
-    //     let mpdFiles = await this.con.getMdpFiles(mediaId);
-        
-    //     for(var i=0; i<mpdFiles.length; i++){
-    //         let mpdfile = mpdFiles[i];
-    //         //let path = "/brick/"+media.brick_id+"/data/season_"+serie.season_number.toString()+"/episode_"+serie.episode_number+"/"+mpdfile.folder+"/allsub.mpd";
-    //         let path = "/brick/"+media.brick_id+"/"+media.path+"/"+mpdfile.folder+"/allsub.mpd";
-    //         let title = media.easy_name;
-    //         if(title.length == 0){
-    //             title = media.original_name;
-    //         }
-    //         outputFiles.push({filename:path,title:title});
-    //     }
-    //     return outputFiles;
-    // }
-
     async getPlayerMpdFiles(mediaId){
         let outputFiles = [];
         let media = await this.con.getMedia(mediaId)
@@ -131,11 +113,6 @@ class MediaMgr{
         let mpdFolders = await this.getFsMpdFolders(media,false);
         for(let i=0; i<mpdFolders.length; i++){
             let folder = mpdFolders[i];
-            // let mdpAbsfolder = mpdFolders[i];
-            // let mpd = await this.parseMpdFolder(mdpAbsfolder)
-            // let mpdFolder = path.basename(mdpAbsfolder)
-            // let mpd_id = await this.con.getMpdIdFromMedia(media.id,mpdFolder);
-            // parsedMpdFolders.push({folder:mpdFolder,mpd:mpd,mpd_id:mpd_id})
             parsedMpdFolders.push(await this.getMpdInfos(media, folder));
         }
         return parsedMpdFolders;

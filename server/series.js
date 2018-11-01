@@ -16,25 +16,6 @@ class SeriesMgr{
 
     init(){
     }
-
-    //TODO use media getMpdFiles
-    // async getMpdFiles(mediaId){
-    //     let outputFiles = [];
-    //     let media = await this.con.getMedia(mediaId)
-    //     let mpdFiles = await this.con.getMdpFiles(mediaId);
-        
-    //     for(var i=0; i<mpdFiles.length; i++){
-    //         let mpdfile = mpdFiles[i];
-    //         //let path = "/brick/"+media.brick_id+"/data/season_"+serie.season_number.toString()+"/episode_"+serie.episode_number+"/"+mpdfile.folder+"/allsub.mpd";
-    //         let path = "/brick/"+media.brick_id+"/"+media.path+"/"+mpdfile.folder+"/allsub.mpd";
-    //         let title = media.original_name+" S"+media.season_number+"E"+media.episode_number.toString();
-    //         outputFiles.push({filename:path,title:title});
-    //     }
-    //     return outputFiles;
-    // }
-    // generateEasyName(){
-
-    // }
     
     async addSerie(serieInfos,serieImages,brickId = null,serieHints){
         //Check if serie is already in an adding state (the original name is suffiscient)
