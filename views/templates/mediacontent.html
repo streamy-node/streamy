@@ -1,0 +1,53 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_media_content" >
+    <div class="container-fluid no-gutters nopad" >
+        <h1 class="mpd-content-title"></h1><!--{{#__}}MediaContent{{/__}}-->
+
+        <ul class="list-group" id="mpd_list">
+            <!-- media content status here-->
+        </ul>
+    </div>
+</div>
+
+<!-- templates -->
+<div id="mpd_list_tpl" class="hidden">
+    <div class="accordion ">
+        <div class="mpd-item card">
+            <div class="card-header">
+                <h4 class="panel-title d-flex mb-0">
+                    <a data-toggle="collapse" class="card-link mpd_name mr-auto" href="#collapse1">MPD </a>
+                    <button type="button" class="mpd_remove_btn btn btn-danger material-icons">delete_forever</button>
+                    <button type="button" class="mpd_preview_btn btn btn-success material-icons ml-1">play_circle_outline</button>
+                    <button type="button" class="mpd_insert_db_btn btn btn-success material-icons ml-1 d-none">insert_link</button>
+                </h4>
+            </div>
+            <div id="collapse1" class="panel-collapse collapse">
+                <ul class="list-group">
+                </ul>
+                <!--div class="panel-footer">Footer</div-->
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="mpd_tpl" class="hidden">
+    <li class="list-group-item d-flex align-items-center">
+        <div class="rep_type ml-2">video</div>
+        <div class="d-flex flex-wrap mr-auto">
+            <div class="d-flex">
+                <div class="rep_label mr-1">lang:</div>
+                <div class="rep_lang" contenteditable="true">en</div>
+            </div>
+            <div class="rep_resolution ml-1 d-none">480p</div>
+            <div class="rep_channels ml-1 d-none">6ch</div>
+            <div class="rep_name ml-1 d-none" contenteditable="true">SomeName</div>
+        </div>
+        <div class="d-flex flex-wrap flex-row-reverse">
+            <button type="button" class="rep_save_btn btn btn-success material-icons ml-1 d-none">save</button>
+            <button type="button" class="rep_cancel_btn btn btn-success material-icons ml-1 d-none">cancel</button>
+            <button type="button" class="rep_preview_btn btn btn-success material-icons ml-1 d-none">play_arrow</button>
+            <button type="button" class="rep_remove_btn material-icons btn btn-danger ml-1">delete_forever</button>
+        </div>
+    </li>
+</div>
+

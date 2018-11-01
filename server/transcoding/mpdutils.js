@@ -1,4 +1,6 @@
+var path = require('path');
 var fsutils = require('../fsutils');
+var jsutils = require('../jsutils');
 const Semaphore = require("await-semaphore").Semaphore;
 
 
@@ -14,6 +16,7 @@ class MpdSanity{
     constructor(){
         this.isSane = false;
         this.noAudioChannelConfiguration = false;
+        this.notFrozen = false;
     }
 }
 
@@ -26,6 +29,23 @@ class MPDFile{
 
     getAdaptationSets(){
         return this.data.MPD.Period[0].AdaptationSet;
+    }
+
+    removeAdaptationSet(id, force = false){
+        let asets = this.data.MPD.Period[0].AdaptationSet;
+        for( let j=0; j < asets.length; j++){
+            let adset = asets[j];
+            if(adset.$.id === id){
+                if(force || adset.Representation.length == 0){
+                    asets.splice(j, 1);
+                    return true;
+                }else{
+                    console.error("Cannot remove non empty adaptation set")
+                    return false;
+                }
+            }
+        }
+        return false;
     }
 
     // Setup valid ids for adaptation sets and representations
@@ -64,9 +84,6 @@ class MPDFile{
     async parse(mpdFile){
         try{
             let content = await fsutils.read(mpdFile);
-            if(mpdFile === "/data/streamy/series/Westworld (2016)/season_1/episode_3/7zx7sWfu8/allsub.mpd"){
-                console.log("COUCOU");
-            }
             this.data = await fsutils.parseXml(content);
             this.location = mpdFile;
             this.checkSanity(content);
@@ -91,12 +108,14 @@ class MPDFile{
     checkSanity(content){
         //Tell the user that he should save the file because the file
         // has not enough info or is not stable by using $RepresentationID$ for example
+        this.sanity.isSane = true;
         if(content.indexOf('contentType="audio"') >= 0 && 
             content.indexOf("AudioChannelConfiguration") < 0){
             this.sanity.noAudioChannelConfiguration = true;
             this.sanity.isSane = false;
         }
         if(content.indexOf('$RepresentationID$') >= 0){
+            this.sanity.notFrozen = true;
             this.sanity.isSane = false;
         }
     }
@@ -208,6 +227,66 @@ class MPDFile{
         return null;        
     }
 
+    getRepresentation(id){
+        //merge only video adaptations sets ignoring lang, appends other types
+        let adaptationSets = this.getAdaptationSets();
+        for(let i=0; i< adaptationSets.length; i++){
+            let oaset = adaptationSets[i];
+
+            //Loop over representations
+            for( let j=0; j < oaset.Representation.length; j++){
+                let orep = oaset.Representation[j];
+                if(orep.$.id === id){
+                    return orep;
+                }
+            }
+        }
+        return null;
+    }
+
+    checkHash(rep, safeHash){
+        if(safeHash){
+            let hash = this._generateRepresentationSafeHash(rep)
+            if(safeHash != hash){
+                console.error("Mpd representation safe hash not matching ",safeHash,hash)
+                return false;
+            }
+        }
+        return true;
+    }
+
+    removeRepresentation(id, safeHash = null){
+        let adaptationSets = this.getAdaptationSets();
+        for(let i=0; i< adaptationSets.length; i++){
+            let oaset = adaptationSets[i];
+
+            //Loop over representations
+            let found = false;
+            for( let j=0; j < oaset.Representation.length; j++){
+                let orep = oaset.Representation[j];
+                if(orep.$.id === id){
+                    if(!this.checkHash(orep,safeHash)){
+                        console.error("Failed to remove representation")
+                        return null;
+                    }
+                    oaset.Representation.splice(j, 1);
+                    found = true;
+                    break;
+                }
+            }
+
+            //Remove adaptation set if it was the last representation
+            if(found){
+                if(oaset.Representation.length == 0){
+                    this.removeAdaptationSet(oaset.$.id)
+                }
+                return true;
+            }
+        }
+
+        return true;
+    }
+
     getAllRepresentationsByType(type){
         let representations = [];
         //merge only video adaptations sets ignoring lang, appends other types
@@ -226,7 +305,13 @@ class MPDFile{
         return representations;
     }
 
-    getAllRepresentationsInfos(){
+    getSummary(){
+        let resume = {};
+        resume.sanity = this.sanity;
+        resume.representations = this.getAllRepresentationsResume();
+        return resume;
+    }
+    getAllRepresentationsResume(){
         let representations = [];
         //merge only video adaptations sets ignoring lang, appends other types
         let adaptationSets = this.getAdaptationSets();
@@ -241,6 +326,8 @@ class MPDFile{
                 let orep = oaset.Representation[j];
                 representation.mimeType = orep.$.mimeType;
                 
+                representation.id = orep.$.id;
+                representation.safeHash = this._generateRepresentationSafeHash(orep)
 
                 if(ctype === "video"){
                     representation.width = orep.$.width;
@@ -268,6 +355,82 @@ class MPDFile{
     }
 
 
+
+    _generateRepresentationSafeHash(rep){
+        let mtype = rep.$.mimeType;
+        let hash = mtype;
+        if (mtype.indexOf("text") >= 0) {
+            hash += rep.BaseURL[0];
+        } else if (mtype.indexOf("audio") >= 0){
+            if("AudioChannelConfiguration" in rep){
+                hash += rep.AudioChannelConfiguration[0];
+            }
+        }else if (mtype.indexOf("video") >= 0){
+            hash += rep.$.width + "_"+rep.$.height;
+        }
+        return hash;
+    }
+
+    async getRepresentationFiles(id, safeHash = null){
+        let rep = this.getRepresentation(id);
+        if(!rep){
+            console.error("Cannot get representation ",id)
+            return null;
+        }
+        let type = rep.$.mimeType;
+        let mpdFolder = path.dirname(this.location)
+        let files = [];
+
+        if(!this.checkHash(rep,safeHash)){
+            console.error("Failed to remove representation")
+            return null;
+        }
+
+        if (type.indexOf("text") >= 0) {
+            let burl = rep.BaseURL[0];
+            if(burl.length > 0){
+                files.push(mpdFolder+"/"+burl);
+            }
+        }else if (type.indexOf("audio") >= 0
+            || type.indexOf("video") >= 0){
+            let tmpFiles = this._extractTemplateFiles(rep);
+            for(let i=0; i<tmpFiles.length; i++){
+                let tmpFile = tmpFiles[i];
+                if(tmpFile.length > 0){
+                    if(tmpFile.indexOf('.') < 0){
+                        let tfiles = await fsutils.readirPrefix(mpdFolder+"/"+tmpFile);
+                        tfiles = tfiles.map((value)=>{return mpdFolder+"/"+value})
+                        files = files.concat(tfiles)
+                    }else{
+                        files.push(mpdFolder+"/"+tmpFile);
+                    }
+                }
+            }
+        }else{
+            console.error("Unknown mime type: ",rep.$.mimeType)
+        }
+        return files;
+    }
+
+    _extractTemplateFiles(repr,onlyPrefix = false){
+        let outputs = [];
+        if("SegmentTemplate" in repr){
+            let segmentAttrs = repr.SegmentTemplate[0].$;
+            outputs.push(segmentAttrs.initialization)
+            outputs.push(this._extractTemplatePrefix(segmentAttrs.media))
+        }
+        return outputs;    
+    }
+
+    _extractTemplatePrefix(fileName){
+        // Note: I didn't do it for $representationIs$ because I freeze mpd ...
+        let index = fileName.indexOf('$Number')
+        if(index > 0){
+            return fileName.substring(0,index)
+        }else{
+            return filename;
+        }
+    }
 
 }
 
@@ -338,6 +501,54 @@ class MPDUtils{
         conf.$.schemeIdUri = "urn:mpeg:dash:23003:3:audio_channel_configuration:2011";
         conf.$.value = nbChannels.toString();
         '<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="6"/>'
+    }
+
+    async upgradeMpd(ffmpeg,mpd){
+        if(mpd.sanity.isSane){
+            return true;
+        }
+        if(mpd.sanity.noAudioChannelConfiguration){
+            await this.updateMpdAudioChannels(ffmpeg,mpd);
+            mpd.sanity.noAudioChannelConfiguration = true;
+        }
+
+        await mpd.save(mpd.location);
+        mpd.sanity.isSane = true;
+    }
+
+    async updateMpdAudioChannels(ffmpeg,mpd){
+        //Get all representations
+        let repsInfos = mpd.getAllRepresentationsByType("audio");
+
+        //Get init segement from mpd for audio streams
+        for(let i=0; i<repsInfos.length; i++){
+            let repInfos = repsInfos[i];
+
+            //Reach segment
+            if(repInfos.SegmentTemplate && repInfos.SegmentTemplate.length == 1){
+                let segment = repInfos.SegmentTemplate[0];
+                let initFile = segment.$.initialization;
+                let absolutPath = path.dirname(mpd.location)+"/"+initFile;
+                let channels = await this.extractAudioChannelsFromFile(ffmpeg,absolutPath)
+                if(channels && channels > 0){
+                    mpdUtils.setAudioChannelConfiguration(repInfos,channels);
+                    changeMade = true;
+                }
+            }
+        }
+    }
+
+    async extractAudioChannelsFromFile(ffmpeg,absoluteSourceFile){
+        var infos = await ffmpeg.ffprobe(absoluteSourceFile);
+        if(infos && 'streams' in infos && infos.streams.length > 0){
+            let stream = infos.streams[0];
+            if(stream.codec_type != 'audio'){
+                console.error("Cannot count channels on non audio stream ",stream.codec_type);
+                return null;
+            }
+            return stream.channels
+        }
+        return null;
     }
 }
 

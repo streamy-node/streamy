@@ -1,3 +1,6 @@
+-- CREATE DATABASE `streamy`;
+-- USE `streamy`;
+
 CREATE TABLE `languages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` char(49) CHARACTER SET utf8 DEFAULT NULL,
@@ -32,14 +35,14 @@ CREATE TABLE `genres` (
 );
 
 CREATE TABLE `bricks` (
-  `id` int NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
   `brick_alias` char(49) CHARACTER SET utf8 NOT NULL,
   `brick_path` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
   `enabled` TINYINT(2) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   CONSTRAINT UNIQUE(`brick_alias`),
   CONSTRAINT UNIQUE(`brick_path`)
-);
+) AUTO_INCREMENT=1;
 
 CREATE TABLE `resolutions` (
   `id` int NOT NULL,
@@ -126,6 +129,7 @@ CREATE TABLE `media` (
   `rating_count` int UNSIGNED DEFAULT '0',
   `original_name` VARCHAR(255) CHARACTER SET utf8,
   `original_language` char(2) CHARACTER SET utf8,
+  `easy_name` VARCHAR(255)  CHARACTER SET utf8,
   `brick_id` int,
   `added_date` datetime DEFAULT CURRENT_TIMESTAMP,
   `has_mpd` TINYINT(2) NOT NULL,
@@ -135,7 +139,7 @@ CREATE TABLE `media` (
   `parent_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`original_language`) REFERENCES languages(`iso_639_1`),
-  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`),
+  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES categories(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`parent_id`) REFERENCES media(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`original_name`,`release_date`,`brick_id`)
@@ -157,6 +161,7 @@ CREATE TABLE `mpd_files` (
   `media_id` int NOT NULL,
   `folder` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
   `complete` TINYINT(2) NOT NULL,
+  `user_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE 
 );
@@ -165,11 +170,9 @@ CREATE TABLE `mpd_videos` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
   `resolution_id` int NOT NULL,
-  `user_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`) 
+  FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`)
 );
 
 CREATE TABLE `mpd_audios` (
@@ -178,25 +181,19 @@ CREATE TABLE `mpd_audios` (
   `lang_id` int(10) unsigned,
   `lang_subtag_id` int(10) unsigned,
   `channels` int,
-  `user_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  CONSTRAINT UNIQUE (`mpd_id`,`lang_id`,`channels`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`) 
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `mpd_srts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `mpd_id` int NOT NULL,
-  `lang_id` int(10) unsigned  NOT NULL,
+  `lang_id` int(10) unsigned,
   `lang_subtag_id` int(10) unsigned,
-  `name` VARCHAR(255) CHARACTER SET utf8,
-  `user_id` int,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mpd_id`) REFERENCES mpd_files(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`) 
+  FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
 CREATE TABLE `media_genres` (

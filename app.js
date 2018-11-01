@@ -67,8 +67,6 @@ var dbPool  = mysql.createPool({
 var dbMgr = new DBStructure();
 var settings = new Settings(dbMgr);
 
-
-
 async function startApp(){
   if(!await dbMgr.initialize(dbPool)){
     process.exit(1);
@@ -93,11 +91,16 @@ async function startApp(){
   var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
 
   var processesMgr = new ProcessesMgr();
-  var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,settings);
-  var importer = new Importer(dbMgr,transcodeMgr,serieMgr);
+  var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
+  var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
+
   processesMgr.addWorkersFromDB(dbMgr,true);
+  // setTimeout(function(){
+  //   processesMgr.addWorkersFromDB(dbMgr,true);
+  // },5000)
+  //processesMgr.addWorkersFromDB(dbMgr,true);
   //processesMgr.addWorker("127.0.0.1",7000);
 
 
@@ -270,6 +273,10 @@ async function startApp(){
     res.render('templates/transcoding.html',req.lang);
   })
 
+  app.get('/mediacontent.html', i18n.init, setupLocals, loggedIn, function (req, res) {
+    res.render('templates/mediacontent.html',req.lang);
+  })
+
   //static files from node_modules
   app.get('/js/shaka/*', loggedIn, safePath, function (req, res) {
     res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
@@ -324,19 +331,71 @@ async function startApp(){
   //   res.sendFile(path);
   // })
 
-  app.get('/mpd_files/:id', loggedIn, async function (req, res) {
+  app.delete('/media/:mediaId/mpd/:folder', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      //let type = req.params.type;
+      let mediaId = parseInt(req.params.mediaId);
+      let folder = req.params.folder;
+      
+      let result = await mediaMgr.removeMpd(mediaId, folder)
+
+      if(result){
+        res.sendStatus(200);
+      }else{
+        res.sendStatus(500);
+      }
+    }else{
+      res.sendStatus(401);
+    }
+  })
+
+  app.get('/media/:id/mpd_files', loggedIn, async function (req, res) {
     //let type = req.params.type;
     let id = parseInt(req.params.id);
     let output = {};
-    let category_id = await dbMgr.getMediaCategory(id)
-    if(category_id == 3){
-      output = await serieMgr.getMpdFiles(id)
-    }else{
-      output = await mediaMgr.getMpdFiles(id)
-    }
-    
+    output = await mediaMgr.getPlayerMpdFiles(id)
+
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
+  })
+
+  app.get('/media/:id/mpd_files_resume', loggedIn, async function (req, res) {
+    //let type = req.params.type;
+    let id = parseInt(req.params.id);
+    let output = await mediaMgr.getMediaMpdsSummary(id)
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(output));
+  })
+
+  app.get('/media/:id/mpd_file/:folderName', loggedIn, async function (req, res) {
+    //let type = req.params.type;
+    let id = parseInt(req.params.id);
+    let folderName = req.params.folderName;
+    let output = await mediaMgr.getPlayerMpdFile(id,folderName)
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(output));
+  })
+
+  app.delete('/media/:mediaId/mpd/:folder/representation/:rep_id', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      //let type = req.params.type;
+      let mediaId = parseInt(req.params.mediaId);
+      let folder = req.params.folder;
+      let rep_id = req.params.rep_id; // rep id is not safe, it changes on delete
+      var safeHash = req.query.safe_hash; //Safer id to prevent the unwanted deletion of rep
+
+      let result = await mediaMgr.removeRepresentation(mediaId, folder,rep_id,safeHash)
+
+      if(result){
+        res.sendStatus(200);
+      }else{
+        res.sendStatus(500);
+      }
+    }else{
+      res.sendStatus(401);
+    }
   })
 
   app.get('/brick/:brickid/*', safePath, async function (req, res) {
@@ -635,12 +694,14 @@ async function startApp(){
 
   //importer.importBrick('/data/streamy',"brick1");
   //importer.refreshBrickMetadata(0);
-  importer.refreshBrickData(0)
-  let dostuff = async function (){
-    //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
+  // importer.refreshBrickData(0)
+  // let dostuff = async function (){
+  //   mediaMgr.refreshBrickMedias(2);
+  //   //importer.importBrick('/data/streamy',"brick1");
+  //   //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
 
-  }
-  setTimeout(dostuff, 1500, 'funky');
+  // }
+  // setTimeout(dostuff, 1500, 'funky');
   
   // TODO properly shutdown
   // sessionStore.close();

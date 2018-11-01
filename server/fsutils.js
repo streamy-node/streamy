@@ -1,4 +1,5 @@
 var fs = require('fs');
+var path = require('path');
 var mkdirp_ = require('mkdirp');
 var readline = require('readline');
 var stream = require('stream');
@@ -17,21 +18,45 @@ class FSUtils{
             });
         });
     }
-    
-    async exists(file){
+
+    async stat(file){
         return new Promise((resolve, reject) => {
             fs.stat(file, function(err, stat) {
-                if(err == null) {
-                    resolve(true);
-                } else if(err.code == 'ENOENT') {
-                    // file does not exist
-                    resolve(false);
-                } else {
-                    console.error('FSUtils.exists: error: ', err.code);
-                    reject(err);
+                if(err){
+                    reject(err);   
+                }else{
+                    resolve(stat);
                 }
             });   
         });
+    }
+    
+    async exists(file){
+        try{
+            let result = await this.stat(file);
+            return result;
+        }catch(err){
+            if(err.code == 'ENOENT') {
+                // file does not exist
+                return false;
+            } else {
+                console.error('FSUtils.exists: error: ', err.code);
+                throw err;
+            }
+        }
+        // return new Promise((resolve, reject) => {
+        //     fs.stat(file, function(err, stat) {
+        //         if(err == null) {
+        //             resolve(true);
+        //         } else if(err.code == 'ENOENT') {
+        //             // file does not exist
+        //             resolve(false);
+        //         } else {
+        //             console.error('FSUtils.exists: error: ', err.code);
+        //             reject(err);
+        //         }
+        //     });   
+        // });
     }
 
     async read(file, format = 'utf8'){
@@ -211,13 +236,75 @@ class FSUtils{
             return true;
     }
 
+    async rmdir(dir){
+        return new Promise((resolve, reject) => {
+            fs.rmdir(dir, (err) => {
+                if(err) {
+                    //console.log(err);
+                    resolve(err);
+                }else{
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    async rmdirf(dir) {
+        try{
+            var list = await this.readir(dir);
+            for(var i = 0; i < list.length; i++) {
+                var filename = path.join(dir, list[i]);
+                var stat = await this.stat(filename);
+                
+                if(filename == "." || filename == "..") {
+                    //Don't remove
+                } else if(stat.isDirectory()) {
+                    // rmdir recursively
+                    await this.rmdir(filename);
+                } else {
+                    await this.unlink(filename);
+                }
+            }
+            await this.rmdir(dir);
+            return true;
+        }catch(err){
+            console.error("Failed to remove recursively folder "+dir,err);
+            return false;
+        }
+    };
+
     async readir(dir){
         return new Promise((resolve, reject) => {
         fs.readdir(dir, (err, files) => {
+            // if(err){
+            //     return resolve(null);
+            // }else{
+            //     resolve(files)
+            // }
                 if(err) reject(err);
                 resolve(files);
             });
         });
+    }
+
+    async readirPrefix(dir){
+        let folderPath = path.dirname(dir);
+        let prefix = path.basename(dir);
+        if(prefix.length == 0){
+            folderPath = dir;
+        }
+        let files = await this.readir(folderPath);
+        let outputFiles = [];
+        if(prefix.length > 0){
+            files.forEach(element => {
+                if(element.indexOf(prefix) == 0){
+                    outputFiles.push(element)
+                }
+            });
+        }else{
+            outputFiles = files;
+        }
+        return outputFiles;
     }
 
     async rename(oldPath,newPath){

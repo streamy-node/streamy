@@ -15,10 +15,11 @@ const EventEmitter = require('events');
 //const Semaphore = require("await-semaphore").Semaphore;//TODO remove
 
 class TranscoderManager extends EventEmitter{
-    constructor(processManager,dbMgr, settings){
+    constructor(processManager,dbMgr, mediaMgr, settings){
         super()
         this.processManager = processManager;
         this.dbMgr = dbMgr;
+        this.mediaMgr = mediaMgr;
         this.settings = settings;
         //this.mpdSemaphores = new Map();
         this.lastProgressions = {};
@@ -340,7 +341,7 @@ class TranscoderManager extends EventEmitter{
                         
                             //If not already in db, add it
                             if(!mpdinfos){
-                                mpdId = await self.addMPD(media.id,workingFolder,0);
+                                mpdId = await self.mediaMgr.addMPD(media.id,workingFolder,0,user_id);
                             }else{
                                 mpdId = mpdinfos.id;
                             }
@@ -361,8 +362,8 @@ class TranscoderManager extends EventEmitter{
                                 // add video
                                 var id = null;
                                 if(stream.codec_type == "video"){
-                                    let resolution = await self._getResolution(stream.width);
-                                    id = await self.dbMgr.insertVideo(mpdId,resolution.id,user_id);
+                                    let resolution = await self.mediaMgr._getResolution(stream.width);
+                                    id = await self.dbMgr.insertVideo(mpdId,resolution.id);
                                     hasVideoOrAudio = true;
                                 }else if(stream.codec_type == "audio"){
                                     let langid = null
@@ -370,7 +371,7 @@ class TranscoderManager extends EventEmitter{
                                     if(langInfos){
                                         langid = langInfos.id;
                                     }
-                                    id = await self.dbMgr.insertAudio(mpdId,langid,null,stream.channels,user_id);
+                                    id = await self.dbMgr.insertAudio(mpdId,langid,null,stream.channels);
                                     hasVideoOrAudio = true;
                                 }else if(stream.codec_type === "subtitle"){
                                     //subtitles_streams.push(stream);
@@ -387,7 +388,7 @@ class TranscoderManager extends EventEmitter{
                                         name = "";
                                     }
         
-                                    id = await self.dbMgr.insertSubtitle(mpdId,langid,null,name,user_id);
+                                    id = await self.dbMgr.insertSubtitle(mpdId,langid,null);
                                 }
         
                                 if(id === null){
@@ -412,7 +413,7 @@ class TranscoderManager extends EventEmitter{
                             //Mark mpd as complete if audio or video stream added
                             if(hasVideoOrAudio){
                                 await self.dbMgr.setMPDFileComplete(mpdId,1);
-                                await self.setMpdStatus(media.id,1);
+                                await self.mediaMgr.setMpdStatus(media.id,1);
                             }
         
                             //Remove add file task
@@ -489,58 +490,6 @@ class TranscoderManager extends EventEmitter{
             console.error("Cannot split uploadded file: ",file.path);
         }
 
-    }
-
-    async upgradeMpd(mpd){
-        if(mpd.sanity.noAudioChannelConfiguration){
-            await this.updateMpdAudioChannels(mpd);
-        }
-
-        //Legacy upgrade, to remove after main server upgrade
-        await this.upgradeOldSubsFiles(mpd);
-
-        if(!mpd.sanity.isSane){
-            mpd.save(mpd.location);
-        }
-    }
-
-    //Legacy upgrade, to remove after main server upgrade
-    async upgradeOldSubsFiles(mpd){
-        //Get representations
-        let repsInfos = mpd.getAllRepresentationsByType("text");
-        let absolutPath = path.dirname(mpd.location)
-        //Get init segement from mpd for audio streams
-        for(let i=0; i<repsInfos.length; i++){
-            let repInfos = repsInfos[i];
-
-            //Reach segment
-            if(repInfos.BaseURL && repInfos.BaseURL.length == 1){
-                let baseUrl = repInfos.BaseURL[0];
-                let fileName = path.basename(repInfos.BaseURL[0])
-                let base = path.dirname(repInfos.BaseURL[0])
-                if(fileName.length > 7 && fileName.substring(0,4) === "srt_"){
-                    console.log("Upgrading old subtitle filename");
-                    let baseName = fileName.substring(0,fileName.length-4);
-                    let lang = baseName.substring(4,6)
-                    let description = baseName.substring(7)
-                    let newUrl = description+"_"+lang+".vtt"
-                    if(base.length > 0){
-                        newUrl = base + "/" + newUrl;
-                    }
-                    let srcFile = absolutPath+"/"+baseUrl;
-                    let dstFile = absolutPath+"/"+newUrl;
-                    console.log("renaming sub ",srcFile," to ",dstFile);
-                    try{
-                        await fsutils.rename(srcFile,dstFile)
-                    }catch(err){
-                        console.error("Failed to mv srt file  ",srcFile);
-                        continue;
-                    }
-                    repInfos.BaseURL[0] = newUrl;
-                    mpd.sanity.isSane = false;
-                }
-            }
-        }
     }
 
     extractUploadedSubtitleinfos(filename){
@@ -865,7 +814,7 @@ class TranscoderManager extends EventEmitter{
             stream.index = i;
             if(stream.codec_type === "video"){ //Take only first video stream
                 stream._video_index = videoOutputIndex;
-                let resolution = await this._getResolution(stream.width);
+                let resolution = await this.mediaMgr._getResolution(stream.width);
                 let cmd_part = await this._generateX264Part(stream,resolution);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
@@ -895,38 +844,6 @@ class TranscoderManager extends EventEmitter{
         mpdinfos = await this.dbMgr.getMpdFileFromMedia(mediaId,workingdir);
         return mpdinfos;
     }
-
-    async addMPD(mediaId,workingdir,complete,type=0){
-        var mpdId = null;
-        if(!mediaId ){
-            console.error("Cannot add MPD with empty mediaId")
-            return null
-        }
-
-        mpdId = await this.dbMgr.insertMPDFile(mediaId,workingdir,complete)
-        return mpdId;
-    }
-
-    async setMpdStatus(mediaId,hasMpd){
-        let media = await this.dbMgr.getMedia(mediaId);
-        await this.dbMgr.setMediaHasMPD(mediaId,hasMpd);
-
-        if(media.parent_id && hasMpd){
-            await this.setMpdStatus(media.parent_id,hasMpd)
-        }else{
-            //TODO remove mpd if no child has it
-        }
-    }
-
-    // async removeMpd(mpdId){
-    //     let mpd = await this.dbMgr.getMpdFile(mpdId);
-    //     if(!mpd){
-    //         console.warn("Cannot remove unexisting mpd file");
-    //         return true;
-    //     }
-
-    //     fsutils.rm
-    // }
 
     async _getTargetFolder(media){
         var mainFolder;
@@ -965,7 +882,7 @@ class TranscoderManager extends EventEmitter{
     }
     async _filterValidResolutions(stream,target_resolutions){
         let ouputs = [];
-        var original_resolution = await this._getResolution(stream.width);
+        var original_resolution = await this.mediaMgr._getResolution(stream.width);
         for(var i=0; i<target_resolutions.length; i++){
             let target_resolution = target_resolutions[i];
 
@@ -1029,7 +946,7 @@ class TranscoderManager extends EventEmitter{
         var output = {};
         //Width determine resolution category
         //width*height induce bitrate
-        let original_resolution = await this._getResolution(stream.width);
+        let original_resolution = await this.mediaMgr._getResolution(stream.width);
         let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
 
         var segmentduration = this.settings.global.segment_duration;
@@ -1092,19 +1009,19 @@ class TranscoderManager extends EventEmitter{
         return Math.floor(resolutionBr.bitrate*ratio_resolution);
     }
 
-    async _getResolution(width){
-        let resolutions = await this.dbMgr.getResolutions();
-        for(var i=0; i<resolutions.length; i++){
-            if(width<resolutions[i].width){
-                if(i==0){
-                    return null;
-                }
-                return resolutions[i-1];
-            }
-        }
-        //If no resolution match send the larger one
-        return resolutions[resolutions.length-1];
-    }
+    // async _getResolution(width){
+    //     let resolutions = await this.dbMgr.getResolutions();
+    //     for(var i=0; i<resolutions.length; i++){
+    //         if(width<resolutions[i].width){
+    //             if(i==0){
+    //                 return null;
+    //             }
+    //             return resolutions[i-1];
+    //         }
+    //     }
+    //     //If no resolution match send the larger one
+    //     return resolutions[resolutions.length-1];
+    // }
 
     _getFramerate(stream){
         let arrayOfStrings = stream.r_frame_rate.split('/');
@@ -1186,43 +1103,6 @@ class TranscoderManager extends EventEmitter{
         bitrate.toString()+"K",
         ];
     }
-
-    //Sometimes ffmpeg don't put channel number in mpd, so add it
-    async updateMpdAudioChannels(mpd){
-
-        //Get all representations
-        let repsInfos = mpd.getAllRepresentationsByType("audio");
-        let changeMade = false;
-        //Get init segement from mpd for audio streams
-        for(let i=0; i<repsInfos.length; i++){
-            let repInfos = repsInfos[i];
-
-            //Reach segment
-            if(repInfos.SegmentTemplate && repInfos.SegmentTemplate.length == 1){
-                let segment = repInfos.SegmentTemplate[0];
-                let initFile = segment.$.initialization;
-                let absolutPath = path.dirname(mpd.location)+"/"+initFile;
-                let channels = await this.extractAudioChannelsFromFile(absolutPath)
-                if(channels && channels > 0){
-                    mpdUtils.setAudioChannelConfiguration(repInfos,channels);
-                    changeMade = true;
-                }
-            }
-        }
-    }
-    async extractAudioChannelsFromFile(absoluteSourceFile){
-        var infos = await this.processManager.ffprobe(absoluteSourceFile);
-        if(infos && 'streams' in infos && infos.streams.length > 0){
-            let stream = infos.streams[0];
-            if(stream.codec_type != 'audio'){
-                console.error("Cannot count channels on non audio stream ",stream.codec_type);
-                return null;
-            }
-            return stream.channels
-        }
-        return null;
-    }
-
 }
 
 module.exports = TranscoderManager;

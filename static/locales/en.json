@@ -36,5 +36,6 @@
 	"Stop": "Stop",
 	"Start": "Start",
 	"Connect": "Connect",
-	"Add": "Add"
+	"Add": "Add",
+	"MediaContent":"Media Content"
 }

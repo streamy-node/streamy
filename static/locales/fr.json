@@ -21,5 +21,9 @@
 	"Transcoding": "Transcoding",
 	"Stop": "Stop",
 	"Start": "Start",
-	"Connect": "Connect"
+	"Connect": "Connect",
+	"MediaContent": "MediaContent",
+	"Watch": "Watch",
+	"Play": "Play",
+	"Preview": "Preview"
 }

@@ -169,12 +169,15 @@ function postAsJson(objData,url,onSucess,onError,parseResult=true){
     xhr.send(data);
 }
 
-function deleteReq(url){
+function deleteReq(url,onSuccess = ((res)=>{}),onError = ((res)=>{})){
     $.ajax({
         url: url,
         type: 'DELETE',
         success: function(result) {
-            // Do something with the result
+            onSuccess(result)
+        },
+        error: function (xhr, ajaxOptions, thrownError) {
+            onError(xhr.status);
         }
     });
 }

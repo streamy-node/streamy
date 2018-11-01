@@ -56,7 +56,7 @@ class TranscodingController{
         $("#tasks_list").empty()
         this.tasksStatus = {};
     }
-    
+
     appendTask(task){
         this.appendToContainer("#tasks_list",this.renderTranscodingTask(task));
     }

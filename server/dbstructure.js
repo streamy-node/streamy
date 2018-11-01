@@ -118,7 +118,10 @@ class DBStructure extends EventEmitter{
     query(sql){
         return new Promise((resolve, reject) => {
             this.con.query(sql, function (err, result) {
-                if (err) reject(err);
+                if (err) {
+                    console.error("DB error: ",sql,err);
+                    reject(err);
+                }
                 resolve(result);
             });
         });
@@ -633,6 +636,23 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async getMpdIdFromMedia(mediaId,workingDir){
+        if(!this.checkId(mediaId) && workingDir.length > 0 ){
+            console.error("getMpdIdFromMedia: Invalid entries ");
+            return null;
+        }
+        var sql = "SELECT id "
+        +" FROM `mpd_files` as s "
+        +" WHERE s.media_id = "+mediaId+" AND folder = '"+workingDir+"'";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].id;
+        }
+    }
+
     async getMpdFile(mpdId){
         if(!this.checkId(mpdId) ){
             console.error("getMpdFile: Invalid entries ");
@@ -648,6 +668,28 @@ class DBStructure extends EventEmitter{
         }else{
             return results[0];
         }
+    }
+
+    async removeMpdFile(mpdId){
+        if(!this.checkId(mpdId) ){
+            console.error("removeMpdFile: Invalid entries ");
+            return null;
+        }
+        let sql = "DELETE FROM `mpd_files`  "
+        + " WHERE id = "+mpdId;
+        let sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+    async removeMpdFromMedia(mediaId, folder){
+        if(!this.checkId(mediaId) && folder.length > 0){
+            console.error("removeMpdFromMedia: Invalid entries ");
+            return null;
+        }
+        let sql = "DELETE FROM `mpd_files`  "
+        + " WHERE media_id = "+mediaId+' AND folder = "'+folder+'"';
+        let sqlres = await this.query(sql);
+        return sqlres;
     }
 
     async getSerieMpdFileFromEpisode(episodeId,workingDir){
@@ -667,13 +709,13 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    async insertMPDFile(media_id,folder,complete){
+    async insertMPDFile(media_id,folder,complete, userId = null){
         if( folder.length < 0 || !this.checkId(media_id)){
             console.error("insertMPDFile: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `mpd_files` (`media_id`,`folder`,`complete`) "
-        + " VALUES("+media_id+",'"+folder+"', "+complete.toString()+")";
+        var sql = "INSERT INTO `mpd_files` (`media_id`,`folder`,`complete`,`user_id`) "
+        + " VALUES("+media_id+",'"+folder+"', "+complete.toString()+", "+userId+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -690,7 +732,7 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
-    async insertMedia(release_date,rating,rating_count,original_name,original_language,
+    async insertMedia(release_date,rating,rating_count,original_name,original_language,easy_name,
         brickId,has_mpd,use_mpd,path, category_id, parent_id = null){
         if( !this.checkId(brickId)){
             console.error("insertMedia: Invalid entries ");
@@ -699,10 +741,10 @@ class DBStructure extends EventEmitter{
 
         try{
             var sql = "INSERT INTO `media` (`release_date`,`rating`,`rating_count`,"+
-            "`original_name`,`original_language`, `brick_id`, `has_mpd`,`use_mpd`, `path`, `category_id`, `parent_id`) "+
+            "`original_name`,`original_language`, `easy_name`, `brick_id`, `has_mpd`,`use_mpd`, `path`, `category_id`, `parent_id`) "+
             " VALUES ('"+release_date+"', "+rating+", "+rating_count+
-            ", '"+original_name.replace(/'/g,"\\'")+
-            "', '"+original_language+"', "+brickId+", "+has_mpd+", "+use_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
+            ', "'+original_name.replace(/'/g,"\\'")+
+            '", "'+original_language+'", "'+easy_name+'", '+brickId+", "+has_mpd+", "+use_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
 
             var sqlres = await this.query(sql);
             var id = sqlres.insertId;
@@ -713,25 +755,36 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    async insertVideo(mpd_id,resolution_id,user_id){
+    async insertVideo(mpd_id,resolution_id){
         if( (!this.checkId(mpd_id) || !this.checkId(resolution_id))){
             console.error("insertVideo: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `mpd_videos` (`mpd_id`,`resolution_id`,`user_id`) "
-        + " VALUES("+mpd_id+", "+resolution_id+", "+user_id+")";
+        var sql = "INSERT INTO `mpd_videos` (`mpd_id`,`resolution_id`) "
+        + " VALUES("+mpd_id+", "+resolution_id+")";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
     }
 
-    async insertAudio(mpd_id,lang_id,lang_subtag_id,channels,user_id){
+    async removeMpdVideosInfos(mpd_id){
+        if( (!this.checkId(mpd_id))){
+            console.error("removeMpdVideosInfos: Invalid entries ",mpd_id);
+            return null;
+        }
+        var sql = "DELETE FROM `mpd_videos` "
+        + " WHERE mpd_id = "+mpd_id+"";
+        var sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+    async insertAudio(mpd_id,lang_id,lang_subtag_id,channels){
         if( (!this.checkId(mpd_id) && !this.checkId(lang_id))){
             console.error("insertAudio: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `mpd_audios` (`mpd_id`,`lang_id`,`lang_subtag_id`,`channels`,`user_id`) "
-        + " VALUES("+mpd_id+", "+lang_id+", "+lang_subtag_id+", "+channels+", "+user_id+")";
+        var sql = "INSERT INTO `mpd_audios` (`mpd_id`,`lang_id`,`lang_subtag_id`,`channels`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+lang_subtag_id+", "+channels+")";
         let id = null;
         try{
             var sqlres = await this.query(sql);
@@ -743,13 +796,24 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
-    async insertSubtitle(mpd_id,lang_id,lang_subtag_id,name,user_id){
-        if( (!this.checkId(mpd_id) || !this.checkId(lang_id))){
+    async removeMpdAudioInfos(mpd_id){
+        if( (!this.checkId(mpd_id))){
+            console.error("removeMpdAudioInfos: Invalid entries ");
+            return null;
+        }
+        var sql = "DELETE FROM `mpd_audios` "
+        + " WHERE mpd_id = "+mpd_id+"";
+        var sqlres = await this.query(sql);
+        return sqlres;
+    }
+
+    async insertSubtitle(mpd_id,lang_id,lang_subtag_id){
+        if( (!this.checkId(mpd_id))){
             console.error("insertSubtitle: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `mpd_srts` (`mpd_id`,`lang_id`,`lang_subtag_id`,`name`,`user_id`) "
-        + " VALUES("+mpd_id+", "+lang_id+", "+lang_subtag_id+', "'+name+'",'+user_id+')';
+        var sql = "INSERT INTO `mpd_srts` (`mpd_id`,`lang_id`,`lang_subtag_id`) "
+        + " VALUES("+mpd_id+", "+lang_id+", "+lang_subtag_id+")";
 
         let id = null;
         try{
@@ -761,6 +825,17 @@ class DBStructure extends EventEmitter{
         }
 
         return id;
+    }
+
+    async removeMpdSubtitleInfos(mpd_id){
+        if( (!this.checkId(mpd_id))){
+            console.error("removeMpdSubtitleInfos: Invalid entries ");
+            return null;
+        }
+        var sql = "DELETE FROM `mpd_srts` "
+        + " WHERE mpd_id = "+mpd_id+"";
+        var sqlres = await this.query(sql);
+        return sqlres;
     }
 
     async getFilmPath(filmId){

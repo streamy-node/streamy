@@ -9,8 +9,8 @@ const moveFromToArray = function (proc,fromList,toList){
   }
 }
 
-const removeFromList = function(process,list){
-  var index = list.indexOf(process);
+const removeFromList = function(elem,list){
+  var index = list.indexOf(elem);
   if (index > -1) {
     list.splice(index, 1);
     return true;

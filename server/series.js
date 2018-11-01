@@ -18,20 +18,23 @@ class SeriesMgr{
     }
 
     //TODO use media getMpdFiles
-    async getMpdFiles(mediaId){
-        let outputFiles = [];
-        let media = await this.con.getMedia(mediaId)
-        let mpdFiles = await this.con.getMdpFiles(mediaId);
+    // async getMpdFiles(mediaId){
+    //     let outputFiles = [];
+    //     let media = await this.con.getMedia(mediaId)
+    //     let mpdFiles = await this.con.getMdpFiles(mediaId);
         
-        for(var i=0; i<mpdFiles.length; i++){
-            let mpdfile = mpdFiles[i];
-            //let path = "/brick/"+media.brick_id+"/data/season_"+serie.season_number.toString()+"/episode_"+serie.episode_number+"/"+mpdfile.folder+"/allsub.mpd";
-            let path = "/brick/"+media.brick_id+"/"+media.path+"/"+mpdfile.folder+"/allsub.mpd";
-            let title = media.original_name+" S"+media.season_number+"E"+media.episode_number.toString();
-            outputFiles.push({filename:path,title:title});
-        }
-        return outputFiles;
-    }
+    //     for(var i=0; i<mpdFiles.length; i++){
+    //         let mpdfile = mpdFiles[i];
+    //         //let path = "/brick/"+media.brick_id+"/data/season_"+serie.season_number.toString()+"/episode_"+serie.episode_number+"/"+mpdfile.folder+"/allsub.mpd";
+    //         let path = "/brick/"+media.brick_id+"/"+media.path+"/"+mpdfile.folder+"/allsub.mpd";
+    //         let title = media.original_name+" S"+media.season_number+"E"+media.episode_number.toString();
+    //         outputFiles.push({filename:path,title:title});
+    //     }
+    //     return outputFiles;
+    // }
+    // generateEasyName(){
+
+    // }
     
     async addSerie(serieInfos,serieImages,brickId = null,serieHints){
         //Check if serie is already in an adding state (the original name is suffiscient)
@@ -64,11 +67,12 @@ class SeriesMgr{
                 serieInfos.rating,
                 serieInfos.rating_count,serieInfos.original_name,
                 serieInfos.original_language,
-                 brick.id,
-                 0,
-                 0,
-                 seriePath,
-                 1);
+                "",
+                brick.id,
+                0,
+                0,
+                seriePath,
+                1);
             let serieId = await this.con.insertSerie(serieMediaId,
                 serieInfos.number_of_seasons,
                 serieInfos.number_of_episodes);
@@ -87,11 +91,13 @@ class SeriesMgr{
                 let seasonInfo = serieInfos.seasons[i];
                 let seasonName = seasonInfo.langs[Object.keys(seasonInfo.langs)[0]].title
                 let seasonPath = seriePath+"/"+this.generateSeasonSubPath(seasonInfo.season_number)
+                //let easyName = serieInfos.original_name+" S"+seasonInfo.season_number;
                 let seasonMediaId = await this.con.insertMedia(seasonInfo.release_date,
                     0,
                     0,
                     seasonName,
                     serieInfos.original_language,
+                    "",
                     brick.id,
                     0,
                     0,
@@ -113,13 +119,14 @@ class SeriesMgr{
                 //Add episodes
                 for(var j=0; j<seasonInfo.episodes.length; j++){
                     let episode = seasonInfo.episodes[j];
-
+                    let easyName = serieInfos.original_name+" S"+seasonInfo.season_number+"E"+episode.episode_number;
                     let episodePath = seasonPath+"/"+this.generateEpisodeSubPath(episode.episode_number)
                     let episodeMediaId = await this.con.insertMedia(episode.release_date,
                         episode.rating,
                         episode.rating_count,
                         episode.original_name,
                         serieInfos.original_language,
+                        easyName,
                         brick.id,
                         0,
                         1,
