@@ -55,11 +55,25 @@ CREATE TABLE `resolutions` (
 );
 
 -- Users
+CREATE TABLE `permissions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+  PRIMARY KEY (`id`)
+);
 
 CREATE TABLE `roles` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `roles_permissions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `role_id` int NOT NULL,
+  `permission_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`role_id`) REFERENCES roles(`id`),
+  FOREIGN KEY (`permission_id`) REFERENCES permissions(`id`)
 );
 
 CREATE TABLE `users` (
@@ -75,6 +89,15 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   FOREIGN KEY (`role_id`) REFERENCES roles(`id`),
   CONSTRAINT UNIQUE (`username`) 
+);
+
+CREATE TABLE `users_extra_permissions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `permission_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES users(`id`),
+  FOREIGN KEY (`permission_id`) REFERENCES permissions(`id`)
 );
 
 CREATE TABLE `resolutions_bitrates` (
@@ -685,13 +708,33 @@ INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'VU');
 INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'WF');
 INSERT INTO `languages_subtags` (`language_id`,`subtag`) VALUES(34, 'YT');
 
+-- permissions
+INSERT INTO `permissions` VALUES(1, 'manage_workers');
+INSERT INTO `permissions` VALUES(2, 'manage_transcoding');
+INSERT INTO `permissions` VALUES(3, 'manage_users');
+INSERT INTO `permissions` VALUES(4, 'manage_content');
+INSERT INTO `permissions` VALUES(5, 'add_media');
+INSERT INTO `permissions` VALUES(6, 'add_media_request');
+INSERT INTO `permissions` VALUES(7, 'upload_content');
+
 -- roles
 INSERT INTO `roles` VALUES(1, 'admin');
 INSERT INTO `roles` VALUES(2, 'user');
 INSERT INTO `roles` VALUES(3, 'guest');
 
--- default user
-INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`) VALUES( 'admin', 'streamy',1,255);
+-- roles permissions
+-- admin role
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,1);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,2);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,3);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,4);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,5);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,6);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,7);
+-- users role
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,6);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,7);
+-- guest role
 
 -- category
 INSERT INTO `categories` (`id`,`category`) VALUES( 1, 'series');

@@ -1219,6 +1219,54 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    ////////////// User DB ////////////////////
+    async insertUser(username, password, roleId, qosPriority, email, phone = ""){
+        var sql = "INSERT INTO `users` (`username`,`password`,`role_id`,`qos_priority`,`email`,`phone`) "
+            + " VALUES( "
+            +"'"+username.replace(/'/g,"\\'")+"'"
+            +", '"+password.replace(/'/g,"\\'")+"'"
+            +", "+roleId
+            +", "+qosPriority
+            +", '"+email.replace(/'/g,"\\'")+"'"
+            +", '"+phone.replace(/'/g,"\\'")+"'"
+            +")";
+
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+    }
+
+    async getUserPassword(username){
+        var sql = "SELECT password FROM `users` "+
+        " WHERE username = '"+username.replace(/'/g,"\\'")+"'";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].password;
+        }
+    }
+
+    async getUserPermissions(username){
+        var sql = "SELECT p.name FROM `permissions` p, `users`, `roles_permissions` rp "
+         + " WHERE username = '"+username.replace(/'/g,"\\'")+"' "
+         + " AND users.role_id = rp.role_id AND rp.permission_id = p.id";
+         return await this.query(sql);
+    }
+
+    async getUser(username){
+        var sql = "SELECT * FROM `users` "
+        " WHERE username = '"+username.replace(/'/g,"\\'")+"'";
+        var results = await this.query(sql);
+
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0];
+        }
+    }
+    
+
     async getFfmpegWorkers(){
         var sql = "SELECT `id`, INET_NTOA(`ipv4`) as ipv4, `port`, `enabled` FROM `ffmpeg_workers` ";
         var results = await this.query(sql);

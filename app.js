@@ -13,11 +13,12 @@ var server  = require('http').createServer(app);
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
-var users = require('./server/users');
+
 var MediaMgr = require('./server/media.js');
 var SeriesMgr = require('./server/series.js');
 var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
+var Users = require('./server/users');
 
 //Lang
 //var mustache = require('mustache');
@@ -93,10 +94,12 @@ async function startApp(){
   var processesMgr = new ProcessesMgr();
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
   var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
+  var userMgr = new Users(dbMgr)
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
-
   processesMgr.addWorkersFromDB(dbMgr,true);
+
+  userMgr.addDefaultUsers();
   // setTimeout(function(){
   //   processesMgr.addWorkersFromDB(dbMgr,true);
   // },5000)
@@ -123,23 +126,34 @@ async function startApp(){
   /// Setup auth
   var failedConnectionAttempt = 0;
   passport.use(new LocalStrategy(
-    function(username, password, done) {
-      
-      users.findByUsername( username, function (err, user) {
-        if (err || !user || user.password !== password){
-          failedConnectionAttempt++;
-          console.warn("Failed connection attempts! "+failedConnectionAttempt);
-          setTimeout(function(){
-            done(null, false);
-          },3000);
+    async function(username, password, done) {
+      try{
+        let authSuccess = await userMgr.checkUserPasswordSecure(username,password);
+        if(!authSuccess){
+          //TODO remove this warning in case user tap his pwd in username
+          console.warn("User failed to authentificate: "+username);
+          done(null, false);
         }else{
+          let user = await userMgr.getUserInfos(username)
           return done(null, user);
         }
-        // if (err) { return done(err); }
-        // if (!user) { return done(null, false); }
-        // if (user.password !== password) { return done(null, false); }
-        // return done(null, user);
-      });
+      }catch(err){
+        console.error("Failed while authentificating: ",err);
+        done(err);
+      }
+
+      // users.findByUsername( username, function (err, user) {
+      //   if (err || !user || user.password !== password){
+      //     failedConnectionAttempt++;
+      //     console.warn("Failed connection attempts! "+failedConnectionAttempt);
+      //     setTimeout(function(){
+      //       done(null, false);
+      //     },3000);
+      //   }else{
+      //     return done(null, user);
+      //   }
+
+      //});
     }
   ));
 
