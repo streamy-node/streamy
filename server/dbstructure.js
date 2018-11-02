@@ -33,7 +33,11 @@ class DBStructure extends EventEmitter{
             multipleStatements: true
         });
 
-        return await this.setup_database(connection);
+        let result = await this.setup_database(connection);
+        if(result){
+            connection.end(function(){});
+        }
+        return result;
     }
 
     async _cacheStaticData(){
