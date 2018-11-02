@@ -14,13 +14,17 @@ class DBStructure extends EventEmitter{
 
     async initialize(pool){
         if(!await this.createDatabase(pool.config.connectionConfig)){
+            console.error("Cannot create the db :'(");
+            return false;
+        }
+        this.con = pool;
+        if(!await this.setup_database(pool)){
             console.error("Cannot setup the db :'(");
             return false;
-        }else{
-            this.con = pool;
-            this._cacheStaticData();
-            return true;
-        }             
+        }
+        this._cacheStaticData();
+        return true;
+           
     }
 
     async createDatabase(originalConf){
@@ -33,11 +37,28 @@ class DBStructure extends EventEmitter{
             multipleStatements: true
         });
 
-        let result = await this.setup_database(connection);
-        if(result){
+        try{
+            let sql = "CREATE DATABASE `"+originalConf.database+"`;"
+            await this._query(sql,connection);
             connection.end(function(){});
+            console.log("Database "+originalConf.database+" created");
+            return true;
+        }catch(err){
+            connection.end(function(){});
+            if(err.errno === 1007){ //DB already exists
+                console.log("Database "+originalConf.database+" already created");
+                return true;
+            }else{
+                console.log("Failed to create db table: "+originalConf.database,err);
+                return false;
+            }
         }
-        return result;
+
+        //let result = await this.setup_database(connection);
+        //if(result){
+        //    connection.end(function(){});
+        //}
+        //return result;
     }
 
     async _cacheStaticData(){
@@ -97,15 +118,14 @@ class DBStructure extends EventEmitter{
     async setup_database(connection){
         //If the database is available, create tables if necessary
         var sql = fs.readFileSync('server/sql/init_db.sql').toString();
-
         try{
             await this._query(sql,connection);
-            console.log("DB initialized");
+            console.log("Database tables initialized");
             return true;
         }catch(err){
             if(err.errno === 1050 ||//Table already exists
                 err.errno === 1007){ //DB already exists
-                console.log("Database already initialized");
+                console.log("Database tables already initialized");
                 return true;
             }else{
                 console.log("Failed to setup db table: ",err);

@@ -1,5 +1,5 @@
-CREATE DATABASE `streamy`;
-USE `streamy`;
+-- CREATE DATABASE `streamy`;
+-- USE `streamy`;
 
 CREATE TABLE `languages` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
