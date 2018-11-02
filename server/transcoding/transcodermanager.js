@@ -407,7 +407,7 @@ class TranscoderManager extends EventEmitter{
                                 console.error("Final mpd not reachable:",finalMpdFile)
                             }
                             if(!mpd.sanity.isSane){
-                                await this.upgradeMpd(mpd);
+                                await mpdUtils.upgradeMpd(processManager,mpd);
                             }
 
                             //Mark mpd as complete if audio or video stream added

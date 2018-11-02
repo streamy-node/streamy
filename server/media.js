@@ -8,10 +8,10 @@ var MPDFile = require("./transcoding/mpdutils").MPDFile;
 var mpdUtils = require("./transcoding/mpdutils").MPDUtils;
 
 class MediaMgr{
-    constructor(dbmanager, settings){
+    constructor(dbmanager,processManager){
         this.con = dbmanager;
+        this.processManager = processManager;
         this.langs = ["en-US","fr-FR"];
-        this.settings = settings;
 
         //Sets to prevent simultaneous identic requests
         this.current_series_creating = new Set();

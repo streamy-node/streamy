@@ -88,10 +88,10 @@ async function startApp(){
   });
 
   /////////// setup managers //////////////////////
-  var mediaMgr = new MediaMgr(dbMgr,settings);
+  var processesMgr = new ProcessesMgr();
+  var mediaMgr = new MediaMgr(dbMgr,settings,processesMgr);
   var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
 
-  var processesMgr = new ProcessesMgr();
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
   var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
   var userMgr = new Users(dbMgr)
