@@ -1,4 +1,4 @@
-/*
+    /*
     DEMO STYLE
 */
 /*@import "https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700";*/
@@ -515,25 +515,6 @@ a.article, a.article:hover {
 
 } */
 
-/* Centered text */
-.centered {
-    /*margin:auto auto;
-    vertical-align: middle;
-    display:table-cell;
-    margin:auto;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);*/
-}
-
-.content {
-    /*mwidth: 100%;
-    max-width: 800px;
-    text-align: center;
-    argin: 0 auto;
-    padding: 0 0 3em 0;*/
-}
 
 /* .left {
     overflow: hidden;
@@ -560,6 +541,8 @@ a.article, a.article:hover {
 .episode-image{
     width: 206px;
     height: 114px;
+}
+
 }
 
 

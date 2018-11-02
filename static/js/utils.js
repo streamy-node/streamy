@@ -177,7 +177,7 @@ function deleteReq(url,onSuccess = ((res)=>{}),onError = ((res)=>{})){
             onSuccess(result)
         },
         error: function (xhr, ajaxOptions, thrownError) {
-            onError(xhr.status);
+            onError(xhr);
         }
     });
 }

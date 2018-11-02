@@ -102,7 +102,12 @@ class WorkerController{
         template.find(".remove_worker_btn").click(function(){
             var r = confirm("You will remove the worker "+id);
             if(r){
-                deleteReq("/workers/"+encodeURIComponent(id));
+                deleteReq("/workers/"+encodeURIComponent(id),
+                function(success){
+                },
+                function(err){
+                    alert(err.responseText);
+                })
             }
         });
         template.find(".connect_worker_btn").click(function(){

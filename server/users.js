@@ -28,8 +28,8 @@ class Users{
   }
 
   async hasUser(username){
-    let user = await this.dbMgr.getUser(username);
-    if(!user){
+    let id = await this.dbMgr.getUserId(username);
+    if(!id){
       return false;
     }else{
       return true;
@@ -74,59 +74,39 @@ class Users{
           self.securePassout = false
         },passoutDurationMs);
       }
-      return success;
     }
+    return success;
 }
 
   async checkUserPassword(username, password){
-      let dbPasswd = await this.dbMgr.getUserPassword(username);
+      let dbPasswd = await this.dbMgr.getUserPasswordByName(username);
       if(!dbPasswd){
         return false;
       }
      return await bcrypt.compare(password, dbPasswd);
   }
 
-  async getUserInfos(username){
-    let user = await this.dbMgr.getUser(username);
+  async getUserInfosByName(username){
+    let id = await this.dbMgr.getUserId(username);
+    if(!id){
+      return null;
+    }
+    return await this.getUserInfos(id);
+  }
+
+  async getUserInfos(userId){
+    let user = await this.dbMgr.getUser(userId);
     if(!user){
       return null;
     }
-    let permissions = await this.dbMgr.getUserPermissions(username);
+    let permissions = await this.dbMgr.getUserPermissions(userId);
     user.permissions = new Set();
     for(let i=0; i<permissions.length; i++){
       let permission = permissions[i];
       user.permissions.add(permission.name);
     }
+    return user;
   }
-
 }
-
-// var records = [
-//   { id: 1, username: 'jack', password: 'secret', displayName: 'Jack', emails: [ { value: 'jack@example.com' } ] }
-// , { id: 2, username: 'jill', password: 'birthday', displayName: 'Jill', emails: [ { value: 'jill@example.com' } ] }
-// ];
-
-// exports.findById = function(id, cb) {
-// process.nextTick(function() {
-//   var idx = id - 1;
-//   if (records[idx]) {
-//     cb(null, records[idx]);
-//   } else {
-//     cb(new Error('User ' + id + ' does not exist'));
-//   }
-// });
-// }
-
-// exports.findByUsername = function(username, cb) {
-//   process.nextTick(function() {
-//     for (var i = 0, len = records.length; i < len; i++) {
-//       var record = records[i];
-//       if (record.username === username) {
-//         return cb(null, record);
-//       }
-//     }
-//     return cb(null, null);
-//   });
-// }
 
 module.exports = Users;

@@ -87,7 +87,12 @@ class TranscodingController{
         template.find(".remove_process_btn").click(function(){
             var r = confirm("You will remove the task "+task.original_name);
             if(r){
-                deleteReq("/transcoding_tasks/"+task.filename);
+                deleteReq("/transcoding_tasks/"+task.filename,
+                function(success){
+                },
+                function(err){
+                    alert(err.responseText);
+                })
             }
         });
         return template;

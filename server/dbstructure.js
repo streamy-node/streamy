@@ -1235,7 +1235,7 @@ class DBStructure extends EventEmitter{
         var id = sqlres.insertId;
     }
 
-    async getUserPassword(username){
+    async getUserPasswordByName(username){
         var sql = "SELECT password FROM `users` "+
         " WHERE username = '"+username.replace(/'/g,"\\'")+"'";
         var results = await this.query(sql);
@@ -1247,22 +1247,44 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    async getUserPermissions(username){
-        var sql = "SELECT p.name FROM `permissions` p, `users`, `roles_permissions` rp "
-         + " WHERE username = '"+username.replace(/'/g,"\\'")+"' "
-         + " AND users.role_id = rp.role_id AND rp.permission_id = p.id";
-         return await this.query(sql);
-    }
-
-    async getUser(username){
-        var sql = "SELECT * FROM `users` "
-        " WHERE username = '"+username.replace(/'/g,"\\'")+"'";
+    async getUserPassword(userId){
+        var sql = "SELECT password FROM `users` "+
+        " WHERE id = "+userId+"";
         var results = await this.query(sql);
 
         if(results.length == 0 ){
             return null;
         }else{
+            return results[0].password;
+        }
+    }
+
+    async getUserPermissions(userId){
+        var sql = "SELECT p.name FROM `permissions` p, `users`, `roles_permissions` rp "
+         + " WHERE users.id = "+userId+""
+         + " AND users.role_id = rp.role_id AND rp.permission_id = p.id";
+         return await this.query(sql);
+    }
+
+    async getUser(userId){
+        var sql = "SELECT * FROM `users` "+
+        " WHERE id = "+userId+"";
+        var results = await this.query(sql);
+        if(results.length == 0 ){
+            return null;
+        }else{
             return results[0];
+        }
+    }
+
+    async getUserId(username){
+        let sql = "SELECT id FROM `users` "+
+        " WHERE username = '"+username.replace(/'/g,"\\'")+"'";
+        let results = await this.query(sql);
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].id;
         }
     }
     
@@ -1273,6 +1295,7 @@ class DBStructure extends EventEmitter{
         return results; 
     } 
 
+    /////////// Utils //////////
     checkId(id){
         if (typeof id != "number") {
             console.error('checkId: Id is not a number',id);

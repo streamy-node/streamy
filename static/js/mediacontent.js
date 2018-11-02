@@ -32,19 +32,7 @@ class MediaContentController{
             self.renderMpdFolders(Object.values(summaries));
         });
 
-        // $.getJSON( "workers", function( workers ) {
-        //     self.renderWorkers(workers);;
-        // });
-
-        // $("#addWorkerButton").click(function(){
-        //     let ip = $("#worker_host").val()
-        //     let port = parseInt($("#worker_port").val())
-        //     let data = {ip:ip,port:port}
-        //     postAsJson(data,"/workers", function(response){
-        //     },function(response){
-        //         alert("Failed to add worker "+response);
-        //     },false)
-        // });
+        /// Global button setup
     }
 
     initialize(){
@@ -78,8 +66,8 @@ class MediaContentController{
                     function(response){
                         template.remove();
                     },
-                    function(errCode){
-                        alert("Failed to remove mpd "+errCode);
+                    function(errReq){
+                        alert("Failed to remove content. Reason: "+errReq.statusText+" "+errReq.responseText);
                     }
                 );
             }
@@ -150,8 +138,8 @@ class MediaContentController{
                         function(response){
                             mpd_tpl.remove();
                         },
-                        function(errCode){
-                            alert("Failed to remove mpd "+errCode);
+                        function(errReq){
+                            alert("Failed to remove content. Reason: "+errReq.statusText+" "+errReq.responseText);
                         }
                     );
                 }

@@ -122,7 +122,7 @@ async function startApp(){
   dbMgr.on("connected",function(connection){
     sess.store = new MySQLStore({},connection);
   })
-
+  
   /// Setup auth
   var failedConnectionAttempt = 0;
   passport.use(new LocalStrategy(
@@ -134,7 +134,7 @@ async function startApp(){
           console.warn("User failed to authentificate: "+username);
           done(null, false);
         }else{
-          let user = await userMgr.getUserInfos(username)
+          let user = await userMgr.getUserInfosByName(username)
           return done(null, user);
         }
       }catch(err){
@@ -168,11 +168,17 @@ async function startApp(){
     cb(null, user.id);
   });
 
-  passport.deserializeUser(function(id, cb) {
-    users.findById(id, function (err, user) {
-      if (err) { return cb(err); }
-      cb(null, user);
-    });
+  passport.deserializeUser(async function(id, cb) {
+    let user = await userMgr.getUserInfos(id)
+    if(user){
+      cb(null,user);
+    }else{
+      cb(new Error('User ' + id + ' does not exist'))
+    }
+    // users.findById(id, function (err, user) {
+    //   if (err) { return cb(err); }
+    //   cb(null, user);
+    // });
   });
 
   /// Setup more secure option in production
@@ -346,7 +352,7 @@ async function startApp(){
   // })
 
   app.delete('/media/:mediaId/mpd/:folder', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_content")){ //TODO check rights
       //let type = req.params.type;
       let mediaId = parseInt(req.params.mediaId);
       let folder = req.params.folder;
@@ -359,7 +365,7 @@ async function startApp(){
         res.sendStatus(500);
       }
     }else{
-      res.sendStatus(401);
+      res.status(401).send("You don't have the permission to delete content");
     }
   })
 
@@ -403,7 +409,7 @@ async function startApp(){
   })
 
   app.delete('/media/:mediaId/mpd/:folder/representation/:rep_id', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_content")){
       //let type = req.params.type;
       let mediaId = parseInt(req.params.mediaId);
       let folder = req.params.folder;
@@ -418,7 +424,7 @@ async function startApp(){
         res.sendStatus(500);
       }
     }else{
-      res.sendStatus(401);
+      res.status(401).send("You don't have the permission to delete content");
     }
   })
 
@@ -576,7 +582,7 @@ async function startApp(){
   });
 
   app.post('/workers', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_workers")){
       var ip = req.body.ip;
       var port = req.body.port;
       if(ip && ip.length > 0 && port > 0){
@@ -587,28 +593,28 @@ async function startApp(){
         res.sendStatus(500)
       }
     }else{
-      res.sendStatus(401)
+      res.status(401).send("You don't have the permission to add workers")
     }
   });
 
   app.post('/workers/:id/status', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_workers")){ //TODO check rights
       var id = req.params.id;
       var statusValue = req.body.status;
       processesMgr.enableWorkerFromId(id,statusValue);
       res.sendStatus(200)
     }else{
-      res.sendStatus(401)
+      res.status(401).send("You don't have the permission to change worker status")
     }
   });
 
   app.post('/workers/:id/connect', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_workers")){ //TODO check rights
       var id = req.params.id;
       processesMgr.tryConnectWorker(id);
       res.sendStatus(200)
     }else{
-      res.sendStatus(401)
+      res.status(401).send("You don't have the permission to connect workers")
     }
   });
   
@@ -637,27 +643,27 @@ async function startApp(){
   });
 
   app.post('/transcoding_tasks/:filename/stop', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_transcoding")){ //TODO check rights
       var filename = req.params.filename;
       transcodeMgr.stopTask(filename);
       res.sendStatus(200)
     }else{
-      res.sendStatus(401)
+      res.status(401).send("You don't have the permission to stop tasks")
     }
   });
 
   app.post('/transcoding_tasks/:filename/start', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_transcoding")){ //TODO check rights
       var filename = req.params.filename;
       transcodeMgr.startTask(filename);
       res.sendStatus(200)
     }else{
-      res.sendStatus(401)
+      res.status(401).send("You don't have the permission to start tasks")
     }
   });
 
   app.delete('/transcoding_tasks/:filename', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_transcoding")){ //TODO check rights
       var filename = req.params.filename;
       if(transcodeMgr.removeOfflineTask(filename)){
         res.sendStatus(200)
@@ -665,7 +671,7 @@ async function startApp(){
         res.sendStatus(500)
       }
     }else{
-      res.sendStatus(401)
+      res.status(401).send("You don't have the permission to remove tasks")
     }
   });
 
@@ -720,8 +726,8 @@ async function startApp(){
   //importer.refreshBrickMetadata(0);
   // importer.refreshBrickData(0)
   // let dostuff = async function (){
-  //   mediaMgr.refreshBrickMedias(2);
-  //   //importer.importBrick('/data/streamy',"brick1");
+  //   //mediaMgr.refreshBrickMedias(2);
+  //   importer.importBrick('/data/streamy',"brick1");
   //   //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
 
   // }
