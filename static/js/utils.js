@@ -157,12 +157,12 @@ function postAsJson(objData,url,onSucess,onError,parseResult=true){
             }
 
         }else if(xhr.readyState === 4 && xhr.status !== 200){
-            if(parseResult){
-                var json = JSON.parse(xhr.responseText);
-                onError(json);
-            }else{
-                onError(xhr.responseText);
-            }
+            // if(parseResult){
+            //     var json = JSON.parse(xhr.responseText);
+            //     onError(json);
+            // }else{
+            onError(xhr.responseText);
+            //}
         }
     };
     var data = JSON.stringify(objData);

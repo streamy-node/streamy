@@ -482,7 +482,7 @@ async function startApp(){
 
   // Add serie
   app.post('/series', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("add_media")){ //TODO check rights
       console.log("body",req.body);
 
       //For the moment only moviedb id
@@ -509,7 +509,7 @@ async function startApp(){
       }
 
     }else{
-      res.status(401).send('You need to login');
+      res.status(401).send("You don't have the permission to add a serie");
     }
   })
   
@@ -548,7 +548,7 @@ async function startApp(){
   }
   app.post('/upload/media/:media_id', loggedIn, multipartMiddleware, uploadErrorHandler, async function(req,res){
     var id = req.params.media_id;
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("upload_content")){ //TODO check rights
       let result = await resumable.post(req, true);
       //console.log('POST', result.status, result.original_filename, result.identifier);
       //If the file has been received completly
@@ -620,7 +620,7 @@ async function startApp(){
   
 
   app.delete('/workers/:id', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user && req.user.permissions.has("manage_workers")){ //TODO check rights
       var id = req.params.id;
       if(processesMgr.removeWorker(id)){
         res.sendStatus(200)
@@ -628,7 +628,7 @@ async function startApp(){
         res.sendStatus(500)
       }
     }else{
-      res.sendStatus(401)
+      res.sendStatus(401).send("You don't have the permission to remove workers")
     }
   });
 
