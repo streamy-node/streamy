@@ -107,7 +107,7 @@ class MediaContentController{
             let mpd_tpl = $("#mpd_tpl").clone();
             mpd_tpl.removeClass("hidden");
             mpd_tpl.find(".rep_type").text(mpdInfos.contentType);
-            mpd_tpl.find(".rep_lang").text(mpdInfos.lang);
+            mpd_tpl.find(".rep_lang").text(mpdInfos.lang ? mpdInfos.lang : '');
             
             switch(mpdInfos.contentType){
                 case 'video':
