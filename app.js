@@ -89,7 +89,7 @@ async function startApp(){
 
   /////////// setup managers //////////////////////
   var processesMgr = new ProcessesMgr();
-  var mediaMgr = new MediaMgr(dbMgr,settings,processesMgr);
+  var mediaMgr = new MediaMgr(dbMgr,processesMgr);
   var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
 
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);

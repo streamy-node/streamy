@@ -531,8 +531,7 @@ class MPDUtils{
                 let absolutPath = path.dirname(mpd.location)+"/"+initFile;
                 let channels = await this.extractAudioChannelsFromFile(ffmpeg,absolutPath)
                 if(channels && channels > 0){
-                    mpdUtils.setAudioChannelConfiguration(repInfos,channels);
-                    changeMade = true;
+                    this.setAudioChannelConfiguration(repInfos,channels);
                 }
             }
         }
