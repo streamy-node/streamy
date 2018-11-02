@@ -280,7 +280,7 @@ class DBStructure extends EventEmitter{
         " WHERE parent_id = "+mediaId+" OR id = "+mediaId+
         " UNION "+
         " SELECT path FROM `media`"+
-        " WHERE parent_id IN (SELECT id FROM streamy.media WHERE parent_id = "+mediaId+")"
+        " WHERE parent_id IN (SELECT id FROM media WHERE parent_id = "+mediaId+")"
         var results = await this.query(sql);
 
         return results;
@@ -295,7 +295,7 @@ class DBStructure extends EventEmitter{
         }
 
         var sql = " SELECT * FROM `media`"+
-        " WHERE parent_id IN (SELECT id FROM streamy.media WHERE parent_id = "+mediaId+")"
+        " WHERE parent_id IN (SELECT id FROM media WHERE parent_id = "+mediaId+")"
         var results = await this.query(sql);
 
         return results;
