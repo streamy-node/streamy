@@ -1,6 +1,7 @@
 var fs = require('fs');
 var moviedb = require('./moviedb.js');
 const EventEmitter = require('events');
+var mysql = require('mysql');
 
 class DBStructure extends EventEmitter{
     constructor(){
@@ -11,19 +12,28 @@ class DBStructure extends EventEmitter{
         this.categories = new Map()
     }
 
-    async initialize(pool,dbOptions,onResult){
-        var self = this;
-        ///this.dboptions = dbOptions;
-        this.con = pool;
-        
-        // Setup dbase
-        if(!await this.setup_database()){
+    async initialize(pool){
+        if(!await this.createDatabase(pool.config.connectionConfig)){
             console.error("Cannot setup the db :'(");
             return false;
         }else{
+            this.con = pool;
             this._cacheStaticData();
             return true;
-        }            
+        }             
+    }
+
+    async createDatabase(originalConf){
+        //Create an independant connection at first then use pool
+        let connection = mysql.createConnection({
+            host: originalConf.hostname,
+            port: originalConf.port,
+            user: originalConf.user,
+            password: originalConf.password,
+            multipleStatements: true
+        });
+
+        return await this.setup_database(connection);
     }
 
     async _cacheStaticData(){
@@ -80,16 +90,17 @@ class DBStructure extends EventEmitter{
         });
     }
 
-    async setup_database(){
+    async setup_database(connection){
         //If the database is available, create tables if necessary
         var sql = fs.readFileSync('server/sql/init_db.sql').toString();
 
         try{
-            await this.query(sql);
+            await this._query(sql,connection);
             console.log("DB initialized");
             return true;
         }catch(err){
-            if(err.errno === 1050){
+            if(err.errno === 1050 ||//Table already exists
+                err.errno === 1007){ //DB already exists
                 console.log("Database already initialized");
                 return true;
             }else{
@@ -115,11 +126,15 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    query(sql){
+    async query(sql){
+        return await this._query(sql,this.con);
+    }
+
+    _query(sql,connection){
         return new Promise((resolve, reject) => {
-            this.con.query(sql, function (err, result) {
+            connection.query(sql, function (err, result) {
                 if (err) {
-                    console.error("DB error: ",sql,err);
+                    //console.error("DB error: ",sql,err);
                     reject(err);
                 }
                 resolve(result);

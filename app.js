@@ -729,7 +729,6 @@ async function startApp(){
   //   //mediaMgr.refreshBrickMedias(2);
   //   importer.importBrick('/data/streamy',"brick1");
   //   //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
-
   // }
   // setTimeout(dostuff, 1500, 'funky');
   
