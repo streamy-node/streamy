@@ -272,7 +272,7 @@ class MediaMgr{
 
             }                  
         } catch (e) {
-            console.error("Failing to create file system for ",serie.original_name,e);
+            console.error("Failing to create file system for ",mediaId,e);
             return null;
         }
         return true;
