@@ -8,7 +8,7 @@ class ContentManager{
     this.serieMgr = new SerieController(this.templates,this.sharedWebsocket);
     this.workersMgr = new WorkerController(this.templates,this.sharedWebsocket);
     this.mediaContentMgr = new MediaContentController(this.templates,this.sharedWebsocket);
-    //this.transcodingMgr = new TranscodingController(this.templates,this.sharedWebsocket)
+    this.transcodingMgr = new TranscodingController(this.templates,this.sharedWebsocket)
     // socket.on('connect', function(){});
     // socket.on('event', function(data){});
     // socket.on('disconnect', function(){});

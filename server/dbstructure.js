@@ -744,7 +744,7 @@ class DBStructure extends EventEmitter{
             "`original_name`,`original_language`, `easy_name`, `brick_id`, `has_mpd`,`use_mpd`, `path`, `category_id`, `parent_id`) "+
             " VALUES ('"+release_date+"', "+rating+", "+rating_count+
             ', "'+original_name.replace(/'/g,"\\'")+
-            '", "'+original_language+'", "'+easy_name+'", '+brickId+", "+has_mpd+", "+use_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
+            '", "'+original_language+'", "'+easy_name.replace(/'/g,"\\'")+'", '+brickId+", "+has_mpd+", "+use_mpd+', "'+path+'", '+category_id+", "+parent_id+")";
 
             var sqlres = await this.query(sql);
             var id = sqlres.insertId;
@@ -981,7 +981,7 @@ class DBStructure extends EventEmitter{
             return null;
         }
         var sql = "INSERT INTO `add_file_subtasks` (`task_id`,`command`,`done`,`output`) "
-        + " VALUES('"+task_id+"', '"+command+"', "+done+', "'+output+'")';
+        + " VALUES("+task_id+", '"+command.replace(/'/g,"\\'")+"', "+done+", '"+output.replace(/'/g,"\\'")+"')";
         var sqlres = await this.query(sql);
         var subtaskId = sqlres.insertId;
 
