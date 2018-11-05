@@ -1,7 +1,5 @@
 const shortId = require('shortid');
 var path = require('path');
-
-
 var fsutils = require('../fsutils');
 var jsutils = require("../jsutils");
 
@@ -26,6 +24,8 @@ class TranscoderManager extends EventEmitter{
         this.lastProgressions.offline={};
         this.lastProgressions.live={};
         this.filesProcesses = {}
+        this.audioEncoder = 'libfdk_aac'
+        this.videoEncoder = 'x264'
     }
 
     getProgressions(){
@@ -653,6 +653,10 @@ class TranscoderManager extends EventEmitter{
     _normalizeStreams(streams){
         for(let i=0; i<streams.length; i++){
             let stream = streams[i];
+            if(!stream.tags){
+                stream.tags = {}
+                stream.tags["language"] = null;
+            }
             //Setup compatibility for different FFMPEG versions tags
             if(stream.tags.LANGUAGE){
                 stream.tags["language"] =  stream.tags.LANGUAGE     
@@ -822,7 +826,7 @@ class TranscoderManager extends EventEmitter{
                 videoOutputIndex++;
             }else if(stream.codec_type === "audio"){
                 stream._audio_index = audioOutputIndex;
-                let cmd_part = await this._generateFdkaacPart(stream);
+                let cmd_part = await this._generateAudioCmdPart(stream,this.audioEncoder);
                 Array.prototype.push.apply(video_audio_cmds,cmd_part);
                 video_audio_mapping.push('-map');
                 video_audio_mapping.push("0:"+stream._src_index);
@@ -942,63 +946,63 @@ class TranscoderManager extends EventEmitter{
         ];
     }
 
-    async _generateX264Command(inputfile,stream,target_resolution,workingDir){
-        var output = {};
-        //Width determine resolution category
-        //width*height induce bitrate
-        let original_resolution = await this.mediaMgr._getResolution(stream.width);
-        let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
+    // async _generateX264Command(inputfile,stream,target_resolution,workingDir){
+    //     var output = {};
+    //     //Width determine resolution category
+    //     //width*height induce bitrate
+    //     let original_resolution = await this.mediaMgr._getResolution(stream.width);
+    //     let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
 
-        var segmentduration = this.settings.global.segment_duration;
-        var framerate = this._getFramerate(stream);
-        var key_int = Math.floor(framerate * segmentduration);
+    //     var segmentduration = this.settings.global.segment_duration;
+    //     var framerate = this._getFramerate(stream);
+    //     var key_int = Math.floor(framerate * segmentduration);
 
-        output.targetName = "video_h264_"+target_resolution.name+".mp4";
-        output.dashName = "video_h264_"+target_resolution.name+".mpd";
-        output.args = [
-            '-i',
-            inputfile,
-            '-y',
-            '-an',
-            '-sn',
-            '-c:v',
-            'libx264',
-            '-b:v:0',
-            bitrate.toString()+"K",
-            '-profile',
-            this.settings.global.encoder_h264_profile,
-            '-preset',
-            this.settings.global.encoder_h264_preset,
-            '-keyint_min',
-            key_int.toString(),
-            '-g',
-            key_int.toString(),
-            '-b_strategy',
-            '0',
-            '-use_timeline',
-            '0',
-            '-use_template',
-            '0',
-            '-single_file',
-            '1',
-            '-single_file_name',
-            output.targetName,
-            '-min_seg_duration',
-            segmentduration,
-            '-f',
-            'dash',
-            workingDir+"/"+output.dashName
-        ];
+    //     output.targetName = "video_h264_"+target_resolution.name+".mp4";
+    //     output.dashName = "video_h264_"+target_resolution.name+".mpd";
+    //     output.args = [
+    //         '-i',
+    //         inputfile,
+    //         '-y',
+    //         '-an',
+    //         '-sn',
+    //         '-c:v',
+    //         'libx264',
+    //         '-b:v:0',
+    //         bitrate.toString()+"K",
+    //         '-profile',
+    //         this.settings.global.encoder_h264_profile,
+    //         '-preset',
+    //         this.settings.global.encoder_h264_preset,
+    //         '-keyint_min',
+    //         key_int.toString(),
+    //         '-g',
+    //         key_int.toString(),
+    //         '-b_strategy',
+    //         '0',
+    //         '-use_timeline',
+    //         '0',
+    //         '-use_template',
+    //         '0',
+    //         '-single_file',
+    //         '1',
+    //         '-single_file_name',
+    //         output.targetName,
+    //         '-min_seg_duration',
+    //         segmentduration,
+    //         '-f',
+    //         'dash',
+    //         workingDir+"/"+output.dashName
+    //     ];
         //-preset slow
 
-        //Scale video if needed
-        if(original_resolution.id !== target_resolution.id){
-            output.args.splice(2,0,'-vf');
-            output.args.splice(3,0,'scale='+target_resolution.width.toString()+":-1");
-        }
+    //     //Scale video if needed
+    //     if(original_resolution.id !== target_resolution.id){
+    //         output.args.splice(2,0,'-vf');
+    //         output.args.splice(3,0,'scale='+target_resolution.width.toString()+":-1");
+    //     }
 
-        return output;
-    }
+    //     return output;
+    // }
 
     async computeBitrate(video_width,video_height, target_resolution_id){
         //Return a bitrate according to total resolution (take care of 1920*800 resolutions)
@@ -1092,11 +1096,11 @@ class TranscoderManager extends EventEmitter{
         return Math.min.apply(null, channels);
     }
 
-    async _generateFdkaacPart(stream){
+    async _generateAudioCmdPart(stream, encoder = 'fdk_aac'){
         let bitrate = await this.dbMgr.getAudioBitrate(stream.channels);
         return[
         '-c:a:'+stream._audio_index,
-        'libfdk_aac',
+        encoder,
         '-ac:'+stream.index,
         stream.channels.toString(),
         '-b:a:'+stream._audio_index,

@@ -129,7 +129,11 @@ class SeriesMgr{
             }
 
             if(await this.mediaMgr.createFS(serieMediaId,serieInfos)){
-                await this.downloadFanarts(serieMediaId,serieImages);
+                try{
+                    await this.downloadFanarts(serieMediaId,serieImages);
+                }catch(err){
+                    console.error("Failed to download some fanarts");
+                }
             }
 
             console.log("Serie added: ",serieInfos.original_name);

@@ -51,7 +51,10 @@ class SeriesContent{
     // series.html
     renderSeries_element(serieInfos){
         var template = $("#poster_tpl").clone();
-        template.find("img").attr("src","/brick/"+serieInfos.brick_id+"/"+encodeURIComponent(serieInfos.path)+"/fanart/img500.jpg");
+        var img_tpl = template.find("img");
+        img_tpl.attr("src","/brick/"+serieInfos.brick_id+"/"+encodeURIComponent(serieInfos.path)+"/fanart/img500.jpg");
+        img_tpl.on("error",function(){
+        }).attr("src","/img/no_content.jpg");
         template.find(".series_titles").html(serieInfos.title+" ("+serieInfos.release_date.substr(0,4)+")");
         template.find(".series_rating").html(serieInfos.rating);
         template.find(".series_link").attr("href","#serie_"+serieInfos.id);

@@ -11,17 +11,12 @@ const download = async function(url, filename, replace = true) {
 
     // return new pending promise
     return new Promise((resolve, reject) => {
-        downloadCB(url,filename,resolve,reject);
+        downloadCB(url,filename,resolve);
     });
 };
 
-const downloadCB = function(uri, filename, onSucess, onError){
-    request(uri).pipe(fs.createWriteStream(filename)).on('close', onSucess).on('error',onError);
-    // request.head(uri, function(err, res, body){
-    //     console.log('content-type:', res.headers['content-type']);
-    //     console.log('content-length:', res.headers['content-length']);
-    //     request(uri).pipe(fs.createWriteStream(filename)).on('close', callback).on('error',onError);
-    // });
+const downloadCB = function(uri, filename, onResult){
+    request(uri).pipe(fs.createWriteStream(filename)).on('close', onResult(null)).on('error',onResult(false));
 };
 
 const getContent = function(url) {
