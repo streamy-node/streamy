@@ -16,7 +16,13 @@ const download = async function(url, filename, replace = true) {
 };
 
 const downloadCB = function(uri, filename, onResult){
-    request(uri).pipe(fs.createWriteStream(filename)).on('close', onResult(null)).on('error',onResult(false));
+    request(uri).pipe(fs.createWriteStream(filename))
+        .on('close', function(){
+            onResult(null)
+        })
+        .on('error', function(err){
+            onResult(err)
+        });
 };
 
 const getContent = function(url) {
