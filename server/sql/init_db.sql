@@ -165,7 +165,7 @@ CREATE TABLE `media` (
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES categories(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`parent_id`) REFERENCES media(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`original_name`,`release_date`,`brick_id`)
+  CONSTRAINT UNIQUE (`original_name`,`release_date`,`category_id`,`parent_id`,`brick_id`)
 );
 
 CREATE TABLE `media_translations` (
@@ -301,7 +301,7 @@ CREATE TABLE `add_file_tasks` (
 CREATE TABLE `add_file_subtasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `task_id` int NOT NULL,
-  `command` VARCHAR(2048)  CHARACTER SET utf8 NOT NULL,
+  `command` VARCHAR(4096)  CHARACTER SET utf8 NOT NULL,
   `output` VARCHAR(255)  CHARACTER SET utf8 NOT NULL,
   `done` TINYINT(1) DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -513,7 +513,7 @@ INSERT INTO `languages` VALUES(133, 'Yoruba', 'yo');
 INSERT INTO `languages` VALUES(134, 'Chinese', 'zh');
 INSERT INTO `languages` VALUES(135, 'Zulu', 'zu');
 
-
+-- TODO finish to put 639 codes
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(1, 'eng');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(2, 'aar');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(3, 'abk');
