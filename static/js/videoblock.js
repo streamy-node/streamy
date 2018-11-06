@@ -1,7 +1,6 @@
 class VideoBlock{
     constructor(type,id){
         this.droppedFiles = null;
-        this.getStreamsInfos = null;
         this.element = null;
         this.isBroken = false;
         this.type = type;
@@ -17,11 +16,11 @@ class VideoBlock{
     }
 
     launchVideoFromMpd(mdpFile){
-        var windowObjectReference = window.open("js/light-player/index.html?mdp="+encodeURIComponent(mdpFile), "streamy player");
+        window.open("js/light-player/index.html?mdp="+encodeURIComponent(mdpFile), "streamy player");
     }
 
     launchVideo(){
-        var windowObjectReference = window.open("js/light-player/index.html?type="+this.type+"&id="+this.id.toString(), "Streamy player");
+        window.open("js/light-player/index.html?type="+this.type+"&id="+this.id.toString(), "Streamy player");
     }
 
     setBroken(value,status_color = nofile_color){
@@ -116,13 +115,18 @@ class VideoBlock{
 
     /**
      * @param {*} element element containing a box 
-     * @param {*} type serie or films
-     * @param {*} id episode id or film id
      */
     setup(element){
         var self = this;
         self.element = element;
-        let $form = element.find('.box');
+
+        let $form = null;
+        if(element.hasClass('box')){
+            $form = element;
+        }else{
+            $form = element.find('.box');
+        }
+        
 
         let blocs = $form.find('.bloc-image');
         //setup play
@@ -130,7 +134,7 @@ class VideoBlock{
             self.onPlayClick();
         });
 
-        let target = "/"+$form.attr('action')+"/"+$form.attr('video_id')
+        let target = "/"+$form.attr('action')+"/"+this.id.toString()//$form.attr('video_id')
         var r = new Resumable({
             target: target,
             chunkSize: 10*1024*1024,

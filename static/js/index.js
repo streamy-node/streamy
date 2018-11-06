@@ -3,22 +3,14 @@ class ContentManager{
     this.langs = {};
     this.templates = {};
     this.sharedWebsocket = new SharedWebSocket;
-    this.moviesMgr = new MoviesContent(this.templates,this.langs);
-    this.seriesMgr = new SeriesContent(this.templates,this.langs);
+    this.moviesMgr = new MoviesContent(this.templates,this.sharedWebsocket);
+    this.movieMgr = new MovieContent(this.templates,this.sharedWebsocket);
+    this.seriesMgr = new SeriesContent(this.templates);
     this.serieMgr = new SerieController(this.templates,this.sharedWebsocket);
     this.workersMgr = new WorkerController(this.templates,this.sharedWebsocket);
     this.mediaContentMgr = new MediaContentController(this.templates,this.sharedWebsocket);
     this.transcodingMgr = new TranscodingController(this.templates,this.sharedWebsocket)
-    // socket.on('connect', function(){});
-    // socket.on('event', function(data){});
-    // socket.on('disconnect', function(){});
-
-    var self = this;
-    //Pull progressions
-    // setInterval(function(){
-    //   self.updateProgressions();
-    // },5000)
-
+    this.addVideoMgr = new AddVideoConstroller(this.templates)
   }
 
   load(code,onSuccess){
@@ -38,20 +30,25 @@ class ContentManager{
     var self = this;
     $.when(
       $.get("movies.html"),
+      $.get("movie.html"),
       $.get("series.html"),
       $.get("serie.html"),
       $.get("addvideo.html"),
       $.get("workers.html"),
       $.get("transcoding.html"),
-      $.get("mediacontent.html")).done(function(a1,a2,a3,a4,a5,a6,a7){
+      $.get("mediacontent.html"),
+      $.get("common.html")).done(function(a1,a2,a3,a4,a5,a6,a7,a8,a9){
         var templates = {}
         templates.movies =  a1[0];
-        templates.series =  a2[0];
-        templates.serie =  a3[0];
-        templates.addvideo =  a4[0];
-        templates.workers =  a5[0];
-        templates.transcoding =  a6[0];
-        templates.mediacontent =  a7[0];
+        templates.movie =  a2[0];
+        templates.series =  a3[0];
+        templates.serie =  a4[0];
+        templates.addvideo =  a5[0];
+        templates.workers =  a6[0];
+        templates.transcoding =  a7[0];
+        templates.mediacontent =  a8[0];
+        templates.common =  a9[0];
+        
       // the code here will be executed when all four ajax requests resolve.
       // a1, a2, a3 and a4 are lists of length 3 containing the response text,
       // status, and jqXHR object for each of the four ajax calls respectively.
@@ -68,18 +65,22 @@ class ContentManager{
 
   setContent(div,type){
     if(type === "#movies"){
-      $(div).html("<div id=\"\">Work in progress</div>");
-      /*this.moviesMgr.render(div);*/
+      this.moviesMgr.render(div);
     }else if(type === "#series"){
       this.seriesMgr.renderSeries(div);
     }else if(type === "#addserie"){
-      this.seriesMgr.renderAddVideo(div);
+      this.addVideoMgr.render(div,"serie");
     }else if(type === "#addmovie"){
-      this.seriesMgr.renderAddVideo(div);
-    }else if(type.substr(0,6) === "#serie" && type.length > 7){//#serie_id
+      this.addVideoMgr.render(div,"movie");
+    }else if(type.substr(0,6) === "#serie" && type.length > 7){//#media_id
       //Extract id
       var serieId = parseInt(type.substr(7));
       this.serieMgr.render(div,serieId);
+      //this.updateProgressions();
+    }else if(type.substr(0,6) === "#movie" && type.length > 7){//#media_id
+      //Extract id
+      var mediaId = parseInt(type.substr(7));
+      this.movieMgr.render(div,mediaId);
       //this.updateProgressions();
     }else if(type === "#workers"){
       this.workersMgr.render(div)
@@ -93,23 +94,6 @@ class ContentManager{
       console.error("Not implemented hash ", type);
     }
   }
-
-  //////////////// Notifications //////////////////////
-  //this.ws.on("")
-
-  ////////////////////////////////////////////////////
-
-  // updateProgressions(){
-  //   var self = this;
-  //   if(location.hash.includes("serie") || location.hash.includes("films")){
-  //     $.getJSON("progression-infos",function(data){
-  //       self.moviesMgr.updateProgressions(data);
-  //       self.seriesMgr.updateProgressions(data);
-  //       self.serieMgr.updateProgressions(data);
-  //     });
-  //   }
-
-  // }
 
   start(){
     var self = this;
@@ -147,11 +131,6 @@ class ContentManager{
     
     // TVDBKey
     theMovieDb.common.initialize();
-    // Movies handle (todo use push)
-    
-    // Serie handle
-    
-    //
   }
 }
 

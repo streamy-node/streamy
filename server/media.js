@@ -88,7 +88,7 @@ class MediaMgr{
     }
 
     async getFsMpdFolders(media,absolute = true){
-        let folders = await this.getMediaFsFolders(media,["fanart"],absolute);
+        let folders = await this.getMediaFsFolders(media,["fanart",".streamy"],absolute);
         return folders;
     }
 
@@ -402,6 +402,15 @@ class MediaMgr{
             await this.refreshMedia(mediaList[i]);
         }
         console.log("Brick refreshed: "+brickId);
+    }
+
+    async refreshMediaById(mediaId){
+        let media = await this.con.getMedia(mediaId)
+        if(!media){
+            console.error("cannot refresh unexisting media ",mediaId)
+            return null
+        } 
+        return await this.refreshMedia(media)
     }
 
     async refreshMedia(media){

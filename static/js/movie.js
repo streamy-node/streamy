@@ -1,12 +1,14 @@
 
-class SerieController{
+class MovieContent{
     constructor(templates,sharedWebsocket){
         this.templates = templates;
         this.blocks = new Map();
         this.mediaActiveProcess = new Map();
-        this.blocksWithProgression = new Map();
+        this.block = null;
         this.sws = sharedWebsocket;
         this.div = null;
+        this.mediaId = null;
+        this.isInitialized = false;
         
     }
 
@@ -41,8 +43,8 @@ class SerieController{
         }
 
         var self = this;
-        $(div).html(this.templates.serie);
-        this.setupSerie();
+        $(div).html(this.templates.movie);
+        this.setup();
     }
 
     // serie.html
@@ -95,50 +97,43 @@ class SerieController{
         return template;
     }
 
-    renderSerie_seasons(brickId,seasonsInfos){
-        this.blocks = new Map();
-        for(var i=0; i<seasonsInfos.length; i++){ 
-            this.appendToContainer("#seasons",this.renderSerie_season(brickId,seasonsInfos[i]));
-        } 
-    }
-
-    setupSerie(){
+    setup(){
         var self = this;
         //Get serie id
-        var serieId = null;
-        if(location.hash.substr(0,6) === "#serie" && location.hash.length > 7){//#serie_id
+        var mediaId = null;
+        if(location.hash.substr(0,6) === "#movie" && location.hash.length > 7){//#serie_id
             //Extract id
-            serieId = parseInt(location.hash.substr(7));
+            mediaId = parseInt(location.hash.substr(7));
+            this.mediaId = mediaId;
         }else{
             console.error("Invalid data");
         }
 
         //Render main description
-        $.getJSON( "media/"+serieId.toString(), function( mediaData ) {
-            $("#serieName").text(mediaData.title);
+        $.getJSON( "media/"+mediaId.toString(), function( mediaData ) {
+            $("#mediaName").text(mediaData.title);
             $("#releasedate").text(mediaData.release_date.substr(0,4));
             $("#rating").text(mediaData.rating);
             $("#ratingcount").text(mediaData.rating_count);
             $("#overview").text(mediaData.overview);
             $("#poster").attr("src","/brick/"+mediaData.brick_id+"/"+encodeURIComponent(mediaData.path)+"/fanart/img500.jpg");
-            //$("#poster2").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img300.jpg");
-            //$('#box-1').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
-                
-            //Render seasons and episodes
-            $.getJSON( "series/"+serieId.toString()+"/seasons", function( data ) {
-                self.renderSerie_seasons(mediaData.brick_id,data);
-                self.pullProgressions();
-            });
+
+            let block_tpl = $(".box");
+            //block_tpl.attr("video_id",mediaId.toString());
+            let videoBock = new VideoBlock("movie",mediaData.id);
+            videoBock.setup(block_tpl);
+            videoBock.setHasMpd(mediaData.has_mpd);
+            self.block = videoBock;
+            self.pullProgressions();
         });
 
         $("#refresh").click(function(){
             //console.log("#addtitle/serie",videoInfos);
-            postAsJson({},"/media/"+serieId+"/refresh", function(response){
+            postAsJson({},"/media/"+mediaId+"/refresh", function(response){
             },function(response){
                 alert("Failed to refresh serie",response);
             })
         })
-        
     }
 
     removeProgress(filename){
@@ -147,7 +142,7 @@ class SerieController{
     }
 
     updateProcess(progress){
-        let videoBlock = this.blocks.get(progress.media_id)
+        let videoBlock = this.block;
         if(videoBlock){
             let previousProc = this.mediaActiveProcess.get(progress.media_id)
 
@@ -162,23 +157,21 @@ class SerieController{
     }
     
     updateProgressions(progressions){
-        if(location.hash.includes("#serie_") && progressions){
+        if(location.hash.includes("#movie_") && progressions && this.block){
 
-            for(let items of this.blocks){
-                let videoId = items[0];
-                let videoBlock = items[1];
-                if(progressions.offline[videoId]){
-                    let progressionsOnMedia = Object.values(progressions.offline[videoId]);
-                    let bestProgression = null;
-                    for(let i=0; i<progressionsOnMedia.length; i++){
-                        let progression = progressionsOnMedia[i];
-                        if(!bestProgression || bestProgression.progression<progression.progression){
-                            bestProgression = progression;
-                        }
+            let videoId = this.block.id;
+            let videoBlock = this.block;
+            if(progressions.offline[videoId]){
+                let progressionsOnMedia = Object.values(progressions.offline[videoId]);
+                let bestProgression = null;
+                for(let i=0; i<progressionsOnMedia.length; i++){
+                    let progression = progressionsOnMedia[i];
+                    if(!bestProgression || bestProgression.progression<progression.progression){
+                        bestProgression = progression;
                     }
-                    videoBlock.updateStatus(bestProgression.state_code,bestProgression.progression,bestProgression.msg);
-                    this.mediaActiveProcess.set(videoId,{filename:bestProgression.filename,progression:bestProgression.progression,lastTime:new Date()})
                 }
+                videoBlock.updateStatus(bestProgression.state_code,bestProgression.progression,bestProgression.msg);
+                this.mediaActiveProcess.set(videoId,{filename:bestProgression.filename,progression:bestProgression.progression,lastTime:new Date()})
             }
         }
     }

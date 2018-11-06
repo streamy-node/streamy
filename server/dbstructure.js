@@ -877,66 +877,6 @@ class DBStructure extends EventEmitter{
         return sqlres;
     }
 
-    async getFilmPath(filmId){
-        if(!this.checkId(filmId) ){
-            console.error("getFilmPath: Invalid entries ");
-            return null;
-        }
-
-        var sql = "SELECT bricks.path as brick_path, films.original_name, films.release_date "
-        +" FROM `films`, `bricks` "
-        +" WHERE films.id = "+filmId+" AND bricks.id = films.brick_id";
-        var results = await this.query(sql);
-
-        if(results.length == 0 ){
-            return null;
-        }else{
-            return results[0];
-        }
-    }
-
-    async getFilmsMdpFiles(filmId){
-        if(!this.checkId(filmId)){
-            console.error("getFilmsMdpFiles: Invalid entries ");
-            return null;
-        }
-
-        var sql = "SELECT * FROM `films_mpd_files` AS mdp "+
-        " WHERE mdp.film_id = "+filmId;
-        var results = await this.query(sql);
-
-        return results;
-    }
-
-    async getFilmMpdFile(filmId,workingDir){
-        if(!this.checkId(filmId) && workingDir.length > 0 ){
-            console.error("getFilmMpdFile: Invalid entries ");
-            return null;
-        }
-        var sql = "SELECT * "
-        +" FROM `films_mpd_files` as s , `mpd_files` as m"
-        +" WHERE s.film_id = "+episodeId+" AND s.mpd_id = m.id AND folder = '"+workingDir+"'";
-        var results = await this.query(sql);
-
-        if(results.length == 0 ){
-            return null;
-        }else{
-            return results[0];
-        }
-    }
-
-    async insertFilmMPDFile(film_id,mpd_id){
-        if( (!this.checkId(film_id) && folder.length > 0)){
-            console.error("insertFilmMpd: Invalid entries ");
-            return null;
-        }
-        var sql = "INSERT INTO `films_mpd_files` (`film_id`,`mpd_id`) "
-        + " VALUES("+episode_id+", "+mpd_id+")";
-        var sqlres = await this.query(sql);
-        var id = sqlres.insertId;
-        return id;
-    }
-
     async getAudioBitrate(target_channels){
         var sql = "SELECT * FROM `audio_bitrates` "+
         " WHERE channels = "+target_channels.toString();
@@ -990,11 +930,29 @@ class DBStructure extends EventEmitter{
             return null;
         }
         var sql = "INSERT INTO `media_episodes` (`media_id`,`episode_number`) "+
-        " VALUES ('"+media_id+"', "+episode_number+")";
+        " VALUES ("+media_id+", "+episode_number+")";
 
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
+    }
+
+    async insertMovie(media_id){
+        try{
+            if( (!this.checkId(media_id) )){
+                console.error("insertMovie: Invalid entries ");
+                return null;
+            }
+            var sql = "INSERT INTO `media_movies` (`media_id`) "+
+            " VALUES ("+media_id+")";
+
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.error('insertMovie failed',err)
+            return null;
+        }
     }
 
     //////////////////////////////////////////////////////
@@ -1036,12 +994,6 @@ class DBStructure extends EventEmitter{
         }else{
             return result[0];
         }
-    }
-
-    async getAddFileTaskByVideoId(episode_id,film_id){
-        let sql = "SELECT * FROM `add_file_tasks` WHERE episode_id = "+episode_id+" OR film_id = "+film_id+" ORDER BY creation_time";
-        let results = await this.query(sql);
-        return results;
     }
 
     async getAddFileTasks(){

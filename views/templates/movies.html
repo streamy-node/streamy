@@ -1,38 +1,8 @@
 <!-- Create movies content page skeleton -->
-<div id="tpl_movies" >
-    <button id="add_movie_from_upload_btn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#upload_movie_modal">{{AddMovieFromUpload}}</button>
-    <button id="add_movie_from_file_btn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#add_movie_modal">{{AddMovieFromFile}}</button>
-    <h1>My movies </h1> 
-    <div id="movie_list">
-    </div>
-
-    <!-- Modal -->
-    <!-- Modal ADD MOVIE -->
-    <div class="modal fade" style="display: none" id="upload_movie_modal" tabindex="-1" role="dialog" aria-labelledby="uploadMovieLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-            <h5 class="modal-title" id="uploadMovieLabel">Upload Movie</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="usr">Name:</label>
-                    <input type="text" class="form-control" id="usr">
-                </div>
-                    <div class="form-group">
-                    <label for="pwd">Password:</label>
-                    <input type="password" class="form-control" id="pwd">
-                </div>
-            </div>
-            <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary">Save changes</button>
-            </div>
-        </div>
-        </div>
+<div id="tpl_movies" >  
+    <a id="add_movies_btn" class="btn btn-primary" href="#addmovie">{{#__}}AddMovie{{/__}}</a>
+    <div class="d-flex  flex-wrap  mb-2 mt-2" id="all_movies">
+        <!-- add movies here -->
     </div>
 </div>
 

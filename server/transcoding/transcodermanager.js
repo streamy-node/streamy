@@ -60,7 +60,6 @@ class TranscoderManager extends EventEmitter{
                 await this.processManager.stopProcess(processes[i]);
             }
         }
-        
     }
 
     async startTask(filename){
@@ -137,37 +136,37 @@ class TranscoderManager extends EventEmitter{
         await this.convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,userId,false, true);
     }
 
-    async generateLiveMpd(episodeId,original_name,filmId,workingFolder = null){
+    async generateLiveMpd(mediaId,original_name,workingFolder = null){
 
-        //Get uploaded files to use for live transcoding
-        let tasks = await this.dbMgr.getAddFileTaskByVideoId(filename);
+        // //Get uploaded files to use for live transcoding
+        // let tasks = await this.dbMgr.getAddFileTaskByVideoId(filename);
 
-        if(tasks.length == 0){
-            console.error("Cannot generate live mpd without files");
-            return false;
-        }
+        // if(tasks.length == 0){
+        //     console.error("Cannot generate live mpd without files");
+        //     return false;
+        // }
 
-         //For the moment take the first video file task
-        let filename = null;
-        for(let i=0; i<tasks.length; i++){
-            let task = tasks[i];
+        //  //For the moment take the first video file task
+        // let filename = null;
+        // for(let i=0; i<tasks.length; i++){
+        //     let task = tasks[i];
 
-            //check if it's not a video
-            let ext = path.extname(task.file);
-            if(ext === ".srt" || ext === ".vtt"){
-                continue;
-            }
+        //     //check if it's not a video
+        //     let ext = path.extname(task.file);
+        //     if(ext === ".srt" || ext === ".vtt"){
+        //         continue;
+        //     }
 
-            workingFolder = task.working_folder;
-            filename = task.file;
-        }
+        //     workingFolder = task.working_folder;
+        //     filename = task.file;
+        // }
 
-        if(filename === null){
-            console.error("Cannot generate live mpd without video file");
-            return false;
-        }
+        // if(filename === null){
+        //     console.error("Cannot generate live mpd without video file");
+        //     return false;
+        // }
 
-        await this.convertFileToMpd(filename,original_name,episodeId,filmId,null,workingFolder);
+        // await this.convertFileToMpd(filename,original_name,episodeId,filmId,null,workingFolder);
     }
 
     async convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,user_id,live = false,splitProcessing = false){
@@ -200,7 +199,7 @@ class TranscoderManager extends EventEmitter{
         }
 
         // Create target folder if not already done
-        var targetFolder = await this._getTargetFolder(media/*episodeId,filmId*/);
+        var targetFolder = await this._getTargetFolder(media);
         var absoluteWorkingFolder = targetFolder+"/"+workingFolder;
 
         let type = "offline";
@@ -308,6 +307,9 @@ class TranscoderManager extends EventEmitter{
 
             this.filesProcesses[filename] = {processes:[],media:media,type:type}
 
+            if(ffmpegCmds.length == 0){
+                console.warn("Cannot extract anything from the input file ",absoluteSourceFile,original_name)
+            }
             //let progressions = [];
             for(let i=0; i<ffmpegCmds.length; i++){
                 //progressions.push(0);

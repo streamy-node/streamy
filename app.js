@@ -16,6 +16,7 @@ var bodyParser = require('body-parser');
 
 var MediaMgr = require('./server/media.js');
 var SeriesMgr = require('./server/series.js');
+var MoviesMgr = require('./server/movies');
 var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
 var Users = require('./server/users');
@@ -91,6 +92,7 @@ async function startApp(){
   var processesMgr = new ProcessesMgr();
   var mediaMgr = new MediaMgr(dbMgr,processesMgr);
   var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
+  var movieMgr = new MoviesMgr(dbMgr,settings,mediaMgr)
 
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
   var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
@@ -275,26 +277,31 @@ async function startApp(){
 
   ////////////////////// templates //////////////////////////////////////////
   app.get('/movies.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/movies.html');// TODO mustache here
+    res.render('templates/movies.html');
+  })
+  app.get('/movie.html', i18n.init, setupLocals, loggedIn, function (req, res) {
+    res.render('templates/movie.html');
   })
   app.get('/series.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/series.html');// TODO mustache here
+    res.render('templates/series.html');
   })
   app.get('/serie.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('templates/serie.html');
   })
   app.get('/addvideo.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.sendFile(__dirname + '/views/templates/addvideo.html');// TODO mustache here
+    res.render('templates/addvideo.html');
   })
   app.get('/workers.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/workers.html',req.lang);
+    res.render('templates/workers.html');
   })
   app.get('/transcoding.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/transcoding.html',req.lang);
+    res.render('templates/transcoding.html');
   })
-
   app.get('/mediacontent.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/mediacontent.html',req.lang);
+    res.render('templates/mediacontent.html');
+  })
+  app.get('/common.html', i18n.init, setupLocals, loggedIn, function (req, res) {
+    res.render('templates/common.html');
   })
 
   //static files from node_modules
@@ -339,6 +346,14 @@ async function startApp(){
     }
   });
 
+  app.post('/media/:id/refresh', loggedIn, async function (req, res) {
+    //let type = req.params.type;
+    let id = parseInt(req.params.id);
+    let output = await mediaMgr.refreshMediaById(id);
+
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(output));
+  })
   // app.get('/media/:mediaId/*', safePath, async function (req, res) {
   //   //TODO improve performances by caching requests
   //   var mediaId = req.params.mediaId;
@@ -494,22 +509,64 @@ async function startApp(){
         //The serie don't exist, create it
         console.log("Adding a new serie");
         serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
-
-        
         if(serieId !== null){
           res.status(200).send(JSON.stringify({id:serieId}));
         }else{
           console.error("Failed to add serie from ",req.body);
           res.status(500).send('Cannot create serie');
         }
-        
-
       }else{
         res.status(400).send('Unknown request');
       }
-
     }else{
       res.status(401).send("You don't have the permission to add a serie");
+    }
+  })
+
+  ////////////////// Movies specific //////////////
+  app.get('/movies', loggedIn, async function (req, res) {
+    if(req.user){ 
+      var lang = req.query.lang;
+      var userId = 1;//TODO get userId
+
+      //Set default lang
+      if(!lang){
+        lang = 'en';
+      }
+      var langId = await dbMgr.getLangsId(lang);
+      let movies = await mediaMgr.getMediaListByCategory(4, langId, userId, "")
+      //let series = await serieMgr.getSeriesInfos(lang);
+
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(movies));
+    }
+  });
+
+  // Add movie
+  app.post('/movies', loggedIn, async function (req, res) {
+    if(req.user && req.user.permissions.has("add_media")){ //TODO check rights
+      console.log("body",req.body);
+
+      //For the moment only moviedb id
+      if(req.body.moviedbId != null){
+
+        // prepare response
+        res.setHeader('Content-Type', 'application/json');
+
+        //The serie don't exist, create it
+        console.log("Adding a new movie");
+        let movieId = await movieMgr.addMovieFromMovieDB(req.body.moviedbId);
+        if(movieId !== null){
+          res.status(200).send(JSON.stringify({id:movieId}));
+        }else{
+          console.error("Failed to add movie from ",req.body);
+          res.status(500).send('Cannot create movie');
+        }
+      }else{
+        res.status(400).send('Unknown request');
+      }
+    }else{
+      res.status(401).send("You don't have the permission to add a movie");
     }
   })
   
@@ -722,8 +779,8 @@ async function startApp(){
     console.log("Streamy node listening at http://%s:%s", host, port)
   });
 
-  //importer.importBrick('/data/streamy',"brick1");
-  //importer.refreshBrickMetadata(0);
+  // importer.importBrick('/data/streamy',"brick1");
+  // importer.refreshBrickMetadata(0);
   // importer.refreshBrickData(0)
   // let dostuff = async function (){
   //   //mediaMgr.refreshBrickMedias(2);

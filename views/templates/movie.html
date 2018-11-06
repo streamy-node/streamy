@@ -1,0 +1,47 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_movie" >
+        <div class="d-flex flex-column no-gutters nopad" >
+        <div class="d-flex">
+            <h1 id="mediaName"></h1>
+            <div id="refresh" class="material-icons ml-auto">refresh</div>
+        </div>
+        
+        <div class="mx-auto">
+            <div class="box d-flex flex-column position-relative" method="post" action="upload/media" enctype="multipart/form-data">
+                <div class="video_header d-flex flex-row-reverse position-absolute full-width">
+                        <div class="video_broken material-icons" data-toggle="tooltip" title="no video available for this title">broken_image</div>
+                        <a class="video_progress d-none" href="#transcoding">0%</a>
+                        <div class="video_error material-icons"  data-toggle="tooltip" title="error adding last video file">error</div>
+                        <div class="download_progress d-none">0%</div>
+                </div>
+                <img id="poster" class="img-fluid mx-auto d-block bloc-image poster" src=""/>
+                <div class="movie-menu ml-auto">
+                    <div class="cancel_upload block_btn material-icons d-none" data-toggle="tooltip" title="cancel upload">cloud_off</div>
+                    <a class="browse block_btn material-icons">cloud_upload</a>
+                    <a class="mediacontent block_btn material-icons">folder</a>
+                    <div class="block_btn material-icons">settings</div>
+                </div>
+            </div>
+        </div>
+        <table class="table">
+            <tr>
+                    <th scope="col">{{lang.video.ReleaseDate}}</th>
+                    <th scope="col">{{lang.video.Rating}}</th>
+                    <th scope="col">{{lang.video.RatingCount}}</th> 
+            </tr>
+            
+            <tbody>
+                <tr>
+                    <td scope="row" id="releasedate" >{{dyn.video.ReleaseDate}}</td>
+                    <td id="rating">{{dyn.video.Rating}}</td>
+                    <td id="ratingcount">{{dyn.video.RatingCount}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div >{{lang.video.Overview}}</div>
+        <div id="overview">{{dyn.video.Overview}}</div>
+
+
+    </div>     
+</div>

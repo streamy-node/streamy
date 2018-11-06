@@ -165,7 +165,7 @@ CREATE TABLE `media` (
   FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES categories(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`parent_id`) REFERENCES media(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`original_name`,`release_date`,`category_id`,`parent_id`,`brick_id`)
+  CONSTRAINT UNIQUE (`original_name`,`release_date`,`category_id`,`brick_id`)
 );
 
 CREATE TABLE `media_translations` (
@@ -229,6 +229,13 @@ CREATE TABLE `media_genres` (
   CONSTRAINT UNIQUE (`media_id`,`genre_id`) 
 );
 
+CREATE TABLE `media_movies` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `media_id` int NOT NULL ,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
+);
+
 CREATE TABLE `media_series` (
   `id` int NOT NULL AUTO_INCREMENT,
   `media_id` int NOT NULL ,
@@ -258,6 +265,15 @@ CREATE TABLE `media_episodes` (
 );
 
 CREATE TABLE `series_moviedb` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `media_id` int NOT NULL,
+  `moviedb_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+  CONSTRAINT UNIQUE (`moviedb_id`)
+);
+
+CREATE TABLE `movies_moviedb` (
   `id` int NOT NULL AUTO_INCREMENT,
   `media_id` int NOT NULL,
   `moviedb_id` int NOT NULL,
@@ -330,7 +346,7 @@ CREATE TABLE `episodes_transcoding_resolutions` (
    CONSTRAINT UNIQUE (`resolution_id`)
 );
 
-CREATE TABLE `films_transcoding_resolutions` (
+CREATE TABLE `movies_transcoding_resolutions` (
   `id` int NOT NULL,
   `resolution_id` int NOT NULL,
    PRIMARY KEY (`id`),
@@ -740,7 +756,7 @@ INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,7);
 INSERT INTO `categories` (`id`,`category`) VALUES( 1, 'series');
 INSERT INTO `categories` (`id`,`category`) VALUES( 2, 'seasons');
 INSERT INTO `categories` (`id`,`category`) VALUES( 3, 'episodes');
-INSERT INTO `categories` (`id`,`category`) VALUES( 4, 'films');
+INSERT INTO `categories` (`id`,`category`) VALUES( 4, 'movies');
 
 -- resolutions
 INSERT INTO `resolutions` VALUES(1, 'LOW', 1,1);
@@ -764,8 +780,8 @@ INSERT INTO `audio_bitrates` VALUES(4, '5.1', 6, 512);
 
 
 -- transcoding resolutions
-INSERT INTO `films_transcoding_resolutions` VALUES(1, 4);
-INSERT INTO `films_transcoding_resolutions` VALUES(2, 3);
+INSERT INTO `movies_transcoding_resolutions` VALUES(1, 4);
+INSERT INTO `movies_transcoding_resolutions` VALUES(2, 3);
 
 INSERT INTO `episodes_transcoding_resolutions` VALUES(1, 4);
 INSERT INTO `episodes_transcoding_resolutions` VALUES(2, 3);
