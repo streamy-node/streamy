@@ -510,8 +510,9 @@ class TranscoderManager extends EventEmitter{
         //TODO use regexp
         // sometext_fr.vtt
         let baseName = filename.substring(0,filename.length-4);
+        let langIndex = baseName.lastIndexOf('_')
         if(baseName.length > 4){
-            infos.language = baseName.substring(baseName.length-2);
+            infos.language = baseName.substring(langIndex+1);
             infos.title = baseName.substring(0,baseName.length-3);
         }else{
             console.warn("Cannot extract subtitles info from it's name ",filename)
@@ -650,6 +651,9 @@ class TranscoderManager extends EventEmitter{
 
     removeProgression(type,media_id,filename){
         delete this.lastProgressions[type][media_id][filename];
+        if(this.lastProgressions[type][media_id] == null){
+            delete this.lastProgressions[type][media_id]
+        }
     }
 
     _normalizeStreams(streams){
@@ -859,18 +863,11 @@ class TranscoderManager extends EventEmitter{
     }
 
     async _generateSubtitlePart(stream){
-        let lang = "00";
-
-        if(stream.tags.language && stream.tags.language.length === 3){
-            let langInfos = await this.dbMgr.getLangFromString(stream.tags.language)
-            //let langInfos = await this.dbMgr.getLangFromIso639_2(stream.tags.language);
-            if(langInfos){
-                lang = langInfos.iso_639_1
-            }else{
-                console.warn("_generateSubtitlePart unknown lang code: ",stream.tags.language," using undefined one");
-            }
-        }else if(stream.tags.language && stream.tags.language.length === 2){
+        let lang = "";
+        if(stream.tags.language){
             lang = stream.tags.language;
+        }else{
+            lang = "00";
         }
 
         return[
@@ -884,7 +881,6 @@ class TranscoderManager extends EventEmitter{
         "webvtt",
         stream.target_folder+'/subs/'+stream.tags.title+"_"+lang+".vtt"
         ];
-        //'srt_'+stream.tags.language+"_"+stream.tags.title+".vtt"
     }
     async _filterValidResolutions(stream,target_resolutions){
         let ouputs = [];
