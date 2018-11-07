@@ -227,7 +227,7 @@ class MediaMgr{
         if(!brick){
             return null;
         }
-        return brick.path + "/" +media.path
+        return brick.brick_path + "/" +media.path
     }
 
     async getAbsolutePath(media){
