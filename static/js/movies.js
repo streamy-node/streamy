@@ -61,6 +61,7 @@ class MoviesContent{
     renderMovie_elements(mediaInfos){
         var template = $("#poster_tpl").clone();
         template.removeClass("hidden");
+        template.attr("id","")
         template.find("img").attr("src","/brick/"+mediaInfos.brick_id+"/"+encodeURIComponent(mediaInfos.path)+"/fanart/img500.jpg");
         template.find(".media_title").html(mediaInfos.title+" ("+mediaInfos.release_date.substr(0,4)+")");
         template.find(".media_rating").html(mediaInfos.rating);

@@ -28,34 +28,22 @@ class SeriesContent{
     // series.html
     renderSeries_element(serieInfos){
         var template = $("#poster_tpl").clone();
+        template.attr("id","")
+        template.removeClass("hidden");
         template.find("img").attr("src","/brick/"+serieInfos.brick_id+"/"+encodeURIComponent(serieInfos.path)+"/fanart/img500.jpg");
         template.find(".media_title").html(serieInfos.title+" ("+serieInfos.release_date.substr(0,4)+")");
         template.find(".media_rating").html(serieInfos.rating);
         template.find(".poster_link").attr("href","#serie_"+serieInfos.id);
         template.find(".poster_link").css("href","#serie_"+serieInfos.id);
         if(serieInfos.has_mpd){
-            template.find(".video_broken").addClass("invisible");
+            template.find(".video_broken").addClass("d-none");
         }
-        return template.html();
+        return template;
     }
 
     renderSeries_elements(seriesInfos){ //TODO using only CSS?
-        let width = $("#all_series").innerWidth();
-        let imageWidth = 300;
-        if(width > 576){
-            imageWidth = 300;
-        }else{
-            imageWidth = 150;
-        }
-        let imagesByLine = (width-4)/(imageWidth);
-        let lines = seriesInfos.length/imagesByLine;
-
-        let row = '';
-
         for(let i=0; i<seriesInfos.length; i++){ 
-            row += this.renderSeries_element(seriesInfos[i]);
+            $("#all_series").append(this.renderSeries_element(seriesInfos[i]));
         }
-
-        $("#all_series").append(row);
     }
 }
