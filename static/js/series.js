@@ -30,7 +30,7 @@ class SeriesContent{
         var template = $("#poster_tpl").clone();
         template.attr("id","")
         template.removeClass("hidden");
-        template.find("img").attr("src","/brick/"+serieInfos.brick_id+"/"+encodeURIComponent(serieInfos.path)+"/fanart/img500.jpg");
+        template.find("img").attr("src","/brick/"+serieInfos.brick_id+"/"+encodeURIComponent(serieInfos.path)+"/fanart/img200.jpg");
         template.find(".media_title").html(serieInfos.title+" ("+serieInfos.release_date.substr(0,4)+")");
         template.find(".media_rating").html(serieInfos.rating);
         template.find(".poster_link").attr("href","#serie_"+serieInfos.id);
