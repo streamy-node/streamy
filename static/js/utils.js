@@ -14,6 +14,7 @@ class BufferedSearch{
     };
 }
 
+// TODO autocomplete class nicer
 class Autocomplete{
 
     constructor(input, array, filter=true, onSelectItem=function(focus){console.log("Focus ",focus);}){
@@ -24,6 +25,7 @@ class Autocomplete{
         this.array = array;
         this.filter = filter;
         var self = this;
+        self.onSelectItem = onSelectItem;
 
         /*execute a function when someone writes in the text field:*/
         input.addEventListener("input", function(e) {
@@ -52,14 +54,6 @@ class Autocomplete{
                     /*and simulate a click on the "active" item:*/
                     if (x) x[self.currentFocus].click();
                 }
-            }
-        });
-
-        /*execute a function when someone clicks in the document:*/
-        document.addEventListener("click", function (e) {
-            self._closeAllLists(e.target);
-            if(self.currentFocus != null){
-                onSelectItem(self.currentFocus);
             }
         });
     }
@@ -105,6 +99,7 @@ class Autocomplete{
                     /*close the list of autocompleted values,
                     (or any other open lists of autocompleted values:*/
                     self._closeAllLists();
+                    self.onSelectItem(self.currentFocus);
                 });
                 a.appendChild(b);
             }

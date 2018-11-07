@@ -1,6 +1,7 @@
 class AddVideoConstroller{
     constructor(templates){
         this.templates = templates;
+        this.searchField = null;
     }
 
     initialize(){
@@ -20,6 +21,7 @@ class AddVideoConstroller{
     }
 
     setup(type){
+        var self = this;
         // Setup search mechanism
         var searchResults = null;
         var videoInfos = null;
@@ -42,7 +44,7 @@ class AddVideoConstroller{
             }
         };
 
-        var serieSearch = new Autocomplete(document.getElementById("titleName"),[],true,onTitleSelection);
+        this.searchField = new Autocomplete(document.getElementById("titleName"),[],true,onTitleSelection);
         var bufferedSearch = new BufferedSearch(function(inputData){
             if(inputData.length > 1){
                 // Initialize
@@ -69,7 +71,7 @@ class AddVideoConstroller{
                             
                         }
                         console.log("Found ",titles,document.getElementById("titleName"))
-                        serieSearch.updateArray(titles);
+                        self.searchField.updateArray(titles);
                     },
                     function(data){
                         console.log("Failed seraching ",data);
