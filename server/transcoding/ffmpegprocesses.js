@@ -591,7 +591,7 @@ class FfmpegProcessManager extends EventEmitter{
         if(process.ws == null){ //This means that the task is no longer on the worker (this can be due to worker disabled)
           return;
         }
-        
+
         process._onFinal(new FinalMsg(2,"Socket closed",null));
         if(!(removeFromList(process,worker.processes)
           || removeFromList(process,worker.waitingProcesses)
@@ -850,7 +850,7 @@ class FfmpegProcessManager extends EventEmitter{
       if(worker){
         return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
       }else{
-        console.error("ffprobe cannot be use, no workers online ",file,err);
+        console.error("ffprobe cannot be use, no workers online ");
         return null;
       }
     }catch(err){
