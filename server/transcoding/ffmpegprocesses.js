@@ -79,9 +79,9 @@ class Process extends EventEmitter{
   }
 
   clearWorkerInfos(){
-    process.ws = null
-    process.worker = null;
-    process.progression = 0;
+    this.ws = null
+    this.worker = null;
+    this.progression = 0;
   }
 }
 
@@ -238,6 +238,7 @@ class FfmpegProcessManager extends EventEmitter{
       worker.processes[i].clearWorkerInfos();
     }
     processesToRelaunch = processesToRelaunch.concat(worker.processes);
+    worker.processes = [];
 
     //Transfert waiting processes
     for(let i=0; i<worker.waitingProcesses.length; i++){
@@ -245,6 +246,7 @@ class FfmpegProcessManager extends EventEmitter{
       worker.waitingProcesses[i].clearWorkerInfos();
     }
     processesToRelaunch = processesToRelaunch.concat(worker.waitingProcesses);
+    worker.waitingProcesses = [];
 
     //Transfert stopped processes
     for(let i=0; i<worker.stoppedProcesses.length; i++){
@@ -252,6 +254,7 @@ class FfmpegProcessManager extends EventEmitter{
       worker.stoppedProcesses[i].clearWorkerInfos();
     }
     this.stoppedProcesses = this.stoppedProcesses.concat(worker.stoppedProcesses);
+    worker.stoppedProcesses = []
 
     //Close all sockets
     for(let i=0; i<socketsToClose.length; i++){
@@ -585,6 +588,10 @@ class FfmpegProcessManager extends EventEmitter{
       });
       ws.on('close', function close() {
         //console.log('disconnected');
+        if(process.ws == null){ //This means that the task is no longer on the worker (this can be due to worker disabled)
+          return;
+        }
+        
         process._onFinal(new FinalMsg(2,"Socket closed",null));
         if(!(removeFromList(process,worker.processes)
           || removeFromList(process,worker.waitingProcesses)
