@@ -1,3 +1,6 @@
+//Handle all resumable tasks
+var resumables = new Map();
+
 class VideoBlock{
     constructor(type,id){
         this.droppedFiles = null;
@@ -135,19 +138,28 @@ class VideoBlock{
         });
 
         let target = "/"+$form.attr('action')+"/"+this.id.toString()//$form.attr('video_id')
-        var r = new Resumable({
-            target: target,
-            chunkSize: 10*1024*1024,
-            simultaneousUploads:4,
-            testChunks:false,
-            throttleProgressCallbacks:1,
-            generateUniqueIdentifier:function(filename){
-                return self.generateId(filename)
-            }
-        });
+        
+        //Reuse resumable if any already on the same target
+        let r = null;
+        if(resumables.has(target)){
+            r = resumables.get(target);
+        }else{
+            r = new Resumable({
+                target: target,
+                chunkSize: 10*1024*1024,
+                simultaneousUploads:4,
+                testChunks:false,
+                throttleProgressCallbacks:1,
+                generateUniqueIdentifier:function(filename){
+                    return self.generateId(filename)
+                }
+            });
 
-        // Resumable.js isn't supported, fall back on a different method
-        if(!r.support) location.href = '/some-default-uploader';
+            // Resumable.js isn't supported, fall back on a different method
+            if(!r.support) location.href = '/some-default-uploader';
+
+            resumables.set(target,r)
+        }
 
         let browse = element.find('.browse'); // TODO change with name
         r.assignBrowse(browse);
@@ -169,9 +181,13 @@ class VideoBlock{
             self.hideDownloadProgression();
         });
         r.on('fileProgress', function(file){
-            console.log("fileProgress ",file)
+            //console.log("fileProgress ",file)
             self.showDownloadProgression(Math.floor(file.progress()*1000)/10)
         });
+
+        if(r.isUploading()){
+            self.showCancelUpload(true);
+        }
 
         //Link cancel upload button
         element.find(".cancel_upload").click(function(){
