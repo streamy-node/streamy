@@ -184,7 +184,7 @@ class FSUtils{
     }
 
     async writeJSON(file, data){
-        return await write(file,JSON.stringify(data));
+        return await this.write(file,JSON.stringify(data));
     }
 
     async write(file, data){
@@ -351,7 +351,7 @@ class FSUtils{
                 return false;
             }
 
-            await this.writeJson(file,newObj);
+            await this.writeJSON(file,newObj);
             return true;
         }catch(err){
             console.log("FS error appendJson failed ",err);
