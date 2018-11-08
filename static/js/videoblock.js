@@ -64,7 +64,7 @@ class VideoBlock extends TranscodingStatus{
             r = new Resumable({
                 target: target,
                 chunkSize: 10*1024*1024,
-                simultaneousUploads:4,
+                simultaneousUploads:1,
                 testChunks:false,
                 throttleProgressCallbacks:1,
                 generateUniqueIdentifier:function(filename){

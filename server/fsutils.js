@@ -316,6 +316,19 @@ class FSUtils{
         });
     }
 
+    async concat2(srcFile, destFile){
+        return new Promise(async (resolve, reject) => {
+            var wstream = fs.createWriteStream(destFile, {flags: "a"});
+            var rstream = fs.createReadStream(srcFile);
+            rstream.pipe(wstream)
+
+            rstream.on('end', function () {
+                resolve(true);
+            });
+        })
+    }
+
+    //Deprecated, use too much ram. TODO use file stream (see above)
     async concat(files, destination){
         return new Promise(async (resolve, reject) => {
             var wstream = fs.createWriteStream(destination, {flags: "a"});

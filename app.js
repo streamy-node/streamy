@@ -35,8 +35,8 @@ const TranscodeMgr = require('./server/transcoding/transcodermanager');
 //Upload
 const Resumable = require('./server/resumable-node.js')
 var resumable = new Resumable()
-var multipart = require('connect-multiparty');
 var crypto = require('crypto');
+const busboy = require('connect-busboy');
 
 //Importer
 var Importer = require('./server/importer.js')
@@ -598,17 +598,13 @@ async function startApp(){
     }
   });
 
-  var multipartMiddleware = multipart({uploadDir:tmpUploadPath});
-  var uploadErrorHandler = function(err, req, res, next) {
-    resumable.cancelRequest(req);
-    res.status(424).send('Request cancelled');
-  }
-  app.post('/upload/media/:media_id', loggedIn, multipartMiddleware, uploadErrorHandler, async function(req,res){
+  var busMiddleware = busboy({ highWaterMark: 2 * 1024 * 1024})
+  app.post('/upload/media/:media_id', loggedIn, busMiddleware, async function(req,res){
     var id = req.params.media_id;
+    
     if(req.user && req.user.permissions.has("upload_content")){ //TODO check rights
-      let result = await resumable.post(req, true);
-      //console.log('POST', result.status, result.original_filename, result.identifier);
-      //If the file has been received completly
+
+      let result = await resumable.postSequential(req);
       if(result.status == 201){
         var filename = path.basename(result.filename);
         transcodeMgr.addMedia(filename,result.original_filename,parseInt(id));
@@ -784,6 +780,7 @@ async function startApp(){
   // importer.refreshBrickData(0)
   // let dostuff = async function (){
   //   //mediaMgr.refreshBrickMedias(2);
+  //   //importer.refreshBrickMetadata(2);
   //   importer.importBrick('/data/streamy',"brick1");
   //   //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
   // }
