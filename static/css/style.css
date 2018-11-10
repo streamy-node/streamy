@@ -23,8 +23,18 @@ st_menu{
     max-height: 40px;
 }
 .st_menu_search_item{
-    max-height: 42px;
-    
+    max-height: 42px; 
+}
+
+.grid {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-between;
+}
+
+.grid::after {
+    content: "";
+    flex: auto;
 }
 
 /** video block **/
