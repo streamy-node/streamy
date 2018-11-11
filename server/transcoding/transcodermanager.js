@@ -506,8 +506,11 @@ class TranscoderManager extends EventEmitter{
         lightStream.codec_type = stream.codec_type
         lightStream.width = stream.width
         lightStream.channels = stream.channels
-        lightStream.tags = stream.tags
-        lightStream.tags = stream.tags
+        lightStream.tags = {}
+        if(stream.tags){
+            lightStream.tags.title = stream.tags.title
+            lightStream.tags.language = stream.tags.language
+        }
         return lightStream;
     }
 
