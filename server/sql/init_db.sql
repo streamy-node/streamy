@@ -387,7 +387,7 @@ INSERT INTO `value_types` VALUES(3, 'float');
 
 INSERT INTO `global_settings` VALUES(1, 'new_video_brick', 2,NULL,NULL,NULL);
 INSERT INTO `global_settings` VALUES(2, 'upload_brick', 2,NULL,NULL,NULL);
-INSERT INTO `global_settings` VALUES(3, 'segment_duration', 2,NULL,2,NULL);
+INSERT INTO `global_settings` VALUES(3, 'segment_duration', 2,NULL,4,NULL);
 INSERT INTO `global_settings` VALUES(5, 'encoder_h264_profile', 1,"main",NULL,NULL);
 INSERT INTO `global_settings` VALUES(6, 'encoder_h264_preset', 1,"slow",NULL,NULL);
 
