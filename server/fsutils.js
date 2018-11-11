@@ -412,7 +412,21 @@ class FSUtils{
         }
     }
 
+    cleanFileName(path){
+        var regex = /[\*.\/\[\]":;|=,#<>?!^$~&{}@°]/g;
+        var regex2 = /  +/g;
+        let cleanName = path.replace(regex, ' ')
+        cleanName = cleanName.replace(regex2, ' ')
+        return cleanName;
+    }
 
+    // cleanPath(path){
+    //     var regex = /[\*.\/\[\]":;|=,#<>?!^$~&{}@°]/g;
+    //     var regex2 = /  +/g;
+    //     let cleanName = path.replace(regex, ' ')
+    //     cleanName = cleanName.replace(regex2, ' ')
+    //     return cleanName;
+    // }
 
 }
 

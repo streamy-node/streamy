@@ -88,7 +88,7 @@ class MoviesMgr{
     }
 
     generateMoviePath(name,release_date){
-        return "movies/" + name + " ("+release_date.getFullYear()+")"
+        return "movies/" + fsutils.cleanFileName(name) + " ("+release_date.getFullYear()+")"
     }
 
     async downloadFanarts(mediaId,fanarts){

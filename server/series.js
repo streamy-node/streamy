@@ -152,7 +152,7 @@ class SeriesMgr{
     }
 
     generateSeriePath(serie_name,serie_release_date){
-        return "series/" + serie_name + " ("+serie_release_date.getFullYear()+")"
+        return "series/" + fsutils.cleanFileName(serie_name) + " ("+serie_release_date.getFullYear()+")"
     }
 
     generateSeasonPath(serie_name,serie_release_date,season_number){
