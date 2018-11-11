@@ -1,5 +1,6 @@
 class AddMediaItem{
     constructor(type){
+        var self = this;
         this.element = null;
         this.type = type;
         this.mediaId = null;
@@ -85,6 +86,7 @@ class AddMediaItem{
         }
         
         this.element.find(".add_file_btn").removeClass("d-none");
+        self.setLink(null)
 
         this.element.find(".add_file_btn").off().click(function(){
             console.log("Adding media metadata");
