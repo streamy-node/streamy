@@ -186,10 +186,15 @@ class TranscoderManager extends EventEmitter{
         let isPartiallyDone = false;
         for(let i=0; i<subTasks.length; i++){
             let subtask = subTasks[i];
-            subtask.command = JSON.parse(subtask.command);
-
-            if(subtask.done === 1){
-                isPartiallyDone = true;
+            try{
+                subtask.command = JSON.parse(subtask.command);
+                if(subtask.done === 1){
+                    isPartiallyDone = true;
+                }
+            }catch(err){
+                console.error("Invalid subtask command, ignoring subtask from task: ",task_id)
+                isPartiallyDone = false;
+                break;
             }
         }
 
@@ -229,7 +234,7 @@ class TranscoderManager extends EventEmitter{
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
 
         if(infos === null){
-            self.createProgression(media,type,filename,original_name,1,"no worker available, cannot run ffprobe");
+            self.createProgression(media,type,filename,original_name,1,0,"no worker available, cannot run ffprobe");
             console.log("Cannot run ffprobe on file (maybe there are no workers ?)");
             return null;//return later?
         }
@@ -283,7 +288,7 @@ class TranscoderManager extends EventEmitter{
                     dashPartFiles.push(absoluteWorkingFolder+"/"+dashName);
 
                     let cmd = await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_);
-                    let subtaskId = await this.dbMgr.insertAddFileSubTask(task_id,JSON.stringify(cmd),false,absoluteWorkingFolder+"/"+dashName);
+                    let subtaskId = await this.dbMgr.insertAddFileSubTask(task_id,JSON.stringify(this.simplifyCmd(cmd)),false,absoluteWorkingFolder+"/"+dashName);
                     ffmpegCmds.push(cmd);
                     subTasksIds.push(subtaskId);   
                     idx++;
@@ -325,6 +330,7 @@ class TranscoderManager extends EventEmitter{
                             if(hasError){
                                 await self.dbMgr.setAddFileTaskHasErrorByFile(filename,true,firstErrorMsg);
                                 self.updateProgression(media,type,filename,1,firstErrorMsg);
+                                delete self.filesProcesses[filename] //Remove from active processes
                                 console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
                                 return;
                             }
@@ -458,6 +464,7 @@ class TranscoderManager extends EventEmitter{
                     if(remainingCommands == 0){
                         self.dbMgr.setAddFileTaskHasErrorByFile(filename,true,firstErrorMsg);
                         self.updateProgression(media,type,filename,1,firstErrorMsg);
+                        delete self.filesProcesses[filename] //Remove from active processes
                         console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
                         return;
                     }
@@ -492,6 +499,28 @@ class TranscoderManager extends EventEmitter{
             console.error("Cannot split uploadded file: ",file.path);
         }
 
+    }
+
+    simplifyStream(stream){
+        let lightStream = {}
+        lightStream.codec_type = stream.codec_type
+        lightStream.width = stream.width
+        lightStream.channels = stream.channels
+        lightStream.tags = stream.tags
+        lightStream.tags = stream.tags
+        return lightStream;
+    }
+
+    simplifyCmd(cmd){
+        let lightCmd = {};
+        lightCmd.args = cmd.args;
+        lightCmd.targetName = cmd.targetName;
+        lightCmd.streams = []; 
+
+        for(let stream of cmd.streams){
+            lightCmd.streams.push(this.simplifyStream(stream))
+        }
+        return lightCmd;
     }
 
     extractUploadedSubtitleinfos(filename){

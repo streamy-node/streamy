@@ -601,6 +601,27 @@ class FfmpegProcessManager extends EventEmitter{
         }
         self.fillupWorker(worker);
       });
+      ws.on('error', function (error) {
+        console.warn('worker socket error');
+        process._onFinal(new FinalMsg(2,"Socket error",error));
+        //worker.enabled = false;
+        worker.error = error;
+        self.setWorkerStatus(worker,"offline")
+        self.enableWorker(worker,false);
+
+        //console.log('disconnected');
+        if(process.ws == null){ //This means that the task is no longer on the worker (this can be due to worker disabled)
+          return;
+        }
+
+        process._onFinal(new FinalMsg(2,"Socket error",null));
+        if(!(removeFromList(process,worker.processes)
+          || removeFromList(process,worker.waitingProcesses)
+          || removeFromList(process,worker.stoppedProcesses))
+        ){
+          console.warn("Cannot remove unlisted worker process")
+        }
+      });
     }else{
       console.warn("process already launched",process);
     }

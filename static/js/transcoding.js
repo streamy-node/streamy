@@ -25,7 +25,7 @@ class TranscodingController{
         var self = this;
         //Websocket
         var ws_worker = this.sws.subscribe('/notifications/transcoding')
-        ws_worker.on('connect',function(atempts){
+        ws_worker.on('reconnect',function(atempts){
             $.getJSON( "transcoding_tasks", function( tasks ) {
                 self.renderTranscodingTasks(Object.values(tasks.offline));
             });
@@ -101,6 +101,11 @@ class TranscodingController{
     updateTask(task){
         let taskElement = this.tasksStatus[task.filename]
         taskElement.find(".media_name").text(task.original_name);
+
+        if(task.msg && task.msg.length > 0 ){
+            taskElement.find(".task_message").text(task.msg)
+            taskElement.find(".task_message").removeClass('hidden')
+        }
         this.setTaskState(task.filename,task.state_code,task.has_error);
                
         let tasksDone = 0;
@@ -137,7 +142,7 @@ class TranscodingController{
                 taskElem.find(".stopped_status").addClass("hidden");
                 taskElem.find(".remove_process_btn").addClass("hidden");
                 taskElem.find(".stop_process_btn").addClass("hidden");
-                taskElem.find(".start_process_btn").addClass("hidden");
+                taskElem.find(".start_task_btn").addClass("hidden");
                 break;
             case 1: // error
                 taskElem.find(".done_status").addClass("hidden");
@@ -147,7 +152,7 @@ class TranscodingController{
                 taskElem.find(".stopped_status").addClass("hidden");
                 taskElem.find(".remove_process_btn").removeClass("hidden");
                 taskElem.find(".stop_process_btn").addClass("hidden");
-                taskElem.find(".start_process_btn").removeClass("hidden");
+                taskElem.find(".start_task_btn").removeClass("hidden");
                 break;
             case 2: //transcoding
                 taskElem.find(".done_status").addClass("hidden");

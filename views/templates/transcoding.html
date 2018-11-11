@@ -19,10 +19,18 @@
             <div class="waiting_status status alert-warning ml-2 mt-1">Waiting</div>
             <div class="stopped_status status alert-dark ml-2 mt-1">Stopped</div>
         </div>
-        <div class="d-flex flex-wrap mr-auto">
-            <div class="media_name ml-2">SomeName</div>
-            <div class="task_progression ml-2">5%</div>
+        <div class="d-flex flex-column no_min_width mr-auto">
+            <div class="d-flex flex-wrap ml-2">
+                <div class="media_name ">SomeName</div>
+                <div class="task_progression ml-2">5%</div>
+            </div>
+            
+                <div class="task_message text-truncate ml-2 hidden">
+                    Message
+                </div>
+
         </div>
+
         <div class="d-flex flex-wrap">
             <button type="button" class="remove_process_btn btn btn-danger ml-1 mr-1 mt-1">{{#__}}Remove{{/__}}</button>
             <button type="button" class="stop_process_btn btn btn-warning ml-1 mr-1 mt-1">{{#__}}Stop{{/__}}</button>

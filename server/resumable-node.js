@@ -99,7 +99,7 @@ class Resumable{
 
             //Get fieldnames from resumable client
             req.busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
-                console.log('Field [' + fieldname + ']: value: ' + val);
+                //console.log('Field [' + fieldname + ']: value: ' + val);
                 req.body[fieldname] = val;
             });
         

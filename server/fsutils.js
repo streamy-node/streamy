@@ -197,7 +197,7 @@ class FSUtils{
                     resolve(true);
                 }
             
-                console.log("The file was saved!");
+                console.log("The file "+file+" was saved!");
             });
         });
     }
