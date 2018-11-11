@@ -760,18 +760,18 @@ INSERT INTO `categories` (`id`,`category`) VALUES( 4, 'movies');
 
 -- resolutions
 INSERT INTO `resolutions` VALUES(1, 'LOW', 1,1);
-INSERT INTO `resolutions` VALUES(2, 'SD', 720,576);
+INSERT INTO `resolutions` VALUES(2, '480p', 854,480);
 INSERT INTO `resolutions` VALUES(3, 'HD', 1280,720);
 INSERT INTO `resolutions` VALUES(4, 'FHD', 1920,1080);
 INSERT INTO `resolutions` VALUES(5, 'UHD', 3840,2160);
 INSERT INTO `resolutions` VALUES(6, '4K', 4096,2160);
 
 INSERT INTO `resolutions_bitrates` VALUES(1, 1,800);
-INSERT INTO `resolutions_bitrates` VALUES(2, 2,1200);
-INSERT INTO `resolutions_bitrates` VALUES(3, 3,2400);
-INSERT INTO `resolutions_bitrates` VALUES(4, 4,4800);
-INSERT INTO `resolutions_bitrates` VALUES(5, 5,16000);
-INSERT INTO `resolutions_bitrates` VALUES(6, 6,16000);
+INSERT INTO `resolutions_bitrates` VALUES(2, 2,1000);
+INSERT INTO `resolutions_bitrates` VALUES(3, 3,2000);
+INSERT INTO `resolutions_bitrates` VALUES(4, 4,4000);
+INSERT INTO `resolutions_bitrates` VALUES(5, 5,12000);
+INSERT INTO `resolutions_bitrates` VALUES(6, 6,13000);
 
 INSERT INTO `audio_bitrates` VALUES(1, 'Mono', 1, 128);
 INSERT INTO `audio_bitrates` VALUES(2, 'Stereo', 2, 384);
@@ -782,9 +782,10 @@ INSERT INTO `audio_bitrates` VALUES(4, '5.1', 6, 512);
 -- transcoding resolutions
 INSERT INTO `movies_transcoding_resolutions` VALUES(1, 4);
 INSERT INTO `movies_transcoding_resolutions` VALUES(2, 3);
+INSERT INTO `movies_transcoding_resolutions` VALUES(3, 2);
 
-INSERT INTO `episodes_transcoding_resolutions` VALUES(1, 4);
-INSERT INTO `episodes_transcoding_resolutions` VALUES(2, 3);
+INSERT INTO `episodes_transcoding_resolutions` VALUES(1, 3);
+INSERT INTO `episodes_transcoding_resolutions` VALUES(2, 2);
 
 -- dev
 INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 1, 'brick_upload','/data/upload');
