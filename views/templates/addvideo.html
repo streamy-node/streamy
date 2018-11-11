@@ -1,30 +1,91 @@
 <!-- Create movies content page skeleton -->
 <div id="tpl_add_video" >
-        <div class="autocomplete" style="width:300px;">
-            <input type="text" placeholder="{{#__}}TitleNamePH{{/__}}" class="form-control" id="titleName">
+        <div class="main_search">
+                <!--main add_file_tpl here-->
         </div>
-        <button id="addtitle" type="button hidden" class="btn btn-primary">{{#__}}AddTitle{{/__}}</button>
+        <!--button id="addtitle" type="button hidden" class="btn btn-primary">{{#__}}AddTitle{{/__}}</button-->
+        <div>{{#__}}or{{/__}}</div>
+        <div class="upload-drop-zone" id="drop-zone">
+            Just drag and drop files here
+        </div>
         <!--a class="btn btn-primary " href="#series">{{#__}}AddSerie{{/__}}</a-->
-    </h1>
 
-    <table class="table">
-        <tr>
-                <th scope="col">{{#__}}ReleaseDate{{/__}}</th>
-                <th scope="col">{{#__}}Rating{{/__}}</th>
-                <th scope="col">{{#__}}RatingCount{{/__}}</th> 
-        </tr>
-        
-        <tbody>
+    <div class="d-none">
+        <table class="table">
             <tr>
-                <td scope="row" id="releasedate" ></td>
-                <td id="rating"></td>
-                <td id="ratingcount"></td>
+                    <th scope="col">{{#__}}ReleaseDate{{/__}}</th>
+                    <th scope="col">{{#__}}Rating{{/__}}</th>
+                    <th scope="col">{{#__}}RatingCount{{/__}}</th> 
             </tr>
-        </tbody>
-    </table>
+            
+            <tbody>
+                <tr>
+                    <td scope="row" id="releasedate" ></td>
+                    <td id="rating"></td>
+                    <td id="ratingcount"></td>
+                </tr>
+            </tbody>
+        </table>
 
-    <div >{{#__}}Overview{{/__}}</div>
-    <div id="overview"></div>
+        <div >{{#__}}Overview{{/__}}</div>
+        <div id="overview"></div>
 
-    <img id="poster" class="img-responsive poster" src=""/>
+        <img id="poster" class="img-responsive poster" src=""/>
+    </div>
+
+    <div class="d-flex flex-column">
+        <h2>Files list</h2>
+        <ul class="list-group" id="tasks_list">
+            <!--instanciate add_file templates here-->
+        </ul>
+    </div>
 </div>
+
+<div class="add_file_tpl d-none">
+    <div class="list-group-item d-flex d-inline">
+        <div class="d-flex flex-column no_min_width mr-auto">
+            <div class="add_file_name text-truncate"></div>
+            <div class="d-flex">
+                <div class="autocomplete" style="width:300px;">
+                    <input type="text" placeholder="{{#__}}TitleNamePH{{/__}}" class="parsed_name form-control mr-1">
+                </div>
+            </div>
+            
+            <div class="result_infos d-none">
+                <div class="d-flex flex-wrap">
+                    <div>Match:</div>
+                    <div class="matching_name font-weight-bold ml">MatchingName</div>
+                    <div class="d-flex d-inline">
+                        <div class="matching_date font-weight-bold ml">1970</div>
+                        <div class="matching_rate font-weight-bold ml-1 ">10/10</div>
+                    </div>
+                </div>
+                <div class="serie_elem d-none">
+                    <div class="d-flex d-inline">
+                        <div class="align-middle">S</div>
+                        <input type="number" step=1 placeholder="xx" class="matching_season digit2 form-control mr-1">
+                        <div class="align-middle">E</div>
+                        <input type="number" step=1 placeholder="xx" class="matching_episode digit2 form-control mr-1">
+                    </div>
+                </div>
+                <div>
+                    <a class="overview-expand d-none d-sm-inline" data-toggle="collapse" href="#collapseOverview" role="button" aria-expanded="false" aria-controls="collapseOverview">...</a>
+                    <div class="media_overview collapse multi-collapse" id="collapseOverview">  
+                    </div>   
+                </div>
+            </div>
+        </div>
+        <div class="d-flex flex-column justify-content align-items-center">
+            <div class="hint_container d-none">
+                <img class="hintPoster img-responsive w-100" src="/brick/1/movies%2FTomb%20Raider%20(2018)/fanart/img200.jpg"/>
+                <div class="download_progress float-right d-none">0%</div>
+            </div>
+            <div class="d-inline-flex">
+                <button type="button" class="remove_file_btn btn btn-danger material-icons ml-1 mr-1 mt-1 d-none">delete_forever</button>
+                <button type="button" class="add_file_btn btn btn-success material-icons ml-1 mr-1 mt-1 d-none">add</button>
+                <button type="button" class="link_media_btn btn btn-success material-icons ml-1 mr-1 mt-1 d-none">forward</button>
+            </div>
+        </div>
+    </div>
+</div>
+

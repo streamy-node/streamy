@@ -37,6 +37,23 @@ st_menu{
     flex: auto;
 }
 
+.no_min_width{
+    min-width:0;
+}
+
+.digit2{
+    max-width: 30px;
+    -webkit-appearance: none;
+    margin: 0;
+    padding: .1rem .1rem;
+}
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
 /** video block **/
 .video_progress{
     color: #39d35a;
@@ -68,6 +85,13 @@ st_menu{
     max-height:600px;
 }
 
+.hint_container{
+    min-width: 60px;
+    max-width: 80px;
+}
+.hintPoster {
+    /* background: #131313 */
+}
 
 .smallPoster {
     width: 100%;
@@ -125,9 +149,34 @@ st_menu{
 .full-width {
     width: 100%;
 }
+
+/* ---------------------------------------------------
+    Drop zone
+----------------------------------------------------- */
+
+.upload-drop-zone {
+    height: 200px;
+    border-width: 2px;
+    margin-bottom: 20px;
+  }
+  
+/* skin.css Style*/
+.upload-drop-zone {
+    color: #ccc;
+    border-style: dashed;
+    border-color: #ccc;
+    line-height: 200px;
+    text-align: center
+}
+.upload-drop-zone.drop {
+    color: #222;
+    border-color: #222;
+}
+
 /* ---------------------------------------------------
     BOX UPLOAD
 ----------------------------------------------------- */
+
 .whitten {
     box-shadow: inset 2000px 0 0 0 rgba(255, 255, 255, 0.5);
     border-color: rgba(255, 255, 255, 1);
@@ -287,6 +336,9 @@ st_menu{
     color: inherit;
     text-decoration:none;
 }
+
+/* Colors */
+
 
 /* MPD CONTENT */
 .rep_type{

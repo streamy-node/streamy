@@ -495,6 +495,18 @@ async function startApp(){
     //res.send(MovieDB_KEY);
   });
 
+  app.get('/episode/id', loggedIn, async function (req, res) {
+    if(req.user){ //TODO check rights
+      let serieId = parseInt(req.query.serie_id);
+      let seasonNb = parseInt(req.query.season_nb);
+      let episodeNb = parseInt(req.query.episode_nb);
+
+      var episodeId = await dbMgr.getEpisodeId(serieId,seasonNb,episodeNb);
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify({episode_id:episodeId}));
+    }
+  });
+
   // Add serie
   app.post('/series', loggedIn, async function (req, res) {
     if(req.user && req.user.permissions.has("add_media")){ //TODO check rights
@@ -505,6 +517,13 @@ async function startApp(){
 
         // prepare response
         res.setHeader('Content-Type', 'application/json');
+
+        //Check if serie already exists
+        let mediaId = await serieMgr.findSerieFromMoviedbId(req.body.moviedbId);
+        if(mediaId){
+          res.status(200).send(JSON.stringify({id:mediaId}));
+          return;
+        }
 
         //The serie don't exist, create it
         console.log("Adding a new serie");
@@ -553,11 +572,18 @@ async function startApp(){
         // prepare response
         res.setHeader('Content-Type', 'application/json');
 
+        //Check if movie already exists
+        let mediaId = await movieMgr.findMovieFromMoviedbId(req.body.moviedbId);
+        if(mediaId){
+          res.status(200).send(JSON.stringify({id:mediaId}));
+          return;
+        }
+
         //The serie don't exist, create it
         console.log("Adding a new movie");
-        let movieId = await movieMgr.addMovieFromMovieDB(req.body.moviedbId);
-        if(movieId !== null){
-          res.status(200).send(JSON.stringify({id:movieId}));
+        let dbId = await movieMgr.addMovieFromMovieDB(req.body.moviedbId);
+        if(dbId !== null){
+          res.status(201).send(JSON.stringify({id:dbId}));
         }else{
           console.error("Failed to add movie from ",req.body);
           res.status(500).send('Cannot create movie');
@@ -600,16 +626,23 @@ async function startApp(){
 
   var busMiddleware = busboy({ highWaterMark: 2 * 1024 * 1024})
   app.post('/upload/media/:media_id', loggedIn, busMiddleware, async function(req,res){
-    var id = req.params.media_id;
+    var id = parseInt(req.params.media_id);
     
-    if(req.user && req.user.permissions.has("upload_content")){ //TODO check rights
 
+    if(req.user && req.user.permissions.has("upload_content")){ //TODO check rights
+      if(!id ){
+        res.sendStatus(400);
+        return;
+      }
+  
       let result = await resumable.postSequential(req);
       if(result.status == 201){
         var filename = path.basename(result.filename);
         transcodeMgr.addMedia(filename,result.original_filename,parseInt(id));
       }
       res.sendStatus(result.status);
+    }else{
+      res.sendStatus(403);
     }
   })
 

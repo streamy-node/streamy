@@ -211,7 +211,5 @@ class TranscodingController{
 
     appendToContainer(containerId,elem){
         $(containerId).first().append(elem);
-        // let $container = $(containerId)
-        // $container.append(elem);
     }    
 }

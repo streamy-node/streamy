@@ -1,7 +1,11 @@
+
 class AddVideoConstroller{
     constructor(templates){
         this.templates = templates;
         this.searchField = null;
+        this.resumable = null;
+        this.searches = []
+        this.filesElements = new Map()
     }
 
     initialize(){
@@ -15,91 +19,107 @@ class AddVideoConstroller{
             this.isInitialized = true;
         }
 
-        var self = this;
         $(div).html(this.templates.addvideo);
         this.setup(type)
     }
 
     setup(type){
+        this.type = type;
+
+        //Setup simple name search
+        let mainSearchElem = new AddMediaItem(type);
+        this.appendToContainer(".main_search",mainSearchElem.render($(".add_file_tpl"),{},true));
+        this.setupDropeZone();
+
+        //restore uploading files
+        for (var entry of this.filesElements.entries()) {
+            //var key = entry[0],
+            let value = entry[1];
+            if(value.type == type){
+                this.appendToContainer("#tasks_list",value.element);
+            }
+        }
+    }
+
+    //////////// ADDING BY FILES ///////////////
+
+    addFile(file){
+        let regex = null;
+        let self = this;
+        let year = null;
+
+        //if filename already added do nothing
+        if(this.filesElements.has(file.name)){
+            return;
+        }
+
+        let addFileElement = null;
+        if(this.type == "movie"){
+            regex = new RegExp('^(.+?[_.]*)[_. -](\\d{4})');
+            var corresp = regex.exec(file.name);
+            if(corresp && corresp.length >= 3){
+                file.parsedName = this.cleanName(corresp[1])
+                year = corresp[2];
+            }
+            addFileElement = new AddMediaFileItem("movie")
+        }else if(this.type == "serie"){
+            regex = new RegExp('^(.+?[_.]*)S(\\d{2})E(\\d{2,3})')
+            var corresp = regex.exec(file.name);
+            if(corresp && corresp.length >= 3){
+                file.parsedName = this.cleanName(corresp[1])
+                file.season = parseInt(corresp[2])
+                file.episode = parseInt(corresp[3])
+            }
+            addFileElement = new AddEpisodeFileItem()
+        }
+
+        let itemElem = addFileElement.render($(".add_file_tpl"),file,false)
+        this.appendToContainer("#tasks_list",itemElem);
+        if(file){
+            this.filesElements.set(file.name,addFileElement)
+            addFileElement.onRemoved = function(){
+                self.filesElements.delete(file.name);
+            }
+        }
+    }
+
+    cleanName(name){
+        let reg1 = /[._]/g;
+        let reg2 = /[\\[\\]\\(\\)]/g;
+        let newName = name.replace(reg1, ' ');
+        newName = newName.replace(reg2, '');
+        return newName
+    }
+
+    setupDropeZone(){
         var self = this;
-        // Setup search mechanism
-        var searchResults = null;
-        var videoInfos = null;
+        let dropZone = document.getElementById('drop-zone');
 
-        //On title selection update displayed infos
-        var onTitleSelection = function(selectedIndex){
-            if(searchResults){
-                // Update fields
-                videoInfos = searchResults["results"][selectedIndex];
-            
-                if(type == "serie"){
-                    $("#releasedate").text(videoInfos.first_air_date);
-                }else{
-                    $("#releasedate").text(videoInfos.release_date);
-                }
-                $("#rating").text(videoInfos.vote_average);
-                $("#ratingcount").text(videoInfos.vote_count);
-                $("#overview").text(videoInfos.overview);
-                $("#poster").attr("src",theMovieDb.common.images_uri+"original"+videoInfos.poster_path);
+        var startUpload = function(files) {
+            console.log(files)
+            for(let file of files){
+                self.addFile(file)
             }
-        };
+        }
 
-        this.searchField = new Autocomplete(document.getElementById("titleName"),[],true,onTitleSelection);
-        var bufferedSearch = new BufferedSearch(function(inputData){
-            if(inputData.length > 1){
-                // Initialize
-                var getter =null;
-                if(type == "serie"){
-                    getter = theMovieDb.search.getTv;
-                }else if(type == "movie"){
-                    getter = theMovieDb.search.getMovie;
-                }else{
-                    console.error("Unknown addvideo type");
-                    return;
-                }
+        dropZone.ondrop = function(e) {
+            e.preventDefault();
+            this.className = 'upload-drop-zone';
+            startUpload(e.dataTransfer.files)
+        }
 
-                getter({"query":inputData}, 
-                    function(jsonData){
-                        searchResults = JSON.parse(jsonData);
-                        let titles = [];
-                        for(var i=0; i<8 && i<searchResults["results"].length;i++ ){
-                            if(type == "serie"){
-                                titles.push(searchResults["results"][i].name);   
-                            }else{
-                                titles.push(searchResults["results"][i].title);   
-                            }
-                            
-                        }
-                        console.log("Found ",titles,document.getElementById("titleName"))
-                        self.searchField.updateArray(titles);
-                    },
-                    function(data){
-                        console.log("Failed seraching ",data);
-                    }
-                );
-            }
-        });
+        dropZone.ondragover = function() {
+            this.className = 'upload-drop-zone drop';
+            return false;
+        }
 
-        $('#titleName').on('input', function() {
-            bufferedSearch.doSearch($(this).val());
-        });
-    
-        //Connect buttons
-        $("#addtitle").click(function(){
-            var data = {moviedbId:videoInfos.id};
-            if(type == "serie"){
-                postAsJson(data,"/series", function(response){
-                    window.location.hash = "#serie_"+response.id.toString();
-                },function(response){
-                    alert("Failed to add serie "+response);
-                })
-            }else if(type == "movie"){
-                postAsJson(data,"/movies", function(response){
-                    window.location.hash = "#movie_"+response.id.toString();
-                },function(response){
-                    alert("Failed to add movie "+response);
-                })
-            }
-        });
+        dropZone.ondragleave = function() {
+            this.className = 'upload-drop-zone';
+            return false;
+        }
+    }
+
+    appendToContainer(containerId,elem){
+        $(containerId).first().append(elem);
     }
 }

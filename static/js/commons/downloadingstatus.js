@@ -1,69 +1,37 @@
-class VideoBlock extends TranscodingStatus{
-    constructor(type,id){
-        super(id)
-        this.droppedFiles = null;
+class DownloadStatus{
+    constructor(type){
+        //this.droppedFiles = null;
         this.element = null;
         this.type = type;
-    }
-
-    launchVideoFromMpd(mdpFile){
-        window.open("js/light-player/index.html?mdp="+encodeURIComponent(mdpFile), "streamy player");
-    }
-
-    launchVideo(){
-        window.open("js/light-player/index.html?type="+this.type+"&id="+this.id.toString(), "Streamy player");
-    }
-
-    hideDownloadProgression(){
-        let $progress = this.element.find('.download_progress');
-        $progress.addClass('d-none');
-    }
-
-    showDownloadProgression(progression){
-        let $progress = this.element.find('.download_progress');
-        $progress.text(progression+"%");
-        $progress.removeClass('d-none');
-    }
-
-    onPlayClick(){
-        var self = this;
-        self.launchVideo();
+        this.resumable;
     }
 
     /**
      * @param {*} element element containing a box 
      */
-    setup(element){
+    setup(element,target,id){
         var self = this;
-        super.setup(element);
-
-        let $form = null;
-        if(element.hasClass('box')){
-            $form = element;
-        }else{
-            $form = element.find('.box');
-        }
+        this.element = element;    
         
-
-        let blocs = $form.find('.bloc-image');
-        //setup play
-        $form.find('.bloc-image').click(function(){
-            self.onPlayClick();
-        });
-
-        let target = "/"+$form.attr('action')+"/"+this.id.toString()//$form.attr('video_id')
-        
+        let blocs = element.find('.drop_area');
+  
         //Reuse resumable if any already on the same target
         let r = null;
         if(uploadMgr.has(target)){
             r = uploadMgr.get(target);
         }else{
-            r = uploadMgr.create(target,this.id);
+            r = uploadMgr.create(target,id);
         }
+        this.resumable = r;
 
         let browse = element.find('.browse'); // TODO change with name
-        r.assignBrowse(browse);
-        r.assignDrop(blocs);
+        if(browse){
+            r.assignBrowse(browse);
+        }
+
+        if(blocs){
+            r.assignDrop(blocs);
+        }
 
         r.on('fileAdded', function(file, event){
             console.log("On file added ",file,event)
@@ -100,6 +68,14 @@ class VideoBlock extends TranscodingStatus{
         element.find(".mediacontent").attr("href","#mediacontent_"+this.id);
     }
 
+    cancelUpload(){
+        if(this.resumable){
+            this.resumable.cancel();
+            this.showCancelUpload(false);
+            this.hideDownloadProgression();
+        }
+    }
+
     showCancelUpload(enabled){
         let $elem = this.element.find('.cancel_upload');
         if(!enabled){
@@ -109,8 +85,15 @@ class VideoBlock extends TranscodingStatus{
         }
     }
 
-    // generateId(file){
-    //     // generate id by asynchronously calling express endpoint
-    //     return $.get("/fileid?filename=" + encodeURI(file.name)+"&size="+file.size+"&id="+this.id);
-    // }
+    hideDownloadProgression(){
+        let $progress = this.element.find('.download_progress');
+        $progress.addClass('d-none');
+    }
+
+    showDownloadProgression(progression){
+        let $progress = this.element.find('.download_progress');
+        $progress.text(progression+"%");
+        $progress.removeClass('d-none');
+    }
+
 }

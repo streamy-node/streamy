@@ -161,24 +161,24 @@ class Resumable{
                     resolve(result)
                 }
 
-                //check if chunk number follow the previous one and none other stream is on it
+                //check if chunk number follow the previous one and no other stream is on it
                 if(this.activeIdentifier.has(identifier)){
-                    //Already uploading
-                    let identifierStatus = this.activeIdentifier.get(identifier);
-                    if(identifierStatus.isWritting){
-                        //Someone else is already sending it
-                        result.status = 409;
-                        resolve(result)
-                    }
-
-                    if( identifierStatus.lastChunkNumber != chunkNumber-1){
-                        //Not the chunk we expect
-                        result.status = 409;
-                        resolve(result);
-                    }
-
                     if(chunkNumber == 1){
                         //I guess the client resets, todo use test from resumable.js
+                    }else{
+                        //Already uploading
+                        let identifierStatus = this.activeIdentifier.get(identifier);
+                        if(identifierStatus.isWritting){
+                            //Someone else is already sending it
+                            result.status = 409;
+                            resolve(result)
+                        }
+
+                        if( identifierStatus.lastChunkNumber != chunkNumber-1){
+                            //Not the chunk we expect
+                            result.status = 409;
+                            resolve(result);
+                        }
                     }
                 }else if(chunkNumber != 1){
                     //Not the chunk we expect

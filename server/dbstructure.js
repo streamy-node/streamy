@@ -731,22 +731,23 @@ class DBStructure extends EventEmitter{
         return sqlres;
     }
 
-    async getSerieMpdFileFromEpisode(episodeId,workingDir){
-        if(!this.checkId(episodeId) && workingDir.length > 0 ){
-            console.error("getSerieMpdFileFromEpisode: Invalid entries ");
-            return null;
-        }
-        var sql = "SELECT * "
-        +" FROM `series_mpd_files` as s , `mpd_files` as m"
-        +" WHERE s.episode_id = "+episodeId+" AND s.mpd_id = m.id AND folder = '"+workingDir+"'";
-        var results = await this.query(sql);
+    // async getSerieMpdFileFromEpisode(episodeId,workingDir){
+    //     if(!this.checkId(episodeId) && workingDir.length > 0 ){
+    //         console.error("getSerieMpdFileFromEpisode: Invalid entries ");
+    //         return null;
+    //     }
+    //     var sql = "SELECT * "
+    //     +" FROM `series_mpd_files` as s , `mpd_files` as m"
+    //     +" WHERE s.episode_id = "+episodeId+" AND s.mpd_id = m.id AND folder = '"+workingDir+"'";
+    //     var results = await this.query(sql);
 
-        if(results.length == 0 ){
-            return null;
-        }else{
-            return results[0];
-        }
-    }
+    //     if(results.length == 0 ){
+    //         return null;
+    //     }else{
+    //         return results[0];
+    //     }
+    // }
+
 
     async insertMPDFile(media_id,folder,complete, userId = null){
         if( folder.length < 0 || !this.checkId(media_id)){
@@ -935,6 +936,25 @@ class DBStructure extends EventEmitter{
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
+    }
+
+    async getEpisodeId(serieId,seasonNumber,episodeNumber){
+        if(!this.checkId(serieId)){
+            console.error("getEpisodeId: Invalid entries ");
+            return null;
+        }
+        var sql = "SELECT mepisode.id "+
+        "FROM media as mserie, media as mseason, media as mepisode, media_seasons as season, media_episodes as episode"
+        +" WHERE mserie.id = " +serieId 
+        +" AND mserie.id = mseason.parent_id AND mseason.id = season.media_id AND  season.season_number ="+ seasonNumber
+        +" AND mseason.id = mepisode.parent_id AND mepisode.id = episode.media_id AND  episode.episode_number = "+ episodeNumber
+
+        var results = await this.query(sql);
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].id;
+        }
     }
 
     async insertMovie(media_id){
