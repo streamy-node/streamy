@@ -143,8 +143,8 @@ class MovieContent{
 
     updateProcess(progress){
         let videoBlock = this.block;
-        if(videoBlock){
-            let previousProc = this.mediaActiveProcess.get(progress.media_id)
+        if(videoBlock && progress.media_id == videoBlock.media_id){
+            let previousProc = this.mediaActiveProcess.get(videoBlock.media_id)
 
             if(previousProc && previousProc.filename == progress.filename){
                 videoBlock.updateStatus(progress.state_code,progress.progression,progress.msg);
