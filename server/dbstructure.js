@@ -403,23 +403,24 @@ class DBStructure extends EventEmitter{
     }
 
     async getMediaChildrenFull(mediaId,categoryId, langId, userId, sortKey){
+        if(!this.checkId(mediaId)){
+            console.error("getMedia: Invalid entries ");
+            return null;
+        }
+
+        let sql = this.getMediaBaseRequest(categoryId,langId,userId,false)
+        sql += " WHERE m.parent_id = "+mediaId;
+
+        if(sortKey){
+            sql += " ORDER BY "+sortKey;
+        }
+
         try{
-            if(!this.checkId(mediaId)){
-                console.error("getMedia: Invalid entries ");
-                return null;
-            }
-
-            let sql = this.getMediaBaseRequest(categoryId,langId,userId,false)
-            sql += " WHERE m.parent_id = "+mediaId;
-
-            if(sortKey){
-                sql += " ORDER BY "+sortKey;
-            }
             let results = await this.query(sql);
             return results;
 
         }catch(err){
-            console.log("getMediaChildrenFull failed ",err)
+            console.log("getMediaChildrenFull failed ",sql,err)
             throw err
         }
     }
