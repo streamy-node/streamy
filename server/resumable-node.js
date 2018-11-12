@@ -132,7 +132,7 @@ class Resumable{
             
             req.on("end", function() {
                 //  request ended normally
-                console.log(' request ended normally!');
+                //console.log(' request ended normally!');
             });
         
             req.pipe(req.busboy);
