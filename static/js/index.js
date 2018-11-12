@@ -110,7 +110,7 @@ class ContentManager{
         if(location.hash.length > 0){
           self.setContent("#content",location.hash);
         }else{
-          self.setContent("#content","#dashboard");
+          self.setContent("#content","#movies");
         }
     });
 
