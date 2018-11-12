@@ -48,20 +48,46 @@ class Process extends EventEmitter{
     this.exclusive = exclusive;
   }
 
+  setProcessStatus(status){
+    switch (status) {
+      case value:
+        
+        break;
+    
+      default:
+        break;
+    }
+  }
   // System callbacks
-  _onStop(autoRestart){
+  // _onstop(autoRestart){
+  //   if(this.status != PROCESS_STATUS.TERMINATED){
+  //     if(autoRestart){
+  //       this.status = PROCESS_STATUS.WAITING;
+  //       this._onWaiting()
+  //     }else{
+  //       this.status = PROCESS_STATUS.STOPPED;
+  //       this.emit('stop',autoRestart);
+  //     }
+  //   }
+  // }
+
+  _setWaiting(){
     if(this.status != PROCESS_STATUS.TERMINATED){
-      if(autoRestart){
-        this.status = PROCESS_STATUS.WAITING;
-      }else{
-        this.status = PROCESS_STATUS.STOPPED;
-      }
-      this.emit('stop',autoRestart);
+      this.status = PROCESS_STATUS.WAITING;
+      this.emit('waiting');
     }
   }
 
-  _onStart(){
-      this.emit('start');
+  _setRunning(){
+    this.status = PROCESS_STATUS.RUNNING;
+    this.emit('running');
+  }
+
+  _setStopped(){
+    if(this.status != PROCESS_STATUS.TERMINATED){
+      this.status = PROCESS_STATUS.STOPPED;
+      this.emit('stopped');
+    }
   }
 
   _onProgression(msg){
@@ -500,6 +526,7 @@ class FfmpegProcessManager extends EventEmitter{
           freehw.gpu += lprocess.hw.gpu;
           freehw.vaapi += lprocess.hw.vaapi;
           freehw.omx += lprocess.hw.omx;
+          //available not setted here, TODO
       }
     }
 
@@ -524,14 +551,13 @@ class FfmpegProcessManager extends EventEmitter{
       //waitingProcesses.push(proc);
     }
 
-    //Reserve ressource
-    process.status = PROCESS_STATUS.RUNNING;
-    process.worker = worker;
-
-    worker.processes.push(process);
-
     // Setup the call
     if(process.ws == null){
+      //Reserve ressource
+      process._setRunning()
+      process.worker = worker;
+      worker.processes.push(process);
+
       var ws = new WebSocket(worker.ws_uri);
       process.ws = ws;
       ws.on('open', function open() {
@@ -544,14 +570,13 @@ class FfmpegProcessManager extends EventEmitter{
   
         sendAsJson(ws,msg,
           ()=>{
-            process._onStart();
+            //process._onStart();
             if(process.status != PROCESS_STATUS.RUNNING){//Stopped before open event
               if(process.status == PROCESS_STATUS.STOPPED){
                 self.stopProcess(process,false);
               }else if(process.status == PROCESS_STATUS.WAITING){
                 self.stopProcess(process,true);
               }
-              
             }
           },
           (error)=>{
@@ -634,7 +659,7 @@ class FfmpegProcessManager extends EventEmitter{
     var [worker,processesToStop] = this.findAvailableWorker(process);
 
     // If there are no worker available, queue the task
-    process.status = PROCESS_STATUS.WAITING;
+    process._setWaiting();
     if(worker == null || !this.launchProcessOnWorker(process,worker)){
       this.waitingProcesses.push(process);
     }
@@ -645,7 +670,7 @@ class FfmpegProcessManager extends EventEmitter{
     var [worker,processesToStop] = this.findAvailableWorker(process);
 
     // If there are no worker available, queue the task
-    process.status = PROCESS_STATUS.WAITING;
+    process._setWaiting();
     if(worker == null || !this.launchProcessOnWorker(process,worker)){
       this.waitingProcesses.push(process);
     }
@@ -667,6 +692,7 @@ class FfmpegProcessManager extends EventEmitter{
       //If the process was in stoppedProcesses (not on worker) move try to launch it
       if(!(removeFromList(process,this.stoppedProcesses))){
         console.warn("Cannot start process that should be stopped",process);
+        return false;
       }else{
         this._launchLocalProcess(process);
         return true;
@@ -687,21 +713,29 @@ class FfmpegProcessManager extends EventEmitter{
       var self = this;
       if(process.ws.readyState == WebSocket.OPEN ){
         if(available && process.status != PROCESS_STATUS.RUNNING){
-          process.status = PROCESS_STATUS.RUNNING;//Reserve it now
           var previousStatus = process.status;
+          process._setRunning();//Reserve it now
+          let succeed = false;
+          if(previousStatus == PROCESS_STATUS.WAITING){
+            succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
+          }else{
+            succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
+          }
+          if(!succeed){
+            console.warn("Cannot start process that should be stopped or waiting ",process);
+          }
+
           sendAsJson(process.ws,{ command:"kill",signal:"SIGCONT" }
             ,() => { 
-              process._onStart();
+              //process._onStart();
               self.setWorkerStatus(process.worker,"online")
-              let succeed = false;
-              if(previousStatus == PROCESS_STATUS.WAITING){
-                succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
-              }else{
-                succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
-              }
-              if(!succeed){
-                console.warn("Cannot start process that should be stopped or waiting ",process);
-              }
+              // let succeed = false;
+              // if(previousStatus == PROCESS_STATUS.WAITING){
+              //   succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
+              // }else{
+              //   succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
+              // }
+
             }
             ,(error) => {
             //The worker made a socker error => disable it
@@ -717,15 +751,29 @@ class FfmpegProcessManager extends EventEmitter{
           return true;
         }else if(!available){
           if(process.status == PROCESS_STATUS.STOPPED){
-            process.status = PROCESS_STATUS.WAITING;
-            succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.waitingProcesses);
+            process._setWaiting();
+            let succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.waitingProcesses);
+            //ADD here a signal from stoped to waitinh
+            //process._onStart();
           }
           return false;
         }
       }else if(process.ws.readyState == WebSocket.CONNECTING){
         // Set running to false so that on connection, stop request will be done
         //process.isRunning = false;
-        process.status = PROCESS_STATUS.RUNNING;
+        var previousStatus = process.status;
+        process._setRunning();//Reserve it now
+        let succeed = false;
+        if(previousStatus == PROCESS_STATUS.WAITING){
+          succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
+        }else{
+          succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
+        }
+        if(!succeed){
+          console.warn("Cannot start process that should be stopped or waiting ",process);
+        }
+        //process._setRunning();
+        return true;
       }
     }
   }
@@ -747,7 +795,12 @@ class FfmpegProcessManager extends EventEmitter{
                 succeed = moveFromToArray(process,process.worker.processes,process.worker.stoppedProcesses);
               }
               if(succeed){
-                process._onStop(autoRestart);
+                if(autoRestart){
+                  process._setWaiting();
+                }else{
+                  process._setStopped();
+                }
+                // process._onStop(autoRestart);
                 self.fillupWorker(process.worker);
               }else{
                 console.warn("Cannot stop process that should be running ",process);
@@ -761,7 +814,6 @@ class FfmpegProcessManager extends EventEmitter{
               process.worker.error = error
               this.setWorkerStatus(process.worker,"offline")
               this.enableWorker(worker,false);
-              
               //this.emit('workerDisabled',worker);
               //self.fillupWorker(process.worker);
             }
@@ -769,10 +821,17 @@ class FfmpegProcessManager extends EventEmitter{
         }else if(process.status == PROCESS_STATUS.WAITING){
           if(!autoRestart){
             if(moveFromToArray(process,process.worker.waitingProcesses,process.worker.stoppedProcesses)){
-              process._onStop(autoRestart);
+              if(autoRestart){
+                process._setWaiting();
+              }else{
+                process._setStopped();
+              }
+              //process._onStop(autoRestart);
               self.fillupWorker(process.worker);
+              return true;
             }else{
               console.warn("Cannot stop process that should be waiting ",process);
+              return false;
             }
           }
         }
@@ -780,17 +839,25 @@ class FfmpegProcessManager extends EventEmitter{
         // Set running to false so that on connection, stop request will be done
         //process.isRunning = false;
         if(autoRestart){
-          process.status = PROCESS_STATUS.WAITING;
+          process._setWaiting();
         }else{
-          process.status = PROCESS_STATUS.STOPPED;
+          process._setStopped();
         }
+        return true;
       }
     }else{
       //The process is queued, not yet in a worker
       if(moveFromToArray(process,this.waitingProcesses,this.stoppedProcesses)){
-        process._onStop(autoRestart);
+        if(autoRestart){
+          process._setWaiting();
+        }else{
+          process._setStopped();
+        }
+        //process._onStop(autoRestart);
+        return true;
       }else{
         console.warn("Cannot stop process that should be queued ",process);
+        return false;
       }
     }
   }
@@ -806,11 +873,17 @@ class FfmpegProcessManager extends EventEmitter{
     var queuedIdx = 0;
     for(var proc of worker.waitingProcesses){
       if(this.waitingProcesses.length == 0 || proc.priority <= this.waitingProcesses[0].priority){
-        //If there are no queued process more with more priority, start waiting processes
-        if(!this.launchProcessOnWorker(proc,worker)){
-          //Not enough ressources for next priority task, stop
-          return;
+        //If there are no queued process more with more priority, start local waiting processes
+        var [available, processesToStop, processesToStopPriority] = this.checkWorkerAvailablity(worker, proc);
+
+        if(available){
+          this.startProcess(proc);
         }
+        
+        // if(!this.launchProcessOnWorker(proc,worker)){
+        //   //Not enough ressources for next priority task, stop
+        //   return;
+        // }
       }else{
         //Try to start queued process
         if(!this.launchProcessOnWorker(this.waitingProcesses[0],worker)){
@@ -821,11 +894,12 @@ class FfmpegProcessManager extends EventEmitter{
           this.waitingProcesses.shift();
         }
       }
-      this.waitingProcesses;
+      //this.waitingProcesses;
     }
 
     while(this.waitingProcesses.length > 0){
-      if(!this.launchProcessOnWorker(this.waitingProcesses[0],worker)){
+      let waitingProcess = this.waitingProcesses[0];
+      if(!this.launchProcessOnWorker(waitingProcess,worker)){
         //Not enough ressources for next priority task, stop
         return;
       }else{

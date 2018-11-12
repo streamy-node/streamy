@@ -1033,15 +1033,16 @@ class DBStructure extends EventEmitter{
     }
 
     async setAddFileTaskStoppedByFile(file,stopped){
+        let sql = "";
         try{
             let _stopped = stopped ? 1 : 0;
-            var sql = "UPDATE `add_file_tasks`  "
-            + " SET stopped = "+_stopped
+            sql = "UPDATE `add_file_tasks`  "
+            + " SET `stopped` = "+_stopped
             + " WHERE file = '"+file+"'";
             var sqlres = await this.query(sql);
             return sqlres;
         }catch(err){
-            console.warn("Cannot stop file ",err)
+            console.warn("Cannot stop file ",err,sql)
             return null;
         }
     }

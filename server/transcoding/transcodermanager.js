@@ -70,8 +70,14 @@ class TranscoderManager extends EventEmitter{
             let type = fileInfos.type;
             let processes = fileInfos.processes;
             for(let i=0; i<processes.length; i++){
-                this.processManager.startProcess(processes[i]);
-                this.updateSubProgression(media,type,filename,i,null,3);
+                let process = processes[i];
+                if(process.status !== "TERMINATED"){
+                    let started = this.processManager.startProcess(processes[i]);
+                }
+
+                // if(started){
+                //     this.updateSubProgression(media,type,filename,i,null,3);
+                // }
             }            
         }else{
             let task = await this.dbMgr.getAddFileTask(filename);
@@ -318,8 +324,37 @@ class TranscoderManager extends EventEmitter{
             //let progressions = [];
             for(let i=0; i<ffmpegCmds.length; i++){
                 //progressions.push(0);
-                let proc = this.launchOfflineTranscodingCommand(ffmpegCmds[i],absoluteWorkingFolder,
-                    async function(){
+                let cmd = ffmpegCmds[i];
+                let proc = this.launchOfflineTranscodingCommand(cmd)    
+
+                proc.on('running',function(){
+                    console.log("task running "+cmd.targetName);
+                    self.updateSubProgression(media,type,filename,i,null,2); //Transcoding
+                    //self.updateSubProgression(media,type,filename,i,null,3);                
+                })
+                proc.on('stopped',()=>{
+                    console.log("task stopped "+cmd.targetName);
+                    self.updateSubProgression(media,type,filename,i,null,4); // STOPPED
+                })
+                proc.on('waiting',()=>{
+                    console.log("task waiting "+cmd.targetName);
+                    self.updateSubProgression(media,type,filename,i,null,3); // WAITING
+                })
+                proc.on('progression',(msg)=>{
+                    //progressions[i] = msg.progression;
+                    ///self.updateProgressions(media,jsutils.arrayGetMean(progressions),2,type);
+                    self.updateSubProgression(media,type,filename,i,msg.progression,2);
+                    if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
+                        // if(subtitles_streams.length > 0){
+                        //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
+                        //     mdpFileUpdated = true;
+                        // }
+                        
+                    }
+                })
+                proc.on('final', async (msg)=>{
+                    if(msg.code == 0){//Success
+                        console.log("File transcoded ",workingFolder+" "+cmd.targetName);
                         //This callback is called when the transcoding of one stream succeed
                         remainingCommands--;
                         self.updateSubProgression(media,type,filename,i,100,0);
@@ -346,14 +381,14 @@ class TranscoderManager extends EventEmitter{
                             // add MPD file infos to db if not already done
                             var mpdId = null
                             var mpdinfos = await self.getMPD(mediaId,workingFolder);
-                        
+
                             //If not already in db, add it
                             if(!mpdinfos){
                                 mpdId = await self.mediaMgr.addMPD(media.id,workingFolder,0,user_id);
                             }else{
                                 mpdId = mpdinfos.id;
                             }
-        
+
                             if(!mpdId){
                                 console.error("Failed to create mdp entry in db ",absoluteWorkingFolder);
                                 return;
@@ -390,20 +425,20 @@ class TranscoderManager extends EventEmitter{
                                     }else{
                                         langid = null;
                                     }
-        
+
                                     let name = stream.tags.title;
                                     if(!name){
                                         name = "";
                                     }
-        
+
                                     id = await self.dbMgr.insertSubtitle(mpdId,langid,null);
                                 }
-        
+
                                 if(id === null){
                                     console.error("Failed to create video entry in db "+absoluteWorkingFolder+" "+stream.codec_type);
                                 }
                             }
-        
+
                             //Add subtitles to mdp file
                             let subtitle_streams = await self.getAvailableVttStreams(absoluteWorkingFolder);
                             let finalMpdFile = absoluteWorkingFolder+"/allsub.mpd";
@@ -423,12 +458,12 @@ class TranscoderManager extends EventEmitter{
                                 await self.dbMgr.setMPDFileComplete(mpdId,1);
                                 await self.mediaMgr.setMpdStatus(media.id,1);
                             }
-        
+
                             //Remove add file task
                             if(task_id){
                                 await self.dbMgr.removeAddFileTask(task_id);
                             }
-        
+
                             //Delete upload file
                             await fsutils.unlink(absoluteSourceFile);
                                 
@@ -436,7 +471,7 @@ class TranscoderManager extends EventEmitter{
                             self.updateProgression(media,type,filename,0);
                             //self.updateProgressions(media,jsutils.arrayGetMean(progressions),0,type);
                             console.log("Offline transcoding done for: "+absoluteWorkingFolder);
-        
+
                         }else{
                             //Set subtask done (TODO move this before the if and take care of the case when 
                             // all subtask are done but not the merge)
@@ -444,55 +479,34 @@ class TranscoderManager extends EventEmitter{
                                 await self.dbMgr.setAddFileSubTaskDone(subTasksIds[i]);
                             }
                         }
-                },
-                function(msg){//OnError
-                    remainingCommands--;
-
-                    //Unexpected error
-                    failedCommandCount++;
-                    let error_msg = msg.msg;
-                    if(!error_msg){
-                        error_msg = null;
-                    }
-
-                    if(!hasError){
-                        firstErrorMsg = error_msg;
-                        hasError = true;
-                    }
-                    self.updateSubProgression(media,type,filename,i,msg.progression,1,error_msg);
-
-                    if(remainingCommands == 0){
-                        self.dbMgr.setAddFileTaskHasErrorByFile(filename,true,firstErrorMsg);
-                        self.updateProgression(media,type,filename,1,firstErrorMsg);
-                        delete self.filesProcesses[filename] //Remove from active processes
-                        console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
-                        return;
-                    }
-                    //self.updateProgressions(media,jsutils.arrayGetMean(progressions),1,type,error_msg);
-                },
-                async function(msg){//On Progress
-                    //progressions[i] = msg.progression;
-                    ///self.updateProgressions(media,jsutils.arrayGetMean(progressions),2,type);
-                    self.updateSubProgression(media,type,filename,i,msg.progression,2);
-                    if(!mdpFileUpdated){//Try to create the mdpfile with subtitle as soon as possible
-                        // if(subtitles_streams.length > 0){
-                        //     await mpdUtils.addStreamsToMpd(absoluteWorkingFolder+"/all.mpd",subtitles_streams,absoluteWorkingFolder+"/allsub.mpd");
-                        //     mdpFileUpdated = true;
-                        // }
-                        
-                    }
-                },
-                function(autorestart){ //On stop
-                    if(autorestart){
-                        self.updateSubProgression(media,type,filename,i,null,3);
+        
                     }else{
-                        self.updateSubProgression(media,type,filename,i,null,4);
+                        //OnError
+                        console.error("Failed to transcode file ",cmd.targetName,msg)
+                        remainingCommands--;
+
+                        //Unexpected error
+                        failedCommandCount++;
+                        let error_msg = msg.msg;
+                        if(!error_msg){
+                            error_msg = null;
+                        }
+
+                        if(!hasError){
+                            firstErrorMsg = error_msg;
+                            hasError = true;
+                        }
+                        self.updateSubProgression(media,type,filename,i,msg.progression,1,error_msg);
+
+                        if(remainingCommands == 0){
+                            self.dbMgr.setAddFileTaskHasErrorByFile(filename,true,firstErrorMsg);
+                            self.updateProgression(media,type,filename,1,firstErrorMsg);
+                            delete self.filesProcesses[filename] //Remove from active processes
+                            console.error("Transcoding failed for "+media.id+" only "+(ffmpegCmds.length-failedCommandCount)+" commands succeed.") 
+                            return;
+                        }
                     }
-                },
-                function(){ //On start
-                    self.updateSubProgression(media,type,filename,i,null,2);
-                }       
-            );
+                });
                 this.filesProcesses[filename].processes.push(proc);
             }
         }else{
@@ -578,7 +592,7 @@ class TranscoderManager extends EventEmitter{
         // Create understable name
 
         let task = {state_code:state_code,
-             msg:msg,subtasks:new Array(subtasksLength).fill(null),
+             msg:msg,subtasks:new Array(subtasksLength).fill({progression:0, state_code:3, msg:""}),
              name:media.original_name,
              has_error:false,
              media_id:media.id,
@@ -609,7 +623,7 @@ class TranscoderManager extends EventEmitter{
             return;
         }
 
-        task = this.lastProgressions[type][media.id][filename]
+        task = this.getTask(type,media.id,filename);
 
         let lastProgression = null;
         if(task.subtasks[subTaskIndex]){
@@ -624,61 +638,124 @@ class TranscoderManager extends EventEmitter{
         }
         realProgression = realProgression ? realProgression : 0
 
-        
-        task.subtasks[subTaskIndex] = {progression:realProgression.toPrecision(3), state_code:state_code, msg:message};
-        let currentProgression = parseFloat(task.subtasks[subTaskIndex].progression)
-
-        //Update main progression if changed
-        if(lastProgression && lastProgression != currentProgression){
-            let mainProgression = parseFloat(task.progression)
-            mainProgression -= lastProgression/task.subtasks.length;
-            mainProgression += currentProgression/task.subtasks.length;
-            task.progression = mainProgression.toPrecision(3)
-        }
-
-        //.progression = jsutils.arrayGetMean(progressions)
-
         //If there is an error forward to main progression
-        if(state_code == 1 && task.state_code != 1){
+        if(state_code == 1){
             task.has_error = true;
             task.msg = message;
         }
+        
+        task.subtasks[subTaskIndex] = {progression:realProgression.toPrecision(3), state_code:state_code, msg:message};
+        this.computeTaskProgression(task);
+        // let currentProgression = parseFloat(task.subtasks[subTaskIndex].progression)
 
-        //If tasks are progression forward to main progression
-        if(state_code == 2 && task.state_code != 1){
-            task.state_code = 2;
-        }
+        // //Update main progression if changed
+        // if(lastProgression && lastProgression != currentProgression){
+        //     let mainProgression = parseFloat(task.progression)
+        //     mainProgression -= lastProgression/task.subtasks.length;
+        //     mainProgression += currentProgression/task.subtasks.length;
+        //     task.progression = mainProgression.toPrecision(3)
+        // }
 
-        //Set main task paused if other sub tasks are either pause, done or error
-        if(state_code == 4 && task.state_code != 4){
-            let taskPaused = true;
-            for(let i=0; i<task.subtasks.length; i++){
-                if(!(task.subtasks[i].state_code == 4
-                     || task.subtasks[i].state_code == 0
-                     || task.subtasks[i].state_code == 1)){
-                    taskPaused = false;
-                    break;
-                }
-            }
-            if(taskPaused){
-                task.state_code = 4;
-            }
-        }else // if a subtask is waiting, the main task should also be waiting
-        if(state_code == 3 && task.state_code == 4){
-            task.state_code = 3;
-        }
+        // //.progression = jsutils.arrayGetMean(progressions)
+
+        // //If there is an error forward to main progression
+        // if(state_code == 1 && task.state_code != 1){
+        //     task.has_error = true;
+        //     task.msg = message;
+        // }
+
+        // //If tasks are progression forward to main progression
+        // if(state_code == 2 && task.state_code != 1){
+        //     task.state_code = 2;
+        // }
+
+        // //Set main task paused if other sub tasks are either pause, done or error
+        // if(state_code == 4 && task.state_code != 4){
+        //     let taskPaused = true;
+        //     for(let i=0; i<task.subtasks.length; i++){
+        //         if(!(task.subtasks[i].state_code == 4
+        //              || task.subtasks[i].state_code == 0
+        //              || task.subtasks[i].state_code == 1)){
+        //             taskPaused = false;
+        //             break;
+        //         }
+        //     }
+        //     if(taskPaused){
+        //         task.state_code = 4;
+        //     }
+        // }else // if a subtask is waiting, the main task should also be waiting
+        // if(state_code == 3 && task.state_code == 4){
+        //     task.state_code = 3;
+        // }
 
         this.emit('taskUpdated',task);
     }
 
+    computeTaskProgression(task){
+        let hasTranscoding = false;
+        let hasWaiting = false;
+        let isPaused = true;
+        let error = false;
+        //case 0: // done
+        //case 1: // error
+        //case 2: //transcoding
+        //case 3: //waiting
+        //case 4: //Paused
+        task.progression = 0;
+        for(let i=0; i<task.subtasks.length; i++){
+            let subtask = task.subtasks[i]
+            task.progression += subtask.progression/task.subtasks.length
+            if(subtask.state_code == 2){
+                hasTranscoding = true;
+                continue;
+            }
+            if(hasTranscoding){
+                continue;
+            }
+            if(subtask.state_code == 3){
+                hasWaiting = true;
+                continue;
+            }
+            if(subtask.state_code == 1){
+                error = true;
+                continue;
+            }
+            if(!(subtask.state_code == 4
+                 || subtask.state_code == 0
+                 )){
+                    isPaused = false;
+            }
+        }
+        task.progression = task.progression.toPrecision(3)
+        if(hasTranscoding){
+            task.state_code = 2;//Transcoding
+        }else if(hasWaiting){
+            task.state_code = 3;//Waiting
+        }else if(isPaused){
+            task.state_code = 4;//Paused
+        }else if(error){
+            task.state_code = 1;//error
+        }else{
+            task.state_code = 0;// done
+        }
+    }
+
     updateProgression(media,type,filename,state_code,message = null){
         let id = media.id;
-        let task = this.lastProgressions[type][id][filename];
+        let task = this.getTask(type,id,filename);
         task.state_code = state_code;
         task.message = message;
 
         this.emit('taskUpdated',task);
         //delete this.lastProgressions[type][id];
+    }
+
+    getTask(type,id,filename){
+        let result = this.lastProgressions[type][id][filename];
+        if(!result){
+            console.error("Cannot get none existing task from ",type,id,filename)
+        }
+        return result
     }
 
     removeProgression(type,media_id,filename){
@@ -1066,32 +1143,9 @@ class TranscoderManager extends EventEmitter{
         return parseInt(arrayOfStrings[0])/parseInt(arrayOfStrings[1]);
     }
 
-    launchOfflineTranscodingCommand(cmd,workingDir,onSuccess,onError,onProgressions,onStop,onStart){//TODO 
+    launchOfflineTranscodingCommand(cmd/*,workingDir,onSuccess,onError,onProgressions,onStop,onStart*/){
         var hw = new Hardware(1,0,0,0);
         var process = new Process("ffmpeg",cmd.args,10,hw,true)
-        .on('start',()=>{
-            console.log("on start "+cmd.targetName);
-            onStart()
-        })
-        .on('stop',(restart)=>{
-            console.log("on stop "+cmd.targetName,restart);
-            onStop(restart)
-        })
-        .on('progression',(msg)=>{
-            //console.log("on progression "+workingDir+" "+cmd.targetName,msg);
-            if(onProgressions) onProgressions(msg);
-        })
-        .on('final',(msg)=>{
-            console.log("on final",msg);
-            if(msg.code == 0){
-                console.log("File transcoded ",workingDir+" "+cmd.targetName);
-                onSuccess();
-
-            }else{
-                onError(msg);
-                console.error("Failed to transcode file ",cmd.targetName,msg)
-            }
-        });
         this.processManager.launchProcess(process);
         return process;
     }
