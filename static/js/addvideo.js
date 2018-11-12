@@ -24,6 +24,7 @@ class AddVideoConstroller{
     }
 
     setup(type){
+        var self = this
         this.type = type;
 
         //Setup simple name search
@@ -39,6 +40,18 @@ class AddVideoConstroller{
                 this.appendToContainer("#tasks_list",value.element);
             }
         }
+
+        //Setup main buttons
+        $('#filesUpload').on('change',function(filesList){
+            let filesInput = $('#filesUpload')[0];
+            for(let file of filesInput.files){
+                self.addFile(file)
+            }
+        })
+        $('.files_upload').click(function(){ 
+            $('#filesUpload').trigger('click'); 
+        });
+        
     }
 
     //////////// ADDING BY FILES ///////////////

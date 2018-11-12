@@ -1,5 +1,5 @@
 <!-- Create movies content page skeleton -->
-<div id="tpl_add_video" >
+<div id="tpl_add_video" class="d-flex flex-column" >
         <div class="main_search">
                 <!--main add_file_tpl here-->
         </div>
@@ -8,6 +8,8 @@
         <div class="upload-drop-zone" id="drop-zone">
             Just drag and drop files here
         </div>
+        <input type="file" id="filesUpload" multiple style="display:none"/>
+        <a class="files_upload block_btn material-icons ml-auto">cloud_upload</a>
         <!--a class="btn btn-primary " href="#series">{{#__}}AddSerie{{/__}}</a-->
 
     <div class="d-none">
