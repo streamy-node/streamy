@@ -10,6 +10,8 @@ class Resumable{
         this.activeIdentifier = new Map()
         this.maxFileSize = 15*1024*1024*1024;
         this.fileParameterName = 'file';
+        this.lastUploadedFileTs = 0;
+        this.lastUserUpload = null;
     }
 
     async setTargetFolder(targetFolder){
@@ -19,6 +21,12 @@ class Resumable{
             await fsutils.mkdirp(targetFolder);
             await fsutils.mkdirp(temporaryFolder);
         }catch(e){}
+    }
+
+    //Function used to now if someone is currently uploading
+    // This can be usefull before a reboot
+    getLastUploadInfos(){
+        return {ts:this.lastUploadedFileTs,user_id:this.lastUploadingUser};
     }
 
     cleanIdentifier(identifier){
@@ -96,7 +104,8 @@ class Resumable{
     async postSequential(req){
         return new Promise((resolve, reject) => {
             var self = this;
-
+            this.lastUploadedFileTs = new Date();
+            this.lastUploadingUser = req.user.id
             //Get fieldnames from resumable client
             req.busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
                 //console.log('Field [' + fieldname + ']: value: ' + val);

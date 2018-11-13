@@ -646,6 +646,16 @@ async function startApp(){
     }
   })
 
+  // get last time an upload packet has been received
+  app.get('/upload/last_time', loggedIn, function(req, res){
+    if(req.user){
+      let last_upload_infos = resumable.getLastUploadInfos();
+      res.send(last_upload_infos);
+    }else{
+      console.warn("Unlogged user try to get /upload/last_time")
+    }
+  });
+
   // Handle status checks on chunks through Resumable.js
   app.get('/upload/:type', loggedIn, async function(req, res){
     var type = req.params.type;
