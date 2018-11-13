@@ -79,6 +79,7 @@ class MoviesContent{
         // }
         let transcodingStatus = new TranscodingStatus(mediaInfos.id)
         transcodingStatus.setup(template);
+        transcodingStatus.setHasMpd(mediaInfos.has_mpd);
         this.trElements.set(mediaInfos.id,transcodingStatus)
         return template;
     }
