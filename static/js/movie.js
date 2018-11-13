@@ -58,45 +58,6 @@ class MovieContent{
         } 
     }
 
-    renderSerie_season(brickId,seasonInfos){
-        var template = $("#serie_season_tpl").clone();
-        //console.log("template: ",template);
-        template.attr('id','');
-        template.removeClass("hidden");
-        template.find(".season_name").attr("href","#collapse_"+seasonInfos.season_number.toString());
-        template.find(".season_name").append(seasonInfos.title);
-        template.find(".panel-collapse").attr("id","collapse_"+seasonInfos.season_number.toString());
-
-        for(var i=0; i<seasonInfos.children.length; i++){
-            let episode = seasonInfos.children[i];
-            let ep_tpl = $("#serie_episode_tpl").clone();
-            //let data_path = "brick/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString();
-            let data_path = "brick/"+brickId+"/"+encodeURIComponent(episode.path);
-            
-            ep_tpl.removeClass("hidden");
-            ep_tpl.find(".box").attr("video_id",episode.id.toString());
-            //ep_tpl.find("img").attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
-            ep_tpl.find('.bloc-image').attr("src",data_path+"/fanart/img200.jpg");
-            //ep_tpl.find('.episode-image').css('background-image', 'url(' + '"series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg"' + ')');
-            ep_tpl.find(".episode_number").append(episode.episode_number.toString()+" - ");
-            ep_tpl.find(".episode_title").append(episode.title);
-            ep_tpl.find(".episode_overview").append(episode.overview);
-
-            ep_tpl.find(".overview-expand").attr("href","#collapse_overview_"+episode.episode_number.toString());
-            ep_tpl.find(".episode_overview").attr("id","collapse_overview_"+episode.episode_number.toString());
-
-            //console.log("ep_tpl.html():",ep_tpl.html());
-            template.find(".list-group").append(ep_tpl);
-
-            let videoBock = new VideoBlock("episode",episode.id);
-            videoBock.setup(ep_tpl);
-            videoBock.setHasMpd(episode.has_mpd);
-            this.blocks.set(episode.id,videoBock);
-        }
-        
-        return template;
-    }
-
     setup(){
         var self = this;
         //Get serie id
