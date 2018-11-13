@@ -3,6 +3,7 @@ class MoviesContent{
         this.movies;
         this.templates = templates;
         this.sws = sharedWebsocket;
+        this.isInitialized = false;
 
         //Progressions
         this.trElements = new Map()
@@ -37,6 +38,12 @@ class MoviesContent{
         var self = this;
         this.trElements = new Map();
         this.mediaActiveProcess = new Map();
+
+        if(!this.isInitialized){
+            this.initialize();
+            this.isInitialized = true;
+        }
+
         let templates = this.templates.movies;
         templates += this.templates.common;
         $(target).html(templates).ready(function(){
