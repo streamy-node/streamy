@@ -45,7 +45,15 @@ class TranscoderManager extends EventEmitter{
             }else{
                 // Create a progression so that any client can start it
                 let media = await this.dbMgr.getMedia(task.media_id)
-                this.createProgression(media,"offline",task.file,task.original_name,4,"");
+                let subTasks = await this.dbMgr.getAddFileSubTasks(task.id);
+
+                this.createProgression(media,"offline",task.file,task.original_name,4,subTasks.length,"");
+                for(let i=0; i<subTasks.length; i++){
+                    let subtask = subTasks[i]
+                    if(subtask.done == 1){
+                        this.updateSubProgression(media,"offline",task.file,i,100,0)
+                    }
+                }              
             }
             
         }
@@ -207,6 +215,7 @@ class TranscoderManager extends EventEmitter{
         //If none of the tasks have been done, remove subtasks
         if(!isPartiallyDone){
             this.dbMgr.removeAddFileSubTasks(task_id);
+            subTasks = [];
         }
 
         // Create target folder if not already done
@@ -309,7 +318,15 @@ class TranscoderManager extends EventEmitter{
             let mdpFileUpdated = false;
             var hasVideoOrAudio = false;
             //self.updateProgressions(media,0,3,type);
-            self.createProgression(media,type,filename,original_name,3,ffmpegCmds.length);
+            let totalTasks = subTasks.length > 0 ? subTasks.length : ffmpegCmds.length
+            self.createProgression(media,type,filename,original_name,3,totalTasks);
+
+            for(let k=0; k<subTasks.length; k++){
+                let subtask = subTasks[k];
+                if(subtask.done === 1){
+                    self.updateSubProgression(media,type,filename,k,100,0)
+                }
+            }
 
             let remainingCommands = ffmpegCmds.length;
             let failedCommandCount = 0;
@@ -592,7 +609,7 @@ class TranscoderManager extends EventEmitter{
         // Create understable name
 
         let task = {state_code:state_code,
-             msg:msg,subtasks:new Array(subtasksLength).fill({progression:0, state_code:3, msg:""}),
+             msg:msg,subtasks:new Array(subtasksLength).fill({progression:0, state_code:state_code, msg:""}),
              name:media.original_name,
              has_error:false,
              media_id:media.id,
