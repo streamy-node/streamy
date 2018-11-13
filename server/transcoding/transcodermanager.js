@@ -559,7 +559,7 @@ class TranscoderManager extends EventEmitter{
         let langIndex = baseName.lastIndexOf('_')
         if(baseName.length > 4){
             infos.language = baseName.substring(langIndex+1);
-            infos.title = baseName.substring(0,baseName.length-3);
+            infos.title = baseName.substring(0,langIndex);
         }else{
             console.warn("Cannot extract subtitles info from it's name ",filename)
         }
