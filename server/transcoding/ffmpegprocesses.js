@@ -542,7 +542,7 @@ class FfmpegProcessManager extends EventEmitter{
       return false;
     }
 
-    console.log("launching process ",process," on worker ",worker);
+    console.log("launching process ",process.args," on worker ",worker);
 
     // Stop enough lower priority processes on that worker
     for(var proc of processesToStop){
@@ -561,7 +561,7 @@ class FfmpegProcessManager extends EventEmitter{
       var ws = new WebSocket(worker.ws_uri);
       process.ws = ws;
       ws.on('open', function open() {
-        console.log("Openning WebSocket for ",process);
+        console.log("Openning WebSocket for ",process.args);
         var msg = {};
         msg.command = process.cmd;
         msg.niceness = process.priority;
@@ -648,7 +648,7 @@ class FfmpegProcessManager extends EventEmitter{
         }
       });
     }else{
-      console.warn("process already launched",process);
+      console.warn("process already launched",process.args);
     }
     
     return true;
@@ -680,18 +680,18 @@ class FfmpegProcessManager extends EventEmitter{
   // API Start stopped launched process
   // TODO POSSIBLE BUG: worker.processes not updated here 
   startProcess(process){
-    console.log("Starting process ",process);
+    console.log("Starting process ",process.args);
     //var self = this;
     
     if(process.status != PROCESS_STATUS.STOPPED && process.status != PROCESS_STATUS.WAITING){
-      console.warn("Cannot start process that is not stopped or waiting",process);
+      console.warn("Cannot start process that is not stopped or waiting",process.args);
       return false;
     }
 
     if(!process.ws){
       //If the process was in stoppedProcesses (not on worker) move try to launch it
       if(!(removeFromList(process,this.stoppedProcesses))){
-        console.warn("Cannot start process that should be stopped",process);
+        console.warn("Cannot start process that should be stopped",process.args);
         return false;
       }else{
         this._launchLocalProcess(process);
@@ -722,7 +722,7 @@ class FfmpegProcessManager extends EventEmitter{
             succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
           }
           if(!succeed){
-            console.warn("Cannot start process that should be stopped or waiting ",process);
+            console.warn("Cannot start process that should be stopped or waiting ",process.args);
           }
 
           sendAsJson(process.ws,{ command:"kill",signal:"SIGCONT" }
@@ -770,7 +770,7 @@ class FfmpegProcessManager extends EventEmitter{
           succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
         }
         if(!succeed){
-          console.warn("Cannot start process that should be stopped or waiting ",process);
+          console.warn("Cannot start process that should be stopped or waiting ",process.args);
         }
         //process._setRunning();
         return true;
@@ -779,7 +779,7 @@ class FfmpegProcessManager extends EventEmitter{
   }
 
   stopProcess(process,autoRestart=false){
-    console.log("Stopping process ",process);
+    console.log("Stopping process ",process.args);
     var self = this;
 
     if(process.ws){
@@ -803,7 +803,7 @@ class FfmpegProcessManager extends EventEmitter{
                 // process._onStop(autoRestart);
                 self.fillupWorker(process.worker);
               }else{
-                console.warn("Cannot stop process that should be running ",process);
+                console.warn("Cannot stop process that should be running ",process.args);
               }
             }
             ,(error) => {
@@ -830,7 +830,7 @@ class FfmpegProcessManager extends EventEmitter{
               self.fillupWorker(process.worker);
               return true;
             }else{
-              console.warn("Cannot stop process that should be waiting ",process);
+              console.warn("Cannot stop process that should be waiting ",process.args);
               return false;
             }
           }
@@ -856,7 +856,7 @@ class FfmpegProcessManager extends EventEmitter{
         //process._onStop(autoRestart);
         return true;
       }else{
-        console.warn("Cannot stop process that should be queued ",process);
+        console.warn("Cannot stop process that should be queued ",process.args);
         return false;
       }
     }
