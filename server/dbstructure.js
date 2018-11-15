@@ -986,7 +986,7 @@ class DBStructure extends EventEmitter{
             return null;
         }
         var sql = "INSERT INTO `add_file_tasks` (`file`,`original_name`,`working_folder`,`media_id`,`user_id`) "
-        + " VALUES('"+file+"', '"+original_name+"', '"+working_folder+"', "+media_id+", "+user_id+")";
+        + " VALUES('"+file+"', '"+original_name.replace(/'/g,"\\'")+"', '"+working_folder+"', "+media_id+", "+user_id+")";
         var sqlres = await this.query(sql);
         var taskId = sqlres.insertId;
 
