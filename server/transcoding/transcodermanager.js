@@ -277,9 +277,9 @@ class TranscoderManager extends EventEmitter{
                     dashPartFiles.push(subtask.output);
                 }
             }else if(splitProcessing){ // Split command into subtasks
-                let audioDone = false;
                 let idx = 0;
                 let audios_channels_;
+                let withSubs = false;
 
                 //Keep only reachable resolutions
                 let bestVideoStream = this._getBestVideoStream(infos.streams);
@@ -292,9 +292,9 @@ class TranscoderManager extends EventEmitter{
                 for(let i = 0; i<valid_resolutions.length; i++){
                     let dashName;
                     let resolutions_ = [valid_resolutions[i]];
-                    if(!audioDone){
+                    if(i == valid_resolutions.length - 1){ // Add audio transcoding and subs with the lower resolution
                         audios_channels_ = audios_channels;
-                        audioDone = true;
+                        withSubs = true;
                     }else{
                         audios_channels_ = [];
                     }
@@ -302,7 +302,7 @@ class TranscoderManager extends EventEmitter{
                     dashName = "p"+idx.toString()+".mpd";
                     dashPartFiles.push(absoluteWorkingFolder+"/"+dashName);
 
-                    let cmd = await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_);
+                    let cmd = await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_,withSubs);
                     let subtaskId = await this.dbMgr.insertAddFileSubTask(task_id,JSON.stringify(this.simplifyCmd(cmd)),false,absoluteWorkingFolder+"/"+dashName);
                     ffmpegCmds.push(cmd);
                     subTasksIds.push(subtaskId);   
@@ -312,7 +312,7 @@ class TranscoderManager extends EventEmitter{
                 //command
                 let dashName = "all.mpd";
                 //insertAddFileSubTask(task_id,command,done)
-                ffmpegCmds.push(await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels));    
+                ffmpegCmds.push(await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels,true));    
             }
 
             let mdpFileUpdated = false;
@@ -796,7 +796,7 @@ class TranscoderManager extends EventEmitter{
         }
     }
 
-    async _generateFfmpegCmd(filename,original_name,targetFolder,dashName,infos,resolutions,audios_channels){
+    async _generateFfmpegCmd(filename,original_name,targetFolder,dashName,infos,resolutions,audios_channels, with_subs = true){
         let output_streams = [];
         let args = [
             '-i',
@@ -871,7 +871,7 @@ class TranscoderManager extends EventEmitter{
                         adaptation_index++;
                     }
                 }
-            }else if(stream.codec_type === "subtitle"){
+            }else if(stream.codec_type === "subtitle" && with_subs){
                 //Subtitle are not handled directly by ffmpeg in mpd file. So there is no adaptation set
                 let output_stream = {};//jsutils.clone(stream);
                 output_stream.codec_type = stream.codec_type;
