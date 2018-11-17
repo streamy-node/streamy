@@ -54,6 +54,15 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0; 
 }
 
+.min80pix{
+    min-width: 80px;
+}
+
+.min100pix{
+    min-width: 100px;
+}
+
+
 /** video block **/
 .video_progress{
     color: #39d35a;

@@ -36,5 +36,10 @@
 	"Add": "Add",
 	"MediaContent": "Media Content",
 	"AddTitle": "Add Title",
-	"or": "or"
+	"or": "or",
+	"AddUser": "AddUser",
+	"Save": "Save",
+	"Edit": "Edit",
+	"Name": "Name",
+	"Group": "Group"
 }

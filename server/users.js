@@ -19,8 +19,8 @@ class Users{
         await this.addUser('admin','astreamy',1,255,"","");
 
         //The next users will be removed once the web interface allow to add users 
-        await this.addUser('user','acooljedi',2,255,"","");
-        await this.addUser('guest','apadawan',3,255,"","");
+        //await this.addUser('user','acooljedi',2,255,"","");
+        //await this.addUser('guest','apadawan',3,255,"","");
       }catch(err){
         console.error("Failed to add default users: "+err);
       }
@@ -43,13 +43,50 @@ class Users{
       }
       //hash password
       let hashedPwd = await bcrypt.hash(password, saltRounds)
-      let added = await this.dbMgr.insertUser(username, hashedPwd, roleId, qosPriority, email, phone = "");
-      if(added){
-        console.log("New user added "+username);
-      }
+      let userId = await this.dbMgr.insertUser(username, hashedPwd, roleId, qosPriority, email, phone = "");
+      console.log("New user added "+username);
+      return userId;
     }catch(err){
-      console.error("Failed to add user ",username);
-      throw (err);
+      let errorMsg = err.sqlMessage;
+      if(!errorMsg){
+        errorMsg = err;
+      }
+      console.error("Failed to add user ",username,err);
+      throw (new Error(errorMsg));
+    }
+  }
+
+  async changeUserPwd(userId, newPwd){
+    await this.validateNewPassword(newPwd)
+    let hashedPwd = await bcrypt.hash(newPwd, saltRounds)
+    let status = await this.dbMgr.updateUserPassword(userId,hashedPwd)
+  }
+
+  async changeUserName(userId, name){
+    let status = await this.dbMgr.updateUserName(userId,name)
+    if(status){
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+  async changeUserRole(userId, roleId){
+    let status = await this.dbMgr.updateUserRole(userId,roleId)
+    if(status){
+      return true;
+    }else{
+      return false;
+    }
+  }
+
+  async removeUser(userId){
+    return await this.dbMgr.deleteUser(userId)
+  }
+
+  async validateNewPassword(password){
+    if(password.length < minimalPasswordLength){
+      throw ("Password too small: minimum "+minimalPasswordLength+" characters") 
     }
   }
 
@@ -99,13 +136,29 @@ class Users{
     if(!user){
       return null;
     }
+    user.permissions = await this.getUserPermissions(userId);
+    return user;
+  }
+
+  async getUserPermissions(userId){
     let permissions = await this.dbMgr.getUserPermissions(userId);
-    user.permissions = new Set();
+    let permissionsSet = new Set();
     for(let i=0; i<permissions.length; i++){
       let permission = permissions[i];
-      user.permissions.add(permission.name);
+      permissionsSet.add(permission.name);
     }
-    return user;
+    return permissionsSet;
+  }
+
+  async getAllUserInfos(hidePwd = true){
+    let users = await this.dbMgr.getUsersExplicit();
+    for(let user of users){
+      user.permissions = await this.getUserPermissions(user.id)
+      if(hidePwd){
+        delete user.password;
+      }
+    }
+    return users;
   }
 }
 

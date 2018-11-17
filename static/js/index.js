@@ -11,6 +11,7 @@ class ContentManager{
     this.mediaContentMgr = new MediaContentController(this.templates,this.sharedWebsocket);
     this.transcodingMgr = new TranscodingController(this.templates,this.sharedWebsocket)
     this.addVideoMgr = new AddVideoConstroller(this.templates)
+    this.usersMgr = new UsersController(this.templates,this.sharedWebsocket)
   }
 
   load(code,onSuccess){
@@ -37,7 +38,8 @@ class ContentManager{
       $.get("workers.html"),
       $.get("transcoding.html"),
       $.get("mediacontent.html"),
-      $.get("common.html")).done(function(a1,a2,a3,a4,a5,a6,a7,a8,a9){
+      $.get("common.html"),
+      $.get("users.html")).done(function(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10){
         var templates = {}
         templates.movies =  a1[0];
         templates.movie =  a2[0];
@@ -48,6 +50,7 @@ class ContentManager{
         templates.transcoding =  a7[0];
         templates.mediacontent =  a8[0];
         templates.common =  a9[0];
+        templates.users =  a10[0];
         
       // the code here will be executed when all four ajax requests resolve.
       // a1, a2, a3 and a4 are lists of length 3 containing the response text,
@@ -88,6 +91,8 @@ class ContentManager{
       this.transcodingMgr.render(div)
     }else if(type.substr(0,13) === "#mediacontent"){
       this.mediaContentMgr.render(div)
+    }else if(type === "#users"){
+      this.usersMgr.render(div)
     }else{
       $(div).html("<div id=\"\">Work in progress</div>");
       //this.emptyMgr.render(div);

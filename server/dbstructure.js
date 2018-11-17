@@ -1247,6 +1247,7 @@ class DBStructure extends EventEmitter{
 
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
+        return id;
     }
 
     async getUserPasswordByName(username){
@@ -1291,10 +1292,99 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async getUsers(){
+        let sql = "SELECT * FROM `users` ";
+        let results = await this.query(sql);
+        return results;
+    }
+
+    async getUsersExplicit(){
+        let sql = "SELECT users.*, roles.name as role_name "+
+        " FROM `users`, `roles` "+
+        " WHERE roles.id = users.role_id";
+        let results = await this.query(sql);
+        return results;
+    }
+
     async getUserId(username){
         let sql = "SELECT id FROM `users` "+
         " WHERE username = '"+username.replace(/'/g,"\\'")+"'";
         let results = await this.query(sql);
+        if(results.length == 0 ){
+            return null;
+        }else{
+            return results[0].id;
+        }
+    }
+
+    async updateUserPassword(id, password){
+        if( !this.checkId(id)){
+            console.error("updateUserPassword: Invalid entries ");
+            return null;
+        }
+
+        var sql = "UPDATE `users` SET `password` = '"+password.replace(/'/g,"\\'")+
+        "' WHERE `id` = "+id;
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }    
+    
+    async updateUserName(id, name){
+        if( !this.checkId(id)){
+            console.error("updateUserName: Invalid entries ");
+            return null;
+        }
+        try{
+            var sql = "UPDATE `users` SET `username` = "+name+
+            " WHERE `id` = "+id;
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.warn("updateUserName failed ",err)
+            return null
+        }
+    }
+
+    async updateUserRole(id, roleId){
+        if( !this.checkId(id) || !this.checkId(roleId)){
+            console.error("updateUserRole: Invalid entries ");
+            return null;
+        }
+        try{
+            var sql = "UPDATE `users` SET `role_id` = "+roleId+
+            " WHERE `id` = "+id;
+            var sqlres = await this.query(sql);
+            var id = sqlres.insertId;
+            return id;
+        }catch(err){
+            console.warn("updateUserRole failed ",err)
+            return null
+        }
+    }
+
+    async deleteUser(id){
+        if( !this.checkId(id)){
+            console.error("deleteUser: Invalid entries ");
+            return null;
+        }
+        try{
+            let sql = "DELETE FROM `users` "
+            + " WHERE `id` = "+id;
+            let sqlres = await this.query(sql);
+            return sqlres;
+        }catch(err){
+            console.warn("deleteUser failed ",err)
+            return null
+        }
+    }
+
+    async getRoleIdByName(roleName){
+        var sql = "SELECT id FROM `roles` "+
+        " WHERE name = '"+roleName.replace(/'/g,"\\'")+"'";
+        var results = await this.query(sql);
+
         if(results.length == 0 ){
             return null;
         }else{
