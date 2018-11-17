@@ -1364,6 +1364,19 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async updateUserLastConnection(id){
+        if( !this.checkId(id)){
+            console.error("updateUserPassword: Invalid entries ");
+            return null;
+        }
+
+        var sql = "UPDATE `users` SET `last_connection` = CURTIME()"+
+        " WHERE `id` = "+id;
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }   
+
     async deleteUser(id){
         if( !this.checkId(id)){
             console.error("deleteUser: Invalid entries ");

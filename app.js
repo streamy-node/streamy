@@ -177,6 +177,7 @@ async function startApp(){
     }else{
       cb(new Error('User ' + id + ' does not exist'))
     }
+    userMgr.updateUserLastConnection(id);
     // users.findById(id, function (err, user) {
     //   if (err) { return cb(err); }
     //   cb(null, user);

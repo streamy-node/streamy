@@ -11,6 +11,7 @@ class Users{
     this.totalFiledAttempts = 0;
     this.failedAttempts = 0;
     this.securePassout = false;
+    this.usersLastConnection = new Map()
   }
 
   async addDefaultUsers(){
@@ -138,6 +139,25 @@ class Users{
     }
     user.permissions = await this.getUserPermissions(userId);
     return user;
+  }
+
+  async updateUserLastConnection(userId){
+    
+    try{
+      //Don't update if the last update was less than 1 minute ago
+      if(this.usersLastConnection.has(userId)){
+        let lastTime = this.usersLastConnection.get(userId);
+        let now = new Date();
+        if(now - lastTime < 60000){
+          return;
+        }
+      }
+      this.usersLastConnection.set(userId,new Date())
+      await this.dbMgr.updateUserLastConnection(userId);
+    }catch(err){
+      console.error("Failed to update last connection time for user "+userId);
+    }
+
   }
 
   async getUserPermissions(userId){
