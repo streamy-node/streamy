@@ -732,6 +732,24 @@ async function startApp(){
   });
 
     ////////////////// Users  //////////////
+
+    //Get our own status
+    app.get('/user/permissions', loggedIn, async function (req, res) {
+      if(req.user){
+        let permissions = await userMgr.getUserPermissions(req.user.id);
+  
+        res.setHeader('Content-Type', 'application/json');
+        //console.log(workers)
+        let output = {};
+        for(let item of permissions.keys()){
+          output[item] = true;
+        }
+        res.send(JSON.stringify(output));
+      }else{
+        res.sendStatus(401);
+      }
+    });
+
     app.get('/users', loggedIn, async function (req, res) {
       if(req.user && req.user.permissions.has("manage_users")){ //TODO check rights
         let users = await userMgr.getAllUserInfos();

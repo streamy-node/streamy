@@ -110,6 +110,12 @@ class ContentManager{
     });
     
     // Setup content
+    // Catch hash changes
+    window.addEventListener("hashchange", function () {
+      console.log("hash changed ",location.hash);
+      self.setContent("#content",location.hash);
+    }, false);
+
     //var contentMgr = new ContentManager();
     this.load("en",()=>{
         if(location.hash.length > 0){
@@ -119,12 +125,11 @@ class ContentManager{
         }
     });
 
-    // Catch hash changes
-    window.addEventListener("hashchange", function () {
-            console.log("hash changed ",location.hash);
-            self.setContent("#content",location.hash);
-        }, false);
-        
+    //get out own permissions to know what to show
+    $.getJSON("/user/permissions",function(data){
+      self.updatePermissions(data);
+    });
+    
     // Just make last selected element a bit darker
     $('.nav-elems li').click(function(e) {
       $('.nav-elems li').removeClass('active');
@@ -136,6 +141,12 @@ class ContentManager{
     
     // TVDBKey
     theMovieDb.common.initialize();
+  }
+
+  updatePermissions(permissions){
+    if(permissions.manage_users){
+      $('#users_item').removeClass("d-none")
+    }
   }
 }
 
