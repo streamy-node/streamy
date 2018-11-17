@@ -882,10 +882,12 @@ class TranscoderManager extends EventEmitter{
                 output_stream.target_folder = targetFolder;
 
                 //If ffbrobe failed to get lang infos
-                if(!output_stream.tags || !output_stream.tags.language){
-                    //If the input is only a subtitle file, use filename to get lang
+                if(!output_stream.tags){
                     output_stream.tags.language = null;
                     output_stream.tags.title = null;
+                }
+                if(!output_stream.tags.language){
+                    //If the input is only a subtitle file, use filename to get lang
                     if(path.extname(filename) === ".vtt" || path.extname(filename) === ".srt"){
                         let subInfos = this.extractUploadedSubtitleinfos(original_name);
                         if(subInfos){
