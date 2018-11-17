@@ -76,7 +76,7 @@ class SerieController{
             //ep_tpl.find("img").attr("src","series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg");
             ep_tpl.find('.bloc-image').attr("src",data_path+"/fanart/img200.jpg");
             //ep_tpl.find('.episode-image').css('background-image', 'url(' + '"series/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString()+"/fanart/img200.jpg"' + ')');
-            ep_tpl.find(".episode_number").append(episode.episode_number.toString()+" - ");
+            ep_tpl.find(".episode_number").text(episode.episode_number.toString()+" - ");
             ep_tpl.find(".episode_title").append(episode.title);
             ep_tpl.find(".episode_overview").append(episode.overview);
 
