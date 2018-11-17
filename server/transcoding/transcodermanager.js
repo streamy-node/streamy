@@ -812,6 +812,8 @@ class TranscoderManager extends EventEmitter{
         let adaptation_sets = 'id=0,streams=v ';
         let adaptation_index = 0;
 
+        let undefinedSubIndex = 0;
+
         //Generate output streams
         let bestVideoStream = this._getBestVideoStream(infos.streams);
         for(var i=0; i<infos.streams.length; i++){
@@ -896,7 +898,9 @@ class TranscoderManager extends EventEmitter{
                             output_stream.tags.title = subInfos.title;
                         }
                     }
-
+                }
+                if(!output_stream.tags.title){
+                    output_stream.tags.title = "undefined"+undefinedSubIndex++
                 }
                 output_streams.push(output_stream);
             }
