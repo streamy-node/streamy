@@ -543,7 +543,7 @@ class FfmpegProcessManager extends EventEmitter{
       return false;
     }
 
-    console.log("launching process ",process.args," on worker ",worker);
+    console.log("launching process ",process.args," on worker ",worker.ip,":",worker.port);
 
     // Stop enough lower priority processes on that worker
     for(var proc of processesToStop){
