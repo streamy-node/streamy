@@ -753,6 +753,7 @@ INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,5);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,6);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,7);
 -- users role
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,5);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,6);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,7);
 -- guest role
