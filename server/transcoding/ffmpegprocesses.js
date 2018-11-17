@@ -46,6 +46,7 @@ class Process extends EventEmitter{
     this.worker = null;
     this.autoRestart = true;
     this.exclusive = exclusive;
+    this.creationDate = new Date();
   }
 
   setProcessStatus(status){
@@ -920,6 +921,10 @@ class FfmpegProcessManager extends EventEmitter{
       return -1;
     if (a.priority > b.priority)
       return 1;
+    if(a.creationDate < b.creationDate)
+      return -1
+    if(a.creationDate > b.creationDate)
+      return 1
     return 0;
   }
 

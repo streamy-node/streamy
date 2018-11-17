@@ -1019,6 +1019,7 @@ class DBStructure extends EventEmitter{
 
     async getAddFileTasks(){
         let sql = "SELECT * FROM `add_file_tasks` ";
+        sql += " ORDER BY `creation_time`";
         let results = await this.query(sql);
         return results;
     }
