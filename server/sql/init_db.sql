@@ -219,16 +219,6 @@ CREATE TABLE `mpd_srts` (
   FOREIGN KEY (`lang_id`) REFERENCES languages(`id`)
 );
 
-CREATE TABLE `media_genres` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `media_id` int NOT NULL,
-  `genre_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`genre_id`) REFERENCES genres(`id`) ON DELETE CASCADE,
-  CONSTRAINT UNIQUE (`media_id`,`genre_id`) 
-);
-
 CREATE TABLE `media_movies` (
   `id` int NOT NULL AUTO_INCREMENT,
   `media_id` int NOT NULL ,
@@ -282,19 +272,7 @@ CREATE TABLE `movies_moviedb` (
   CONSTRAINT UNIQUE (`moviedb_id`)
 );
 
-CREATE TABLE `media_progressions` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `media_id` int NOT NULL,
-  `audio_lang` int,
-  `subtitle_lang` int,
-  `progression` float DEFAULT '0.0',
-  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
-  `watched` TINYINT(1) NOT NULL,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
-);
+
 
 CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
@@ -324,20 +302,6 @@ CREATE TABLE `add_file_subtasks` (
   FOREIGN KEY (`task_id`) REFERENCES add_file_tasks(`id`) ON DELETE CASCADE
 );
 
-CREATE TABLE `users_settings` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `interface_lang` int(10) UNSIGNED DEFAULT 1,
-  `audio_lang` int(10) UNSIGNED DEFAULT 0,
-  `subtitle_lang` int(10) UNSIGNED DEFAULT 1,
-  `subtitle_enabled` TINYINT(1) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`interface_lang`) REFERENCES languages(`id`),
-  FOREIGN KEY (`audio_lang`) REFERENCES languages(`id`),
-  FOREIGN KEY (`subtitle_lang`) REFERENCES languages(`id`)
-);
-
 CREATE TABLE `episodes_transcoding_resolutions` (
   `id` int NOT NULL,
   `resolution_id` int NOT NULL,
@@ -353,6 +317,47 @@ CREATE TABLE `movies_transcoding_resolutions` (
    FOREIGN KEY (`resolution_id`) REFERENCES resolutions(`id`) ON DELETE CASCADE,
    CONSTRAINT UNIQUE (`resolution_id`)
 );
+
+-- TODO
+-- CREATE TABLE `media_genres` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `media_id` int NOT NULL,
+--   `genre_id` int NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`genre_id`) REFERENCES genres(`id`) ON DELETE CASCADE,
+--   CONSTRAINT UNIQUE (`media_id`,`genre_id`) 
+-- );
+
+-- TODO
+-- CREATE TABLE `media_progressions` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `media_id` int NOT NULL,
+--   `audio_lang` int,
+--   `subtitle_lang` int,
+--   `progression` float DEFAULT '0.0',
+--   `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
+--   `watched` TINYINT(1) NOT NULL,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
+-- );
+
+-- TODO
+-- CREATE TABLE `users_settings` (
+--   `id` int NOT NULL AUTO_INCREMENT,
+--   `user_id` int NOT NULL,
+--   `interface_lang` int(10) UNSIGNED DEFAULT 1,
+--   `audio_lang` int(10) UNSIGNED DEFAULT 0,
+--   `subtitle_lang` int(10) UNSIGNED DEFAULT 1,
+--   `subtitle_enabled` TINYINT(1) DEFAULT 0,
+--   PRIMARY KEY (`id`),
+--   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
+--   FOREIGN KEY (`interface_lang`) REFERENCES languages(`id`),
+--   FOREIGN KEY (`audio_lang`) REFERENCES languages(`id`),
+--   FOREIGN KEY (`subtitle_lang`) REFERENCES languages(`id`)
+-- );
 
 CREATE TABLE `ffmpeg_workers` (
   `id` int NOT NULL AUTO_INCREMENT,
