@@ -46,11 +46,6 @@ var Importer = require('./server/importer.js')
 // Notifications
 var io = require('socket.io').listen(server);
 
-if(process.argv.length <= 2){
-  console.error("Moviedb key missing");
-  process.exit(1);
-}
-
 var mysql = require('mysql');
 var dbPool  = mysql.createPool({
   connectionLimit : 10,
