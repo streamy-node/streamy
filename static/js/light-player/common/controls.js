@@ -63,6 +63,11 @@ function ShakaControls() {
   this.captionButton_ = document.getElementById('captionButton');
 
   /** @private {Element} */
+  this.captionListButton_ = document.getElementById('captionListButton');
+
+  this.audioListButton_ = document.getElementById('audioListButton');
+
+  /** @private {Element} */
   this.fullscreenButton_ = document.getElementById('fullscreenButton');
 
   /** @private {Element} */
@@ -151,6 +156,13 @@ ShakaControls.prototype.init = function(castProxy, onError, notifyCastStatus) {
 
   this.captionButton_.addEventListener(
       'click', this.onCaptionClick_.bind(this));
+
+  this.captionListButton_.addEventListener(
+      'click', this.onCaptionListClick_.bind(this));
+      
+  this.audioListButton_.addEventListener(
+    'click', this.onAudioListClick_.bind(this));
+
   this.player_.addEventListener(
       'texttrackvisibility', this.onCaptionStateChange_.bind(this));
   this.player_.addEventListener(
@@ -179,8 +191,13 @@ ShakaControls.prototype.init = function(castProxy, onError, notifyCastStatus) {
 
   // Clicks in the controls should not propagate up to the video container.
   this.controls_.addEventListener(
-      'click', function(event) { event.stopPropagation(); });
-
+    'click', function(event) {
+      // if(event.target.className.indexOf("dropdown") >= 0){
+      //   return
+      // }
+      //event.stopPropagation(); 
+  });
+        
   this.videoContainer_.addEventListener(
       'mousemove', this.onMouseMove_.bind(this));
   this.videoContainer_.addEventListener(
@@ -385,6 +402,12 @@ ShakaControls.prototype.onContainerTouch_ = function(event) {
 ShakaControls.prototype.onContainerClick_ = function(event) {
   if (!this.enabled_) return;
 
+  //Ignore event if it come from control container
+  let closest = $(event.target).closest('#controlsContainer')
+  let length = closest.length
+  if(length!=0){
+    return;
+  }
   this.onPlayPauseClick_();
 };
 
@@ -525,6 +548,102 @@ ShakaControls.prototype.onCaptionClick_ = function() {
   this.player_.setTextTrackVisibility(!this.player_.isTextTrackVisible());
 };
 
+/** @private */
+ShakaControls.prototype.onCaptionListClick_ = function(event) {
+  if (!this.enabled_) return;
+  let player = lightDemo.player_;
+  let trackVisible = player.isTextTrackVisible();
+
+  //build track list
+  let trackList = document.getElementById('captionListSelect');
+  while (trackList.firstChild) {
+    trackList.removeChild(trackList.firstChild);
+  }
+  let tracks = lightDemo.player_.getTextTracks();
+
+  tracks.forEach(function(track) {
+    let option = document.createElement('div');
+    option.classList.add('dropdown-item');
+
+    if(track.active && trackVisible){
+      option.classList.add('active')
+    }
+    
+    option.track = track;
+    option.innerHTML = track.language;
+    option.selected = track.active;
+
+    option.addEventListener('click', function(event){
+      player.setTextTrackVisibility(true);
+      
+      //A tiemout is needed to avoid assert failure
+      setTimeout(function(){
+        player.selectTextTrack(track);
+      },1000)      
+    })
+    trackList.appendChild(option);
+  });
+
+  //Add disable caption option
+  let option = document.createElement('div');
+  option.classList.add('dropdown-item');
+  if(!trackVisible){
+    option.classList.add('active')
+  }
+  option.innerHTML = "disable"
+  option.addEventListener('click', function(event){
+    player.setTextTrackVisibility(false);
+  })
+  trackList.appendChild(option);
+
+  // this.player_.setTextTrackVisibility(!this.player_.isTextTrackVisible());
+};
+
+/** @private */
+ShakaControls.prototype.onAudioListClick_ = function(event) {
+  if (!this.enabled_) return;
+  let player = lightDemo.player_;
+
+  //clean audio list
+  let audioList = document.getElementById('audioListSelect');
+  while (audioList.firstChild) {
+    audioList.removeChild(audioList.firstChild);
+  }
+
+  //Build the audio list
+  let activeTrack = this.getActiveVariantTrack_();
+  let languages = player.getAudioLanguagesAndRoles();
+  //getAudioLanguagesAndRoles
+
+  languages.forEach(function(track) {
+    let option = document.createElement('div');
+    option.classList.add('dropdown-item');
+
+    option.track = track;
+    option.innerHTML = track.language;
+
+    if(activeTrack.language == track.language){
+      option.classList.add('active')
+    }
+
+    option.addEventListener('click', function(event){
+      player.selectAudioLanguage(track.language, "");
+      //lightDemo.updateVariantTracks_();
+    })
+    audioList.appendChild(option);
+  });
+};
+
+/** @private */
+ShakaControls.prototype.getActiveVariantTrack_ = function() {
+  let tracks = lightDemo.player_.getVariantTracks();
+  for(let track of tracks){
+    if(track.active){
+      return track;
+    }
+  }
+  return null;
+};
 
 /** @private */
 ShakaControls.prototype.onTracksChange_ = function() {
@@ -544,9 +663,11 @@ ShakaControls.prototype.onTracksChange_ = function() {
 ShakaControls.prototype.onCaptionStateChange_ = function() {
   if (this.player_.isTextTrackVisible()) {
     this.captionButton_.style.color = 'white';
+    this.captionListButton_.style.color = 'white';
   } else {
     // Make the button look darker to show that the text track is inactive.
     this.captionButton_.style.color = 'rgba(255, 255, 255, 0.3)';
+    this.captionListButton_.style.color = 'rgba(255, 255, 255, 0.3)';
   }
 };
 

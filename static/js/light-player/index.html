@@ -18,12 +18,20 @@
     <!-- Shaka Player compiled library: -->
 		<!--script src="/js/shaka/shaka-player.uncompiled.js"></script-->
     <!-- script src="/js/shaka/dist/shaka-player.compiled.js"></script-->
+    <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" type="text/css" href="/css/player.css">
     <link rel="stylesheet" type="text/css" href="/css/player-controls.css">
 
     <!-- external dependencies-->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <!--link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous"-->
+    <link rel="stylesheet" href="/third_party/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+
+    <script src="/third_party/jquery/jquery-3.3.1.min.js"></script>
+    <script src="/third_party/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
+    <script src="/third_party/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+        
+
+    <!-- <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script> -->
     <script defer src="//www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
 
     <script src="/js/light-player/assets.js"></script>
@@ -63,20 +71,40 @@
           </svg>
         </div>
         <div id="castReceiverName" class="overlay"></div>
-        <div id="controlsContainer" class="overlay"><div id="controls">
-          <button id="playPauseButton" class="material-icons">play_arrow</button>
-          <label for="seekBar" class="for-screen-readers">seek</label>
-          <input id="seekBar" type="range" step="any" min="0" max="1" value="0">
-          <button id="rewindButton" class="material-icons">fast_rewind</button>
-          <div id="currentTime">0:00</div>
-          <button id="fastForwardButton" class="material-icons">fast_forward</button>
-          <button id="muteButton" class="material-icons">volume_up</button>
-          <label for="volumeBar" class="for-screen-readers">volume</label>
-          <input id="volumeBar" type="range" step="any" min="0" max="1" value="0">
-          <button id="castButton" class="material-icons">cast</button>
-          <button id="captionButton" class="material-icons">closed_caption</button>
-          <button id="fullscreenButton" class="material-icons">fullscreen</button>
-        </div></div>
+        <div id="controlsContainer" class="overlay">
+          <div id="controls">
+            <button id="playPauseButton" class="material-icons">play_arrow</button>
+            <label for="seekBar" class="for-screen-readers">seek</label>
+            <input id="seekBar" type="range" step="any" min="0" max="1" value="0">
+            <button id="rewindButton" class="material-icons">fast_rewind</button>
+            <div id="currentTime">0:00</div>
+            <button id="fastForwardButton" class="material-icons">fast_forward</button>
+            <button id="muteButton" class="material-icons">volume_up</button>
+            <label for="volumeBar" class="for-screen-readers">volume</label>
+            <input id="volumeBar" type="range" step="any" min="0" max="1" value="0">
+            <button id="castButton" class="material-icons">cast</button>
+            <button id="captionButton" class="material-icons d-none">closed_caption</button>
+
+            <div class="btn-group dropup">
+              <button id="audioListButton" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="btn btn-secondary dropdown-toggle material-icons">
+                audiotrack
+              </button>
+              <div id="audioListSelect" class="dropdown-menu">
+                <!-- Dropdown menu links -->
+              </div>
+            </div>
+
+            <div class="btn-group dropup">
+              <button id="captionListButton" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="btn btn-secondary dropdown-toggle material-icons">
+                closed_caption
+              </button>
+              <div id="captionListSelect" class="dropdown-menu">
+                <!-- Dropdown menu links -->
+              </div>
+            </div>
+            <button id="fullscreenButton" class="material-icons">fullscreen</button>
+          </div>
+        </div>
       </div>
 
       <div class="flex">
@@ -96,12 +124,12 @@
           <select id="variantTracks" class="flex-grow"></select>
         </div>
 
-        <div class="flex">
+        <div class="flex d-none">
           <label for="textLanguages">Text languages:</label>
           <select id="textLanguages" class="flex-grow"></select>
         </div>
 
-        <div class="flex">
+        <div class="flex d-none">
           <label for="textTracks">Text tracks:</label>
           <select id="textTracks" class="flex-grow"></select>
         </div>
