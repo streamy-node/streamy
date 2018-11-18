@@ -20,6 +20,7 @@ var MoviesMgr = require('./server/movies');
 var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
 var Users = require('./server/users');
+var Bricks = require('./server/bricks');
 
 //Lang
 //var mustache = require('mustache');
@@ -97,6 +98,7 @@ async function startApp(){
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
   var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
   var userMgr = new Users(dbMgr)
+  var bricksMgr = new Bricks(dbMgr)
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
   processesMgr.addWorkersFromDB(dbMgr,true);
@@ -306,6 +308,9 @@ async function startApp(){
   })
   app.get('/users.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('templates/users.html');
+  })
+  app.get('/storage.html', i18n.init, setupLocals, loggedIn, function (req, res) {
+    res.render('templates/storage.html');
   })
 
   //static files from node_modules
@@ -840,6 +845,85 @@ async function startApp(){
       }
     });
 
+  ////////////////// Bricks  //////////////
+
+  app.get('/bricks', loggedIn, async function (req, res) {
+    if(req.user && req.user.permissions.has("manage_bricks")){ //TODO check rights
+      let bricks = await bricksMgr.getBricks();
+
+      res.setHeader('Content-Type', 'application/json');
+      //console.log(workers)
+      res.send(JSON.stringify(bricks));
+    }
+  });
+
+  //Add brick
+  app.post('/bricks', loggedIn, async function (req, res) {
+    if(req.user && req.user.permissions.has("manage_bricks")){
+      let alias = req.body.alias;
+      let path = req.body.path;
+      let enabled = req.body.enabled;
+
+      try{
+        await bricksMgr.addBrick(alias,path,enabled)
+        res.sendStatus(200);
+      }catch(err){
+        console.warn("Cannot add user:",err)
+        res.status(400).send(err.message)
+      }
+    }else{
+      res.status(401).send("You don't have the permission to add brick")
+    }
+  });
+
+  //Update user
+  app.post('/bricks/:id', loggedIn, async function (req, res) {
+    if(req.user && req.user.permissions.has("manage_bricks")){
+      let id = req.params.id;
+      let alias = req.body.alias;
+      let paths = req.body.paths;
+      let enabled = req.body.enabled;
+
+      if(!id){
+        res.status(400).send('No id provided');
+        return;
+      }
+      id = parseInt(id);
+
+      try{
+        if(alias.length > 0){
+          await bricksMgr.updateBrickAlias(id,alias);
+        }
+
+        if(paths.length > 0){
+          await bricksMgr.updateBrickPath(id,paths);
+        } 
+
+        await bricksMgr.updateBrickStatus(id,enabled);
+        res.sendStatus(200)
+      }catch(err){
+        console.warn("Cannot update brick:",id,err)
+        res.status(400).send(err)
+      }
+    }else{
+      res.status(401).send("You don't have the permission to update brick")
+    }
+  });
+
+  app.delete('/bricks/:id', loggedIn, async function (req, res) {
+    try{
+      if(req.user && req.user.permissions.has("manage_bricks")){
+        var id = parseInt(req.params.id);
+        await bricksMgr.removeBrick(id)
+        res.sendStatus(200)
+      }else{
+        res.sendStatus(401).send("You don't have the permission to remove users")
+      }
+    }catch(err){
+      console.warn("Cannot remove brick:",err)
+      res.status(400).send(err.message)
+    }
+  });
   ////////////////// Processes  //////////////
 
   app.get('/transcoding_tasks', loggedIn, async function (req, res) {

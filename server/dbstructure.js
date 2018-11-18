@@ -980,13 +980,13 @@ class DBStructure extends EventEmitter{
     ////////////// Transcoding part //////////////////////
     //////////////////////////////////////////////////////
 
-    async insertAddFileTask(file,original_name,working_folder,media_id,user_id=null){
-        if( !this.checkId(media_id) || working_folder.length == 0 || file.length == 0 ){
+    async insertAddFileTask(file,brick_id,original_name,working_folder,media_id,user_id=null){
+        if( !this.checkId(media_id) || !this.checkId(brick_id) || working_folder.length == 0 || file.length == 0 ){
             console.error("insertAddFileTask: Invalid entries ");
             return null;
         }
-        var sql = "INSERT INTO `add_file_tasks` (`file`,`original_name`,`working_folder`,`media_id`,`user_id`) "
-        + " VALUES('"+file+"', '"+original_name.replace(/'/g,"\\'")+"', '"+working_folder+"', "+media_id+", "+user_id+")";
+        var sql = "INSERT INTO `add_file_tasks` (`file`,`brick_id`,`original_name`,`working_folder`,`media_id`,`user_id`) "
+        + " VALUES('"+file+"', '"+brick_id+"', '"+original_name.replace(/'/g,"\\'")+"', '"+working_folder+"', "+media_id+", "+user_id+")";
         var sqlres = await this.query(sql);
         var taskId = sqlres.insertId;
 
@@ -1006,8 +1006,24 @@ class DBStructure extends EventEmitter{
         return subtaskId;
     }
 
-    async getAddFileTask(fileName){
+    async getAddFileTaskByFilename(fileName){
         let sql = "SELECT * FROM `add_file_tasks` WHERE file = '"+fileName+"' ORDER BY creation_time";
+        let result = await this.query(sql);
+
+        if(result.length == 0 ){
+            return null;
+        }else{
+            return result[0];
+        }
+    }
+
+    async getAddFileTask(id){
+        if( !this.checkId(id) ){
+            console.error("getAddFileTask: Invalid entries ");
+            return null;
+        }
+
+        let sql = "SELECT * FROM `add_file_tasks` WHERE id = "+id+"";
         let result = await this.query(sql);
 
         if(result.length == 0 ){
@@ -1104,6 +1120,12 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async getBricks(){
+        var sql = "SELECT * FROM `bricks`";
+        var results = await this.query(sql);
+        return results;
+    }
+
     async getBrickByAlias(alias){
         var sql = "SELECT * FROM `bricks` WHERE `brick_alias`="+alias+"";
         var result = await this.query(sql);
@@ -1140,7 +1162,7 @@ class DBStructure extends EventEmitter{
     async insertBrick(brick_alias,brick_path,enabled = 1){
         if( brick_alias.length == 0 || brick_path.length == 0){
             console.error("insertBrick: Invalid entries ");
-            return null;
+            throw new Error("Invalid entries alias:"+brick_alias+" path:"+brick_path)
         }
         var sql = "INSERT INTO `bricks` (`brick_alias`,`brick_path`,`enabled`) "
         + ' VALUES( "'+brick_alias+'", "'+brick_path+'", '+enabled+")";
@@ -1149,6 +1171,52 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
+    async updateBrickAlias(id,brick_alias){
+        if( !this.checkId(id)){
+            console.error("updateBrickAlias: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `bricks` SET `brick_alias` = '"+brick_alias.replace(/'/g,"\\'")+
+        "' WHERE `id` = "+id;
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async updateBrickStatus(id,enabled){
+        if( !this.checkId(id) || (enabled != 0 || enabled != 1)){
+            console.error("updateBrickAlias: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `bricks` SET `enabled` = "+enabled+
+        " WHERE `id` = "+id;
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async updateBrickPath(id,path){
+        if( !this.checkId(id)){
+            console.error("updateBrickAlias: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `bricks` SET `brick_path` = '"+path.replace(/'/g,"\\'")+
+        "' WHERE `id` = "+id;
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async deleteBrick(id){
+        if( !this.checkId(id)){
+            console.error("deleteBrick: Invalid entries ");
+            throw new Error("invalid entry id")
+        }
+        let sql = "DELETE FROM `bricks` "
+        + " WHERE `id` = "+id;
+        let sqlres = await this.query(sql);
+        return sqlres;
+    }
 
     async getTranscodingResolutions(categoryId){
         var sql = "SELECT res.* FROM `"+this.categories.get(categoryId)+"_transcoding_resolutions` AS tres, `resolutions` AS res "+

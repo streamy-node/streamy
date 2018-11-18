@@ -88,7 +88,7 @@ class TranscoderManager extends EventEmitter{
                 // }
             }            
         }else{
-            let task = await this.dbMgr.getAddFileTask(filename);
+            let task = await this.dbMgr.getAddFileTaskByFilename(filename);
             if(task){
                 await this.convertFileToOfflineMpd(task.file,task.original_name,task.media_id,task.user_id,task.working_folder);
             }
@@ -96,13 +96,15 @@ class TranscoderManager extends EventEmitter{
     }
 
     async removeOfflineTask(filename){
-        let task = await this.dbMgr.getAddFileTask(filename);
+        let task = await this.dbMgr.getAddFileTaskByFilename(filename);
         //Remove add file task
         if(task){
             await this.stopTask(filename);
             await this.dbMgr.removeAddFileTask(task.id);
             //Delete upload file
-            let absoluteSourceFile = this.settings.upload_path+"/"+task.file;
+            let brick = await this.dbMgr.getBrick(task.brick_id);
+            let upload_path = brick.brick_path;
+            let absoluteSourceFile = upload_path+"/"+task.file;
             await fsutils.unlink(absoluteSourceFile);
             this.removeProgression("offline",task.media_id,filename)
             this.emit('taskRemoved',filename)
@@ -112,7 +114,7 @@ class TranscoderManager extends EventEmitter{
     async convertFileToOfflineMpd(filename,original_name,mediaId,userId,workingFolderHint = null, isLive = false){
 
         //Check if a task for this file is not already added
-        let task = await this.dbMgr.getAddFileTask(filename);
+        let task = await this.dbMgr.getAddFileTaskByFilename(filename);
 
         //if it's a subtitle, take the last video folder (todo make a popup client side)
         let ext = path.extname(filename);
@@ -136,7 +138,8 @@ class TranscoderManager extends EventEmitter{
                 workingFolder = shortId.generate();
             }
             //Add this file to insert tasks table (in case of shutdown to avoid to download again the file)
-            task_id = await this.dbMgr.insertAddFileTask(filename,original_name,workingFolder,mediaId,userId);
+            let uploadBrickId = this.settings.global.upload_brick;
+            task_id = await this.dbMgr.insertAddFileTask(filename,uploadBrickId,original_name,workingFolder,mediaId,userId);
         }else{
             workingFolder = task.working_folder;
             task_id = task.id;
@@ -193,6 +196,16 @@ class TranscoderManager extends EventEmitter{
             return null
         }
 
+        let task = await this.dbMgr.getAddFileTask(task_id);
+        if(!task){
+            console.error("Cannot get task with id",task_id)
+            return null
+        }
+        let brick = await this.dbMgr.getBrick(task.brick_id);
+        let upload_path = brick.brick_path+"/upload";
+
+        //Get 
+
         //Check if there are sub tasks
         let subTasks = await this.dbMgr.getAddFileSubTasks(task_id);
         
@@ -245,7 +258,7 @@ class TranscoderManager extends EventEmitter{
         let resolutions;
         resolutions = await this.dbMgr.getTranscodingResolutions(media.category_id);
 
-        let absoluteSourceFile = this.settings.upload_path+"/"+filename;
+        let absoluteSourceFile = upload_path+"/"+filename;
         var infos = await this.processManager.ffprobe(absoluteSourceFile);
 
         if(infos === null){

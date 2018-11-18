@@ -278,6 +278,7 @@ CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `creation_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `file` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+  `brick_id` int,
   `original_name` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `working_folder` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `media_id` int,
@@ -286,6 +287,7 @@ CREATE TABLE `add_file_tasks` (
   `had_error` TINYINT(1) DEFAULT 0,
   `msg` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`),
+  FOREIGN KEY (`brick_id`) REFERENCES brick(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`file`) ,
@@ -737,6 +739,7 @@ INSERT INTO `permissions` VALUES(4, 'manage_content');
 INSERT INTO `permissions` VALUES(5, 'add_media');
 INSERT INTO `permissions` VALUES(6, 'add_media_request');
 INSERT INTO `permissions` VALUES(7, 'upload_content');
+INSERT INTO `permissions` VALUES(8, 'manage_bricks');
 
 -- roles
 INSERT INTO `roles` VALUES(1, 'admin');
@@ -752,6 +755,7 @@ INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,4);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,5);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,6);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,7);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,8);
 -- users role
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,5);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,6);
