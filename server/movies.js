@@ -1,15 +1,15 @@
-var moviedb = require('./moviedb.js');
+//var moviedb = require('./moviedb.js');
 var fsutils = require('./fsutils.js');
 var netutils = require('./netutils.js');
 const Media = require('./media.js');
 
 class MoviesMgr{
-    constructor(dbmanager, settings, mediaMgr){
+    constructor(dbmanager, settings, mediaMgr,moviedbMgr){
         this.con = dbmanager;
         this.langs = ["en-US","fr-FR"];
         this.settings = settings;
         this.mediaMgr = mediaMgr;
-
+        this.moviedb = moviedbMgr
         //Sets to prevent simultaneous identic requests
         this.current_adding_movies = new Set();
     }
@@ -114,48 +114,44 @@ class MoviesMgr{
         //Check if movie already added
         let mediaId = await this.findMovieFromMoviedbId(movieDBId);
         if(mediaId){
-            console.error("Failing adding movie with TheMovieDB id already used");
-            return null
+            let errMsg = "Failing adding movie with TheMovieDB id already used";
+            console.error(errMsg);
+            throw new Error(errMsg)
         }
-        try{
-            //Retreive infos from the movie db
-            let tmdbInfos = await moviedb.movieInfo({"id":movieDBId,"language":"en"});
-            var moviesInfos = {};
-            moviesInfos.langs = {};
-            moviesInfos.release_date = tmdbInfos.release_date;
-            moviesInfos.rating = tmdbInfos.vote_average;
-            moviesInfos.rating_count = tmdbInfos.vote_count;
-            moviesInfos.original_name = tmdbInfos.original_title;
-            moviesInfos.original_language = tmdbInfos.original_language;
 
-            var fanarts = {};
-            fanarts.fanart500 = this.generateTMDBImageUrl(tmdbInfos.poster_path,500);
-            fanarts.fanart300 = this.generateTMDBImageUrl(tmdbInfos.poster_path,300);
-            fanarts.fanart200 = this.generateTMDBImageUrl(tmdbInfos.poster_path,200);
+        //Retreive infos from the movie db
+        let tmdbInfos = await this.moviedb.movieInfo({"id":movieDBId,"language":"en"});
+        var moviesInfos = {};
+        moviesInfos.langs = {};
+        moviesInfos.release_date = tmdbInfos.release_date;
+        moviesInfos.rating = tmdbInfos.vote_average;
+        moviesInfos.rating_count = tmdbInfos.vote_count;
+        moviesInfos.original_name = tmdbInfos.original_title;
+        moviesInfos.original_language = tmdbInfos.original_language;
 
-            //Add english by default
-            moviesInfos.langs.en = {};
-            moviesInfos.langs.en.overview = tmdbInfos.overview;
-            moviesInfos.langs.en.title = tmdbInfos.title
+        var fanarts = {};
+        fanarts.fanart500 = this.generateTMDBImageUrl(tmdbInfos.poster_path,500);
+        fanarts.fanart300 = this.generateTMDBImageUrl(tmdbInfos.poster_path,300);
+        fanarts.fanart200 = this.generateTMDBImageUrl(tmdbInfos.poster_path,200);
 
-            //Add movie
-            let mediaId = await this.addMovie(moviesInfos,fanarts,brickId);
+        //Add english by default
+        moviesInfos.langs.en = {};
+        moviesInfos.langs.en.overview = tmdbInfos.overview;
+        moviesInfos.langs.en.title = tmdbInfos.title
 
-            if(mediaId !== null){
-                //Add link with moviedb to avoid ducplicates
-                var sql = "INSERT INTO `movies_moviedb` (`media_id`,`moviedb_id`)"+
-                " VALUES("+mediaId+", "+movieDBId+")";
-                await this.con.query(sql);
+        //Add movie
+        mediaId = await this.addMovie(moviesInfos,fanarts,brickId);
 
-                //Add hint to be faster if you copy the films folder to another streamy serv
-                await this.mediaMgr.addHintInfos(mediaId,{tmdb_id:movieDBId});
-            }
-            return mediaId;
+        if(mediaId !== null){
+            //Add link with moviedb to avoid ducplicates
+            var sql = "INSERT INTO `movies_moviedb` (`media_id`,`moviedb_id`)"+
+            " VALUES("+mediaId+", "+movieDBId+")";
+            await this.con.query(sql);
 
-        } catch (e) {
-            console.error("Failing adding movie from TheMovieDB ",movieDBId,e);
-            return null;
+            //Add hint to be faster if you copy the films folder to another streamy serv
+            await this.mediaMgr.addHintInfos(mediaId,{tmdb_id:movieDBId});
         }
+        return mediaId;
     }
 
     async findMovieFromMoviedbId(movieDBId){

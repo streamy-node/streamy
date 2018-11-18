@@ -1,14 +1,15 @@
-var moviedb = require('./moviedb.js');
+//var moviedb = require('./moviedb.js');
 var fsutils = require('./fsutils.js');
 var netutils = require('./netutils.js');
 const Media = require('./media.js');
 
 class SeriesMgr{
-    constructor(dbmanager, settings, mediaMgr){
+    constructor(dbmanager, settings, mediaMgr,movieDBMgr){
         this.con = dbmanager;
         this.langs = ["en-US","fr-FR"];
         this.settings = settings;
         this.mediaMgr = mediaMgr;
+        this.moviedb = movieDBMgr;
 
         //Sets to prevent simultaneous identic requests
         this.current_series_creating = new Set();
@@ -213,7 +214,7 @@ class SeriesMgr{
         }
         try{
             //Retreive infos from the movie db
-            let tmdbInfos = await moviedb.tvInfo({"id":movieDBId,"langage":"en"});
+            let tmdbInfos = await this.moviedb.tvInfo({"id":movieDBId,"langage":"en"});
             var serieInfos = {};
             serieInfos.langs = {};
             serieInfos.seasons = [];
@@ -245,7 +246,7 @@ class SeriesMgr{
                 seasonImages.episodes = [];
 
                 let tmdbseason = tmdbInfos.seasons[i];
-                let tmdbseasonInfos = await moviedb.tvSeasonInfo({"id":movieDBId,"season_number":tmdbseason.season_number,"langage":"en"});
+                let tmdbseasonInfos = await this.moviedb.tvSeasonInfo({"id":movieDBId,"season_number":tmdbseason.season_number,"langage":"en"});
                 season.release_date = tmdbseasonInfos.air_date;
                 season.season_number = tmdbseasonInfos.season_number;
                 season.number_of_episodes = tmdbseasonInfos.episodes.length;

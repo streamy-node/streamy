@@ -278,7 +278,7 @@ CREATE TABLE `add_file_tasks` (
   `id` int NOT NULL AUTO_INCREMENT,
   `creation_time` datetime DEFAULT CURRENT_TIMESTAMP,
   `file` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
-  `brick_id` int,
+  `brick_id` int NOT NULL,
   `original_name` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `working_folder` VARCHAR(255) CHARACTER SET utf8 NOT NULL,
   `media_id` int,
@@ -397,6 +397,7 @@ INSERT INTO `global_settings` VALUES(2, 'upload_brick', 2,NULL,NULL,NULL);
 INSERT INTO `global_settings` VALUES(3, 'segment_duration', 2,NULL,4,NULL);
 INSERT INTO `global_settings` VALUES(5, 'encoder_h264_profile', 1,"main",NULL,NULL);
 INSERT INTO `global_settings` VALUES(6, 'encoder_h264_preset', 1,"slow",NULL,NULL);
+INSERT INTO `global_settings` VALUES(7, 'tmdb_api_key', 1,"",NULL,NULL);
 
 -- Languages --
 INSERT INTO `languages` VALUES(0, 'Native', NULL);
@@ -740,6 +741,7 @@ INSERT INTO `permissions` VALUES(5, 'add_media');
 INSERT INTO `permissions` VALUES(6, 'add_media_request');
 INSERT INTO `permissions` VALUES(7, 'upload_content');
 INSERT INTO `permissions` VALUES(8, 'manage_bricks');
+INSERT INTO `permissions` VALUES(9, 'manage_settings');
 
 -- roles
 INSERT INTO `roles` VALUES(1, 'admin');
@@ -756,6 +758,7 @@ INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,5);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,6);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,7);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,8);
+INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(1,9);
 -- users role
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,5);
 INSERT INTO `roles_permissions` (`role_id`,`permission_id`) VALUES(2,6);
@@ -798,9 +801,10 @@ INSERT INTO `episodes_transcoding_resolutions` VALUES(1, 3);
 INSERT INTO `episodes_transcoding_resolutions` VALUES(2, 2);
 
 -- dev
-INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 1, 'brick_upload','/data/upload');
+-- INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 1, 'brick_upload','/data/upload');
 -- INSERT INTO `bricks` (`id`,`brick_alias`,`brick_path`) VALUES( 2, 'brick1','/data/streamy');
 
-UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
-UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'upload_brick' ;
-INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) VALUES (INET_ATON("127.0.0.1"),7000,1);
+-- UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'new_video_brick' ;
+-- UPDATE `global_settings` SET `int` = 1 WHERE `key` = 'upload_brick' ;
+-- INSERT INTO `ffmpeg_workers` (`ipv4`,`port`,`enabled`) VALUES (INET_ATON("127.0.0.1"),7000,1);
+

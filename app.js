@@ -17,6 +17,7 @@ var bodyParser = require('body-parser');
 var MediaMgr = require('./server/media.js');
 var SeriesMgr = require('./server/series.js');
 var MoviesMgr = require('./server/movies');
+var MovieDBMgr = require('./server/moviedb');
 var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
 var Users = require('./server/users');
@@ -49,11 +50,6 @@ if(process.argv.length <= 2){
   console.error("Moviedb key missing");
   process.exit(1);
 }
-
-console.log("API key: ",process.argv[2]);
-
-//For local use
-const MovieDB_KEY = process.argv[2];
 
 var mysql = require('mysql');
 var dbPool  = mysql.createPool({
@@ -92,13 +88,15 @@ async function startApp(){
   /////////// setup managers //////////////////////
   var processesMgr = new ProcessesMgr();
   var mediaMgr = new MediaMgr(dbMgr,processesMgr);
-  var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr);
-  var movieMgr = new MoviesMgr(dbMgr,settings,mediaMgr)
+  var movieDBMgr = new MovieDBMgr(settings)
+  var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr,movieDBMgr);
+  var movieMgr = new MoviesMgr(dbMgr,settings,mediaMgr,movieDBMgr)
 
   var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
   var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
   var userMgr = new Users(dbMgr)
   var bricksMgr = new Bricks(dbMgr)
+ 
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
   processesMgr.addWorkersFromDB(dbMgr,true);
@@ -312,6 +310,9 @@ async function startApp(){
   app.get('/storage.html', i18n.init, setupLocals, loggedIn, function (req, res) {
     res.render('templates/storage.html');
   })
+  app.get('/settings.html', i18n.init, setupLocals, loggedIn, function (req, res) {
+    res.render('templates/settings.html');
+  })
 
   //static files from node_modules
   app.get('/js/shaka/*', loggedIn, safePath, function (req, res) {
@@ -328,7 +329,8 @@ async function startApp(){
 
   // API key
   app.get('/moviedb/key', loggedIn, function (req, res) {
-    res.send(MovieDB_KEY);
+    
+    res.send(settings.global.tmdb_api_key);
   })
 
   ////////////////// Media //////////////
@@ -577,26 +579,28 @@ async function startApp(){
 
       //For the moment only moviedb id
       if(req.body.moviedbId != null){
+        try{
+          // prepare response
+          res.setHeader('Content-Type', 'application/json');
 
-        // prepare response
-        res.setHeader('Content-Type', 'application/json');
+          //Check if movie already exists
+          let mediaId = await movieMgr.findMovieFromMoviedbId(req.body.moviedbId);
+          if(mediaId){
+            res.status(200).send(JSON.stringify({id:mediaId}));
+            return;
+          }
 
-        //Check if movie already exists
-        let mediaId = await movieMgr.findMovieFromMoviedbId(req.body.moviedbId);
-        if(mediaId){
-          res.status(200).send(JSON.stringify({id:mediaId}));
-          return;
-        }
+          //The serie don't exist, create it
+          console.log("Adding a new movie");
 
-        //The serie don't exist, create it
-        console.log("Adding a new movie");
-        let dbId = await movieMgr.addMovieFromMovieDB(req.body.moviedbId);
-        if(dbId !== null){
+          let dbId = await movieMgr.addMovieFromMovieDB(req.body.moviedbId);
           res.status(201).send(JSON.stringify({id:dbId}));
-        }else{
-          console.error("Failed to add movie from ",req.body);
-          res.status(500).send('Cannot create movie');
+        } catch (e) {
+          console.error("Failing adding movie from TheMovieDB ",req.body.moviedbId,e);
+          res.status(500).send('Cannot create movie: '+e.message);
         }
+        
+
       }else{
         res.status(400).send('Unknown request');
       }
@@ -924,6 +928,35 @@ async function startApp(){
       res.status(400).send(err.message)
     }
   });
+
+  ////////////////// Settings  //////////////
+
+  app.get('/settings', loggedIn, async function (req, res) {
+    if(req.user && req.user.permissions.has("manage_settings")){ //TODO check rights
+      await settings.pullSettings();
+
+      res.setHeader('Content-Type', 'application/json');
+      //console.log(workers)
+      res.send(JSON.stringify(settings.global));
+    }
+  });
+
+  //Update settings
+  app.post('/settings', loggedIn, async function (req, res) {
+    if(req.user && req.user.permissions.has("manage_settings")){
+      try{
+        let global = req.body;
+        await settings.setGlobalSetting(global)
+        res.sendStatus(200);
+      }catch(err){
+        console.warn("Cannot update settings:",err)
+        res.status(400).send(err)
+      }
+    }else{
+      res.status(401).send("You don't have the permission to update settings")
+    }
+  });
+
   ////////////////// Processes  //////////////
 
   app.get('/transcoding_tasks', loggedIn, async function (req, res) {

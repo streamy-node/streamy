@@ -1,5 +1,5 @@
 var fs = require('fs');
-var moviedb = require('./moviedb.js');
+//var moviedb = require('./moviedb.js');
 const EventEmitter = require('events');
 var mysql = require('mysql');
 
@@ -142,13 +142,13 @@ class DBStructure extends EventEmitter{
         }
     }
 
-    async _import_genres(){ //TODO
-        let tmdbMovieGenres = await moviedb.genreMovieList({"language":"en-US"});
-        let tmdbSerieGenres = await moviedb.genreTvList({"language":"en-US"});
-        for(var i=0; i<tmdbMovieGenres.length; i++){
-            //let tvdbGenre = tmdbMovieGenres[i];
-        }
-    }
+    // async _import_genres(){ //TODO
+    //     let tmdbMovieGenres = await moviedb.genreMovieList({"language":"en-US"});
+    //     let tmdbSerieGenres = await moviedb.genreTvList({"language":"en-US"});
+    //     for(var i=0; i<tmdbMovieGenres.length; i++){
+    //         //let tvdbGenre = tmdbMovieGenres[i];
+    //     }
+    // }
 
     async query(sql){
         return await this._query(sql,this.con);
@@ -1300,6 +1300,24 @@ class DBStructure extends EventEmitter{
             return null
         }
     }
+
+    ////////////// Settings ///////////////////
+    async updateGlobalSettingString(key,value){
+        var sql = "UPDATE `global_settings` SET `string` = '"+value.replace(/'/g,"\\'")+
+        "' WHERE `key` = '"+key+"'";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async updateGlobalSettingInt(key,value){
+        var sql = "UPDATE `global_settings` SET `int` = "+value+
+        " WHERE `key` = '"+key+"'";
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
 
     ////////////// User DB ////////////////////
     async insertUser(username, password, roleId, qosPriority, email, phone = ""){

@@ -1,11 +1,14 @@
+const EventEmitter = require('events');
+
 class GLOBAL_SETTINGS{
     constructor(){
         this.new_video_brick = null;
         this.upload_brick = null;
     }
 }
-class SettingsMgr{
+class SettingsMgr extends EventEmitter{
     constructor(con){
+        super();
         this.con = con;
         this.global = new GLOBAL_SETTINGS();
         this.upload_path = null;
@@ -28,23 +31,51 @@ class SettingsMgr{
                 this.global.encoder_h264_profile = result[i].string;
             }else if(result[i].key === "encoder_h264_preset"){
                 this.global.encoder_h264_preset = result[i].string;
+            }else if(result[i].key === "tmdb_api_key"){
+                this.global.tmdb_api_key = result[i].string;
             }
-        }  
+        }
+        this.emit('setting_change',this.global)
     }
 
     getUploadPath(){
         return this.upload_path;
     }
 
-    async updateGlobalSettings(){
-        var sql_new_video_brick = "UPDATE `global_settings` SET "+
-        " `new_video_brick` = "+this.db.strdb(this.global.new_video_brick)
-        ;
-        var sql_upload_brick = "UPDATE `global_settings` SET "+
-        " `upload_brick` = "+this.db.strdb(this.global.upload_brick)
-        ;
+    async setGlobalSetting(gsettings){
+        
+        let id = await this.con.getBrick(gsettings.new_video_brick)
+        if(!id){
+            throw new Error("new_video_brick id not existing: ",gsettings.new_video_brick)
+        }
+        id = await this.con.getBrick(gsettings.upload_brick)
+        if(!id){
+            throw new Error("upload_brick id not existing: ")
+        }
+        if(gsettings.segment_duration < 1 || typeof gsettings.segment_duration != "number"){
+            throw new Error("segment_duration should be above 0 ")
+        }
+        if(gsettings.encoder_h264_profile.length == 0){
+            throw new Error("encoder_h264_profile should not be empty ")
+        }
+        if(gsettings.encoder_h264_preset.length == 0){
+            throw new Error("encoder_h264_preset should not be empty ")
+        }
+        if(gsettings.tmdb_api_key.length == 0){
+            throw new Error("tmdb_api_key should not be empty ")
+        }
+        this.global = gsettings;
+        await this.saveGlobalSettings();
+        this.emit('setting_change',gsettings)
+    }
 
-        await Promise.all([this.con.query(sql_new_video_brick),this.con.query(sql_upload_brick)]);
+    async saveGlobalSettings(){
+        await this.con.updateGlobalSettingInt("new_video_brick",this.global.new_video_brick);
+        await this.con.updateGlobalSettingInt("upload_brick",this.global.upload_brick);
+        await this.con.updateGlobalSettingInt("segment_duration",this.global.segment_duration);
+        await this.con.updateGlobalSettingString("encoder_h264_profile",this.global.encoder_h264_profile);
+        await this.con.updateGlobalSettingString("encoder_h264_preset",this.global.encoder_h264_preset);
+        await this.con.updateGlobalSettingString("tmdb_api_key",this.global.tmdb_api_key);
     }
 }
 

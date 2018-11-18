@@ -1,0 +1,80 @@
+<!-- Create movies content page skeleton -->
+<div id="tpl_users" >
+    <div class="container-fluid no-gutters nopad" >
+        <h1 >{{#__}}Settings{{/__}}</h1>
+
+        <ul class="list-group" id="settings_list">
+            <!-- settings here-->
+        </ul>
+
+        <button id="save_settings" type="button" class="btn btn-success mt-1 mr-2">{{#__}}Save{{/__}}</button>   
+    </div>
+</div>
+
+<!-- Templates -->
+<div id="setting_brick_select_tpl" class="hidden" >   
+    <li class="list-group-item d-flex align-items-center">
+        <div class="d-flex mr-auto align-items-center">
+            <div class="label min130pix mr-1">Upload brick</div>
+            <select class="options_list form-control">
+                <!-- bricks here-->
+            </select>
+        </div>
+    </li>
+</div>
+
+<div id="setting_h264_profile_tpl" class="hidden" >   
+    <li class="list-group-item d-flex align-items-center">
+        <div class="d-flex mr-auto align-items-center">
+            <div class="label min130pix mr-1">Offline H264 Profile</div>
+            <select class="options_list form-control">
+                <option value="baseline">baseline</option>
+                <option value="main">main</option>
+                <option value="high">high</option>
+            </select>
+        </div>
+    </li>
+</div>
+
+<div id="setting_h264_preset_tpl" class="hidden" >   
+    <li class="list-group-item d-flex align-items-center">
+        <div class="d-flex mr-auto align-items-center">
+            <div class="label min130pix mr-1">Offline H264 preset</div>
+            <select class="options_list form-control">
+                <option value="veryslow">veryslow</option>
+                <option value="slower">slower</option>
+                <option value="slow">slow</option>
+                <option value="medium">medium</option>
+                <option value="fast">fast</option>
+                <option value="faster">faster</option>
+                <option value="veryfast">veryfast</option>
+                <option value="superfast">superfast</option>
+                <option value="ultrafast">ultrafast</option>
+            </select>
+        </div>
+    </li>
+</div>
+
+<div id="setting_string_tpl" class="hidden" >   
+        <li class="list-group-item d-flex align-items-center">
+            <div class="d-flex mr-auto align-items-center">
+                <div class="label min130pix mr-1"></div>
+                <input type="text" class="string_val form-control min80pix" placeholder="" aria-describedby="descPwd">
+            </div>
+        </li>
+    </div>
+
+
+<!-- <div id="brick_tpl" class="hidden">   
+    <li class="list-group-item d-flex align-items-center">
+        <div class="d-flex mr-auto align-items-center">
+            <div class="brick_alias min80pix mr-1">someName</div>
+            <div class="brick_path ml-1" >/SomePath</div>
+        </div>
+        <div class="d-flex flex-wrap">
+            <button type="button" class="update_brick_btn btn btn-success material-icons mt-1 mr-2 d-none">save</button>
+            <button type="button" class="remove_brick_btn btn btn-danger material-icons mt-1 mr-2">delete</button>
+        </div>
+    </li>
+</div> -->
+
