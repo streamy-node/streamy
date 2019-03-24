@@ -141,8 +141,12 @@ lightDemo.initPlayer = function() {
     // Attach player to the window to make it easy to access in the JS console.
     //window.player = player;
 
-    // Listen for error events.
-    lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
+    lightDemo.player_.configure({
+      streaming: {
+        bufferingGoal: 120,
+        rebufferingGoal: 4
+      }
+    })
     
     lightDemo.loadMpdFiles();
     // Try to load a manifest.
