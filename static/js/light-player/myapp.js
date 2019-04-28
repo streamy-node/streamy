@@ -7,12 +7,12 @@ console.log("uri: ");
 var manifestUri = null;
 
 /**
- * The registered ID of the v2.3 Chromecast receiver demo.
+ * The registered ID of the v2.4 Chromecast receiver demo.
  * https://developers.google.com/cast/docs/registration
  * @const {string}
  * @private
  */
-lightDemo.CC_APP_ID_ = 'A15A181D';
+lightDemo.CC_APP_ID_ = '00A3C5E8';
 
 /** @private {shaka.cast.CastProxy} */
 lightDemo.castProxy_ = null;
@@ -49,7 +49,6 @@ let mpdGenId = lightDemo.getURLParameter_("mpd_gen_id");
 var protocol = location.protocol;
 var slashes = protocol.concat("//");
 var host = slashes.concat(window.location.hostname)+":"+location.port;
-
 //TODO prefered language
 // config.preferredAudioLanguage = document.getElementById('preferredAudioLanguage').value;
 // config.preferredTextLanguage = document.getElementById('preferredTextLanguage').value;
@@ -59,6 +58,7 @@ function addMPDAsset(mpdFile,index = null){
   if(index){
     title += " ("+index.toString()+")";
   }
+
   shakaAssets.enabledAssets.push({
     name: title,//TODO put explicit name
     manifestUri: host+mpdFile.filename,

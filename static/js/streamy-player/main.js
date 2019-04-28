@@ -79,7 +79,7 @@ shakaDemo.audioOnlyPoster_ =
 
 
 /**
- * The registered ID of the v2.3 Chromecast receiver demo.
+ * The registered ID of the v2.4 Chromecast receiver demo.
  * @const {string}
  * @private
  */
