@@ -1,6 +1,11 @@
 class BufferedSearch{
-    constructor(callback){
+    constructor(callback,searchDelay = 400){
         this.delayTimer = null;
+        this.callback = callback;
+        this.searchDelay = searchDelay;
+    }
+
+    setCallback(callback){
         this.callback = callback;
     }
     
@@ -9,7 +14,7 @@ class BufferedSearch{
         clearTimeout(this.delayTimer);
         this.delayTimer = setTimeout(function() {
             self.callback(text);
-        }, 400); // Will do the ajax stuff after 1000 ms, or 1 s
+        }, this.searchDelay); // Will do the ajax stuff after 400 ms
     };
 }
 
@@ -225,5 +230,33 @@ class TmdbSearch{
                 onError(data)
             }
         );
+    }
+}
+
+class BufferedSearchElement{
+
+    constructor(searchElement,searchCallback){
+        var self = this;
+        this.searchResults = [];
+        this.element = searchElement;
+
+        this.bufferedSearch = new BufferedSearch(function(inputData){
+            if(inputData.length > 1){
+                // Initialize
+                searchCallback(inputData);
+            }
+        });
+
+        searchElement.on('input', function() {
+            self.bufferedSearch.doSearch($(this).val());
+        });
+    }
+
+    setCallback(cb){
+        this.bufferedSearch.setCallback(cb)
+    }
+
+    disable(val){
+        this.element.disabled = val
     }
 }

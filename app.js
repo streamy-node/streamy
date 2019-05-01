@@ -128,7 +128,7 @@ async function startApp(){
         let authSuccess = await userMgr.checkUserPasswordSecure(username,password);
         if(!authSuccess){
           //TODO remove this warning in case user tap his pwd in username
-          console.warn("User failed to authentificate: "+username);
+          console.warn("User failed to authentificate: "+username.str.substring(0,20));
           done(null, false);
         }else{
           let user = await userMgr.getUserInfosByName(username)
@@ -320,6 +320,10 @@ async function startApp(){
 
   app.get('/css/material-icons/*', loggedIn, safePath, function (req, res) {
     res.sendFile(__dirname + '/node_modules/material-icons/css/' + req.params[0]);
+  })
+
+  app.get('/js/infinite-scroll/*', loggedIn, safePath, function (req, res) {
+    res.sendFile(__dirname + '/node_modules/infinite-scroll/dist/' + req.params[0]);
   })
 
   // API key
@@ -552,6 +556,8 @@ async function startApp(){
   app.get('/movies', loggedIn, async function (req, res) {
     if(req.user){ 
       var lang = req.query.lang;
+      var count = parseInt(req.query.count);
+      var offset = parseInt(req.query.offset);
       var userId = 1;//TODO get userId
 
       //Set default lang
@@ -559,7 +565,7 @@ async function startApp(){
         lang = 'en';
       }
       var langId = await dbMgr.getLangsId(lang);
-      let movies = await mediaMgr.getMediaListByCategory(4, langId, userId, "")
+      let movies = await mediaMgr.getMediaListByCategory(4, langId, userId, "",count,offset)
       //let series = await serieMgr.getSeriesInfos(lang);
 
       res.setHeader('Content-Type', 'application/json');

@@ -212,8 +212,8 @@ class MediaMgr{
         }
     }
 
-    async getMediaListByCategory(categoryId,langId, userId, sortKey){
-        let mediaFull = await this.con.getMediaFullList(categoryId, langId, userId, sortKey)
+    async getMediaListByCategory(categoryId,langId, userId, sortKey, count, offset){
+        let mediaFull = await this.con.getMediaFullList(categoryId, langId, userId, sortKey, count, offset)
         return mediaFull;
     }
 

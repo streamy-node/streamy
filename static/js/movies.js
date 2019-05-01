@@ -1,9 +1,10 @@
 class MoviesContent{
-    constructor(templates,sharedWebsocket){
+    constructor(templates,sharedWebsocket, mainSearch){
         this.movies;
         this.templates = templates;
         this.sws = sharedWebsocket;
         this.isInitialized = false;
+        this.mainSearch = mainSearch;
 
         //Progressions
         this.trElements = new Map()
@@ -44,25 +45,29 @@ class MoviesContent{
             this.isInitialized = true;
         }
 
+        self.setup(target);
+            
+        // self.mainSearch.elem.setCallback(function(){
+        //     // TODO
+        //     //self.setup(count=-1, offset=0, orderby="release_date", pattern="");
+        // })
+    }
+
+    setup(target, count=-1, offset=0, orderby="release_date", pattern="Atomic"){
+        var self = this;
         let templates = this.templates.movies;
         templates += this.templates.common;
         $(target).html(templates).ready(function(){
-            self.setup()
+            self.getMovies(function(results){
+                self.renderMovies_elements(results)
+                self.pullProgressions()
+            },count, offset, orderby, pattern)
         });
-        
-    }
-
-    setup(){
-        var self = this;
-        self.getMovies(function(results){
-            self.renderMovies_elements(results)
-            self.pullProgressions()
-        })
     }
 
     //HELPERS
-    getMovies(onResult, count=0, orderby="release_date", pattern=""){
-        $.getJSON( "movies/?count="+parseInt(count)+"&orderby="+orderby+"&pattern="+pattern, onResult);
+    getMovies(onResult, count=-1, offset=0, orderby="release_date", pattern=""){
+        $.getJSON( "movies/?count="+parseInt(count)+"&offset="+offset+"&orderby="+orderby+"&pattern="+pattern, onResult);
     }
 
     renderMovie_elements(mediaInfos){

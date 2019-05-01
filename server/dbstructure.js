@@ -346,7 +346,7 @@ class DBStructure extends EventEmitter{
         return sqlBase
     }
 
-    async getMediaFullList(categoryId, langCode, userId, sortKey){
+    async getMediaFullList(categoryId, langCode, userId, sortKey, count, offset){
         if(!this.checkId(categoryId)){
             console.error("getMedia: Invalid entries ");
             return null;
@@ -354,6 +354,14 @@ class DBStructure extends EventEmitter{
 
         let sql = this.getMediaBaseRequest(categoryId,langCode,userId,true)
         sql += " WHERE m.category_id = "+categoryId;
+
+        if(!isNaN(count) && count > 0){
+            sql += " LIMIT " + count
+        }
+
+        if(!isNaN(offset) && offset > 0 ){
+            sql += " OFFSET " + offset
+        }
         // var sql = "SELECT m.id FROM `media` m "+
         // " JOIN `media_"+this.categories.get(categoryId)+"` c ON m.id = c.media_id"+
         // " JOIN `bricks` b ON m.brick_id = b.id"+

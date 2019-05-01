@@ -2,8 +2,9 @@ class ContentManager{
   constructor(){
     this.langs = {};
     this.templates = {};
+    this.mainSearch = {};
     this.sharedWebsocket = new SharedWebSocket;
-    this.moviesMgr = new MoviesContent(this.templates,this.sharedWebsocket);
+    this.moviesMgr = new MoviesContent(this.templates,this.sharedWebsocket,this.mainSearch);
     this.movieMgr = new MovieContent(this.templates,this.sharedWebsocket);
     this.seriesMgr = new SeriesContent(this.templates);
     this.serieMgr = new SerieController(this.templates,this.sharedWebsocket);
@@ -151,6 +152,14 @@ class ContentManager{
     
     // TVDBKey
     theMovieDb.common.initialize();
+
+    // Setup main search bar
+    this.mainSearch.elem = new BufferedSearchElement($("#main_search"),function(text){
+      console.log("Searching for "+text);
+      
+
+      //this.type
+    }); 
   }
 
   updatePermissions(permissions){
@@ -164,6 +173,7 @@ class ContentManager{
       $('#settings_item').removeClass("d-none")
     }
   }
+
 }
 
 //Main entry point

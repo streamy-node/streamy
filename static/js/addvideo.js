@@ -29,7 +29,7 @@ class AddVideoConstroller{
 
         //Setup simple name search
         let mainSearchElem = new AddMediaItem(type);
-        this.appendToContainer(".main_search",mainSearchElem.render($(".add_file_tpl"),{},true));
+        this.appendToContainer(".add_search",mainSearchElem.render($(".add_file_tpl"),{},true));
         this.setupDropeZone();
 
         //restore uploading files
