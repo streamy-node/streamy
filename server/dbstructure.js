@@ -9,7 +9,31 @@ class DBStructure extends EventEmitter{
         this.con = null;
         this.dboptions = null;
         this.langs = new Map();
-        this.categories = new Map()
+        this.categories = new Map();
+
+        this.checkOrderBySet = new Set(["", "release_date", "added_date"]);
+    }
+
+    /////////// Utils //////////
+    checkId(id){
+        if (typeof id != "number") {
+            console.error('checkId: Id is not a number',id);
+            return false;
+        }
+        return true;
+    }
+
+    checkString(val,valsset){
+        return valsset.has(val)
+    }
+    
+
+    checkLangCode(langCode){
+        if(langCode.length != 2){
+            console.error("checkLangCode: Invalid lang code provided, "+langCode,langCode.length);
+            return false;
+        }
+        return true;
     }
 
     async initialize(pool){
@@ -346,8 +370,8 @@ class DBStructure extends EventEmitter{
         return sqlBase
     }
 
-    async getMediaFullList(categoryId, langCode, userId, sortKey, count, offset){
-        if(!this.checkId(categoryId)){
+    async getMediaFullList(categoryId, langCode, userId, sortKey, ascending, count, offset, pattern){
+        if(!this.checkId(categoryId) && this.checkOrderBySet(sortKey,this.checkOrderBySet)){
             console.error("getMedia: Invalid entries ");
             return null;
         }
@@ -355,13 +379,27 @@ class DBStructure extends EventEmitter{
         let sql = this.getMediaBaseRequest(categoryId,langCode,userId,true)
         sql += " WHERE m.category_id = "+categoryId;
 
-        if(!isNaN(count) && count > 0){
-            sql += " LIMIT " + count
+        if(pattern){
+            sql += " AND t.title LIKE '%"+mysql.escape(pattern)+"%'"
+        }
+        
+        if(sortKey){
+            sql += " ORDER BY `"+sortKey+"`";
+            if(!ascending){
+                sql += " DESC";
+            }
         }
 
-        if(!isNaN(offset) && offset > 0 ){
-            sql += " OFFSET " + offset
+        if(!isNaN(count) && count > 0){
+            sql += " LIMIT " + count
+
+            if(!isNaN(offset) && offset > 0 ){
+                sql += " OFFSET " + offset
+            }
         }
+
+        
+
         // var sql = "SELECT m.id FROM `media` m "+
         // " JOIN `media_"+this.categories.get(categoryId)+"` c ON m.id = c.media_id"+
         // " JOIN `bricks` b ON m.brick_id = b.id"+
@@ -371,10 +409,6 @@ class DBStructure extends EventEmitter{
         //     sql += " LEFT JOIN `media_progressions` p ON p.user_id = "+userId+" AND m.id = p.media_id"
         // }
         // sql += " WHERE m.category_id = "+categoryId;
-
-        if(sortKey){
-            sql += " ORDER BY "+sortKey;
-        }
 
         try{
             let results = await this.query(sql);
@@ -1506,21 +1540,5 @@ class DBStructure extends EventEmitter{
         return results; 
     } 
 
-    /////////// Utils //////////
-    checkId(id){
-        if (typeof id != "number") {
-            console.error('checkId: Id is not a number',id);
-            return false;
-        }
-        return true;
-    }
-
-    checkLangCode(langCode){
-        if(langCode.length != 2){
-            console.error("checkLangCode: Invalid lang code provided, "+langCode,langCode.length);
-            return false;
-        }
-        return true;
-    }
 }
 module.exports=DBStructure

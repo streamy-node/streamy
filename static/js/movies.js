@@ -9,6 +9,12 @@ class MoviesContent{
         //Progressions
         this.trElements = new Map()
         this.mediaActiveProcess = new Map();
+
+        this.orderby="added_date";
+        this.pattern=""
+
+        this.infiniteScroll = new InfiniteScroll()
+        
     }
 
     initialize(){
@@ -45,7 +51,7 @@ class MoviesContent{
             this.isInitialized = true;
         }
 
-        self.setup(target);
+        self.setup(target, 12, 0, this.orderby, this.pattern);
             
         // self.mainSearch.elem.setCallback(function(){
         //     // TODO
@@ -53,21 +59,37 @@ class MoviesContent{
         // })
     }
 
-    setup(target, count=-1, offset=0, orderby="release_date", pattern="Atomic"){
+    setup(target, count=-1, offset=0, orderby="added_date", pattern=""){
         var self = this;
         let templates = this.templates.movies;
         templates += this.templates.common;
         $(target).html(templates).ready(function(){
-            self.getMovies(function(results){
-                self.renderMovies_elements(results)
-                self.pullProgressions()
-            },count, offset, orderby, pattern)
+
+            var scrollElem =  $("#tpl_movies");
+            var scrollContent =  $(".scroll_content");
+
+            self.infiniteScroll.setup(scrollElem,scrollContent,34, function(batchLength, lastOffset,onResult){
+                self.addMore(batchLength, lastOffset, onResult)
+            });
         });
     }
 
+    addMore(batchLength, lastOffset, onResult){
+        var self = this;
+        self.getMovies(function(results){
+            if(results == 0){
+                onResult(0)
+                return 
+            }
+            self.renderMovies_elements(results)
+            self.pullProgressions()
+            onResult(results.length);
+        },batchLength, lastOffset, this.orderby, this.pattern)
+    }
+
     //HELPERS
-    getMovies(onResult, count=-1, offset=0, orderby="release_date", pattern=""){
-        $.getJSON( "movies/?count="+parseInt(count)+"&offset="+offset+"&orderby="+orderby+"&pattern="+pattern, onResult);
+    getMovies(onResult, count=-1, offset=0, orderby="added_date", ascending=false, pattern=""){
+        $.getJSON( "movies/?count="+parseInt(count)+"&offset="+offset+"&orderby="+orderby+"&ascending="+ascending+"&pattern="+pattern, onResult);
     }
 
     renderMovie_elements(mediaInfos){

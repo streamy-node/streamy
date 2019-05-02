@@ -9,7 +9,17 @@ body {
     background: #1f1f1f;
     padding-top: 60px;
     font-weight: 400;
+
+    overflow-y:hidden;
+    height:100vh;
 }
+
+
+
+.full_height{
+    height:100%;
+}
+
 
 /* Nav bar css */
 st_menu{
@@ -81,6 +91,23 @@ input[type=number]::-webkit-outer-spin-button {
 
 .download_progress{
     color: #3950d3;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll{
+    flex: 1 1 auto; /* div B should fit the remaining space */
+    overflow-y: auto; /* enable scroll bar when div D exceeds div B's height */
+    
+    /*overflow: scroll;
+    width: 100%;
+    height: 100px;*/
+}
+.overflow {
+    flex: 1 1 auto; /* div B should fit the remaining space */
+    overflow-y: auto; /* enable scroll bar when div D exceeds div B's height */
 }
 
 .status{
@@ -159,10 +186,11 @@ input[type=number]::-webkit-outer-spin-button {
 /* ---------------------------------------------------
     CONTENT STYLE
 ----------------------------------------------------- */
+
 #content {
     margin-top: 56;
     padding: 20px;
-    min-height: 100vh;
+    /*min-height: 100vh;*/
     transition: all 0.3s;
 }
 
