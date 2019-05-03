@@ -380,7 +380,7 @@ class DBStructure extends EventEmitter{
         sql += " WHERE m.category_id = "+categoryId;
 
         if(pattern){
-            sql += " AND t.title LIKE '%"+mysql.escape(pattern)+"%'"
+            sql += " AND t.title LIKE "+mysql.escape("%"+pattern+"%")
         }
         
         if(sortKey){

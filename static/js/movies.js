@@ -5,13 +5,13 @@ class MoviesContent{
         this.sws = sharedWebsocket;
         this.isInitialized = false;
         this.mainSearch = mainSearch;
+        this.pattern = "";
 
         //Progressions
         this.trElements = new Map()
         this.mediaActiveProcess = new Map();
 
         this.orderby="added_date";
-        this.pattern=""
 
         this.infiniteScroll = new InfiniteScroll()
         
@@ -51,15 +51,18 @@ class MoviesContent{
             this.isInitialized = true;
         }
 
-        self.setup(target, 12, 0, this.orderby, this.pattern);
+        self.setup(target);
             
-        // self.mainSearch.elem.setCallback(function(){
-        //     // TODO
-        //     //self.setup(count=-1, offset=0, orderby="release_date", pattern="");
-        // })
+        self.mainSearch.elem.setCallback(function(pattern){
+            console.log("Search: ",pattern)
+            self.pattern = pattern;
+            self.setup(target);
+             // TODO
+             //self.setup(count=-1, offset=0, orderby="release_date", pattern="");
+        })
     }
 
-    setup(target, count=-1, offset=0, orderby="added_date", pattern=""){
+    setup(target){
         var self = this;
         let templates = this.templates.movies;
         templates += this.templates.common;
@@ -84,7 +87,7 @@ class MoviesContent{
             self.renderMovies_elements(results)
             self.pullProgressions()
             onResult(results.length);
-        },batchLength, lastOffset, this.orderby, this.pattern)
+        },batchLength, lastOffset, this.orderby, this.ascending, this.pattern)
     }
 
     //HELPERS
