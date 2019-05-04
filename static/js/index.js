@@ -2,9 +2,9 @@ class ContentManager{
   constructor(){
     this.langs = {};
     this.templates = {};
-    this.mainSearch = {};
+    this.mainGuiElements = {};
     this.sharedWebsocket = new SharedWebSocket;
-    this.moviesMgr = new MoviesContent(this.templates,this.sharedWebsocket,this.mainSearch);
+    this.moviesMgr = new MoviesContent(this.templates,this.sharedWebsocket,this.mainGuiElements);
     this.movieMgr = new MovieContent(this.templates,this.sharedWebsocket);
     this.seriesMgr = new SeriesContent(this.templates);
     this.serieMgr = new SerieController(this.templates,this.sharedWebsocket);
@@ -74,6 +74,10 @@ class ContentManager{
   }
 
   setContent(div,type){
+    // Reset main search callback
+    this.mainGuiElements.mainSearch.reset()
+
+    // Set content according to hashtag
     if(type === "#movies"){
       this.moviesMgr.render(div);
     }else if(type === "#series"){
@@ -154,7 +158,7 @@ class ContentManager{
     theMovieDb.common.initialize();
 
     // Setup main search bar
-    this.mainSearch.elem = new BufferedSearchElement($("#main_search"),function(text){
+    this.mainGuiElements.mainSearch = new BufferedSearchElement($("#main_search"),function(text){
       console.log("Searching for "+text);
       
 

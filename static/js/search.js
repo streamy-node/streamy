@@ -256,6 +256,11 @@ class BufferedSearchElement{
         this.bufferedSearch.setCallback(cb)
     }
 
+    reset(){
+        this.setCallback(function(pattern){})
+        this.element.val('')
+    }
+
     disable(val){
         this.element.disabled = val
     }

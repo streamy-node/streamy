@@ -1,10 +1,10 @@
 class MoviesContent{
-    constructor(templates,sharedWebsocket, mainSearch){
+    constructor(templates,sharedWebsocket, mainGuiElements){
         this.movies;
         this.templates = templates;
         this.sws = sharedWebsocket;
         this.isInitialized = false;
-        this.mainSearch = mainSearch;
+        this.mainGuiElements = mainGuiElements;
         this.pattern = "";
 
         //Progressions
@@ -51,9 +51,10 @@ class MoviesContent{
             this.isInitialized = true;
         }
 
-        self.setup(target);
+        this.setup(target);
             
-        self.mainSearch.elem.setCallback(function(pattern){
+        this.pattern = "";
+        this.mainGuiElements.mainSearch.setCallback(function(pattern){
             console.log("Search: ",pattern)
             self.pattern = pattern;
             self.setup(target);
