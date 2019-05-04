@@ -1,18 +1,17 @@
-class TranscodingController{
+class TranscodingController extends ContentController{
     constructor(templates,sws){
+        super()
         this.templates = templates;
         this.tasksStatus = {};
-        this.isInitialized = false;
         this.sws = sws;
         this.div = null;
     }
 
-    render(div){
+    /**
+     * @override
+     */
+    _render(div){
         this.div = div;
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
 
         var self = this;
         $(div).html(this.templates.transcoding);
@@ -21,7 +20,10 @@ class TranscodingController{
         });
     }
 
-    initialize(){
+    /**
+     * @override
+     */
+    _initialize(){
         var self = this;
         //Websocket
         var ws_worker = this.sws.subscribe('/notifications/transcoding')

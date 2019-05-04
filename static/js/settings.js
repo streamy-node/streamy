@@ -1,16 +1,15 @@
-class SettingsController{
+class SettingsController extends ContentController{
     constructor(templates){
+        super()
         this.templates = templates;
         this.isInitialized = false;
         this.settings = {};
     }
 
-    render(div){
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
-
+    /**
+     * @override
+     */
+    _render(div){
         var self = this;
         $(div).html(this.templates.settings);
 
@@ -29,9 +28,6 @@ class SettingsController{
                 },false
             )
         });
-    }
-
-    initialize(){
     }
 
     renderSettings(settings){

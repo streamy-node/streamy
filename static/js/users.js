@@ -1,16 +1,14 @@
-class UsersController{
+class UsersController extends ContentController{
     constructor(templates,sws){
+        super()
         this.templates = templates;
-        this.isInitialized = false;
         this.sws = sws;
     }
 
-    render(div){
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
-
+    /**
+     * @override
+     */
+    _render(div){
         var self = this;
         $(div).html(this.templates.users);
 
@@ -31,9 +29,6 @@ class UsersController{
                 alert("Failed to add user "+response);
             },false)
         });
-    }
-
-    initialize(){
     }
 
     renderUsers(users){

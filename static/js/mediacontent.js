@@ -1,20 +1,20 @@
-class MediaContentController{
+class MediaContentController extends ContentController{
     constructor(templates,sws){
+        super()
         this.templates = templates;
         this.isInitialized = false;
         this.sws = sws;
         this.mediaId = null;
     }
 
-    render(div){
+    /**
+     * @override
+     * @param {*} div 
+     */
+    _render(div){
         var self = this;
         let mediaId = parseInt(location.hash.substr(14));
         this.mediaId = mediaId;
-
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
 
         $(div).html(this.templates.mediacontent);
 
@@ -33,10 +33,6 @@ class MediaContentController{
         });
 
         /// Global button setup
-    }
-
-    initialize(){
-
     }
 
     renderMpdFolders(mpdInfos){

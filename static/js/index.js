@@ -2,11 +2,17 @@ class ContentManager{
   constructor(){
     this.langs = {};
     this.templates = {};
+
+    // This object contains all main ui elements that can be used by controllers
     this.mainGuiElements = {};
+    
+    // Websocket used for progression, notification, ...
     this.sharedWebsocket = new SharedWebSocket;
+
+    // Setup all content controllers for all sections
     this.moviesMgr = new MoviesContent(this.templates,this.sharedWebsocket,this.mainGuiElements);
     this.movieMgr = new MovieContent(this.templates,this.sharedWebsocket);
-    this.seriesMgr = new SeriesContent(this.templates);
+    this.seriesMgr = new SeriesContent(this.templates,this.mainGuiElements);
     this.serieMgr = new SerieController(this.templates,this.sharedWebsocket);
     this.workersMgr = new WorkerController(this.templates,this.sharedWebsocket);
     this.mediaContentMgr = new MediaContentController(this.templates,this.sharedWebsocket);
@@ -17,6 +23,11 @@ class ContentManager{
     this.settingsMgr = new SettingsController(this.templates);
   }
 
+  /**
+   * Load all HTML templates
+   * @param {*} code 
+   * @param {*} onSuccess 
+   */
   load(code,onSuccess){
     var self = this;
     this.loadTemplates((templates)=>{
@@ -30,6 +41,10 @@ class ContentManager{
     })
   }
 
+  /**
+   * Load in 
+   * @param {*} onSuccess 
+   */
   loadTemplates(onSuccess){
     var self = this;
     $.when(
@@ -76,12 +91,13 @@ class ContentManager{
   setContent(div,type){
     // Reset main search callback
     this.mainGuiElements.mainSearch.reset()
+    this.mainGuiElements.mainSearch.hide()
 
     // Set content according to hashtag
     if(type === "#movies"){
       this.moviesMgr.render(div);
     }else if(type === "#series"){
-      this.seriesMgr.renderSeries(div);
+      this.seriesMgr.render(div);
     }else if(type === "#addserie"){
       this.addVideoMgr.render(div,"serie");
     }else if(type === "#addmovie"){

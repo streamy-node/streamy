@@ -1,15 +1,14 @@
-class StorageController{
+class StorageController extends ContentController{
     constructor(templates,sws){
+        super()
         this.templates = templates;
-        this.isInitialized = false;
         this.sws = sws;
     }
 
-    render(div){
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
+    /**
+     * @override
+     */
+    _render(div){
 
         var self = this;
         $(div).html(this.templates.storage);
@@ -31,9 +30,6 @@ class StorageController{
                 alert("Failed to add brick "+response);
             },false)
         });
-    }
-
-    initialize(){
     }
 
     renderBricks(bricks){

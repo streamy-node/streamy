@@ -1,6 +1,7 @@
 
-class MovieContent{
+class MovieContent extends ContentController{
     constructor(templates,sharedWebsocket){
+        super()
         this.templates = templates;
         this.blocks = new Map();
         this.mediaActiveProcess = new Map();
@@ -8,11 +9,12 @@ class MovieContent{
         this.sws = sharedWebsocket;
         this.div = null;
         this.mediaId = null;
-        this.isInitialized = false;
-        
     }
 
-    initialize(){
+    /**
+     * @override
+     */
+    _initialize(){
         var self = this;
         //Websocket
         var ws_transcoding = this.sws.subscribe('/notifications/transcoding')
@@ -35,14 +37,11 @@ class MovieContent{
       });
     }
 
-    render(div){
+    /**
+     * @override
+     */
+    _render(div){
         this.div = div;
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
-
-        var self = this;
         $(div).html(this.templates.movie);
         this.setup();
     }

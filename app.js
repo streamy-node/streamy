@@ -465,8 +465,13 @@ async function startApp(){
 
   // get series
   app.get('/series', loggedIn, async function (req, res) {
-    if(req.user){ //TODO check rights
+    if(req.user){
       var lang = req.query.lang;
+      var count = parseInt(req.query.count);
+      var offset = parseInt(req.query.offset);
+      var orderby = req.query.orderby;
+      var ascending = (req.query.ascending == true);
+      var pattern =req.query. pattern;
       var userId = 1;//TODO get userId
 
       //Set default lang
@@ -474,7 +479,7 @@ async function startApp(){
         lang = 'en';
       }
       var langId = await dbMgr.getLangsId(lang);
-      let series = await mediaMgr.getMediaListByCategory(1, langId, userId, "")
+      let series = await mediaMgr.getMediaListByCategory(1, langId, userId, orderby, ascending, count, offset, pattern)
       //let series = await serieMgr.getSeriesInfos(lang);
 
       res.setHeader('Content-Type', 'application/json');

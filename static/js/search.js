@@ -264,4 +264,12 @@ class BufferedSearchElement{
     disable(val){
         this.element.disabled = val
     }
+
+    hide(){
+        this.element.hide()
+    }
+
+    show(){
+        this.element.show()
+    }
 }

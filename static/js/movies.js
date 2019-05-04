@@ -1,9 +1,9 @@
-class MoviesContent{
+class MoviesContent extends ContentController{
     constructor(templates,sharedWebsocket, mainGuiElements){
-        this.movies;
+        super()
         this.templates = templates;
-        this.sws = sharedWebsocket;
-        this.isInitialized = false;
+
+        // Search
         this.mainGuiElements = mainGuiElements;
         this.pattern = "";
 
@@ -11,13 +11,19 @@ class MoviesContent{
         this.trElements = new Map()
         this.mediaActiveProcess = new Map();
 
-        this.orderby="added_date";
-
+        // Results grid
+        this.orderby="added_date"
         this.infiniteScroll = new InfiniteScroll()
-        
+        this.ascending = false
+
+        // Progressions
+        this.sws = sharedWebsocket;
     }
 
-    initialize(){
+    /**
+     * @override
+     */
+    _initialize(){
         var self = this;
         //Websocket
         var ws_transcoding = this.sws.subscribe('/notifications/transcoding')
@@ -33,23 +39,15 @@ class MoviesContent{
         });
     }
 
-    pullProgressions(){
-        var self = this;
-        $.getJSON("transcoding_tasks",function(data){
-            self.updateProgressions(data);
-            
-      });
-    }
-
-    render(target){
+    /**
+     * 
+     * @param {*} target 
+     * @override
+     */
+    _render(target){
         var self = this;
         this.trElements = new Map();
         this.mediaActiveProcess = new Map();
-
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
 
         this.setup(target);
             
@@ -58,24 +56,33 @@ class MoviesContent{
             console.log("Search: ",pattern)
             self.pattern = pattern;
             self.setup(target);
-             // TODO
-             //self.setup(count=-1, offset=0, orderby="release_date", pattern="");
         })
+        this.mainGuiElements.mainSearch.show()
+    }
+
+    renderHTML(target){
+        let templates = this.templates.movies;
+        templates += this.templates.common;
+        return $(target).html(templates);
     }
 
     setup(target){
         var self = this;
-        let templates = this.templates.movies;
-        templates += this.templates.common;
-        $(target).html(templates).ready(function(){
-
+        this.renderHTML(target).ready(function(){
             var scrollElem =  $("#tpl_movies");
             var scrollContent =  $(".scroll_content");
-
             self.infiniteScroll.setup(scrollElem,scrollContent,34, function(batchLength, lastOffset,onResult){
                 self.addMore(batchLength, lastOffset, onResult)
             });
         });
+    }
+
+    _pullProgressions(){
+        var self = this;
+        $.getJSON("transcoding_tasks",function(data){
+            self.updateProgressions(data);
+            
+      });
     }
 
     addMore(batchLength, lastOffset, onResult){
@@ -86,7 +93,7 @@ class MoviesContent{
                 return 
             }
             self.renderMovies_elements(results)
-            self.pullProgressions()
+            self._pullProgressions()
             onResult(results.length);
         },batchLength, lastOffset, this.orderby, this.ascending, this.pattern)
     }
@@ -119,8 +126,6 @@ class MoviesContent{
         for(let i=0; i<seriesInfos.length; i++){ 
             $("#all_movies").append(this.renderMovie_elements(seriesInfos[i]));
         }
-
-        //$("#all_movies").append(row);
     }
 
     updateProcess(progress){

@@ -1,17 +1,15 @@
-class WorkerController{
+class WorkerController extends ContentController{
     constructor(templates,sws){
+        super()
         this.templates = templates;
         this.workersStatus = {};
-        this.isInitialized = false;
         this.sws = sws;
     }
 
-    render(div){
-        if(!this.isInitialized){
-            this.initialize();
-            this.isInitialized = true;
-        }
-
+    /**
+     * @override
+     */
+    _render(div){
         var self = this;
         $(div).html(this.templates.workers);
         $.getJSON( "workers", function( workers ) {
@@ -29,7 +27,10 @@ class WorkerController{
         });
     }
 
-    initialize(){
+    /**
+     * @override
+     */
+    _initialize(){
         var self = this;
         //Websocket
         //var ws = io('/notifications/workers');
