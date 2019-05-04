@@ -65,6 +65,9 @@ class SerieController extends ContentController{
         template.find(".season_name").append(seasonInfos.title);
         template.find(".panel-collapse").attr("id","collapse_"+seasonInfos.season_number.toString());
 
+        if(seasonInfos.season_number==6){
+            console.log("here")
+        }
         for(var i=0; i<seasonInfos.children.length; i++){
             let episode = seasonInfos.children[i];
             let ep_tpl = $("#serie_episode_tpl").clone();
@@ -80,8 +83,8 @@ class SerieController extends ContentController{
             ep_tpl.find(".episode_title").text(episode.title);
             ep_tpl.find(".episode_overview").text(episode.overview);
 
-            ep_tpl.find(".overview-expand").attr("href","#collapse_overview_"+episode.episode_number.toString());
-            ep_tpl.find(".episode_overview").attr("id","collapse_overview_"+episode.episode_number.toString());
+            ep_tpl.find(".overview-expand").attr("href","#collapse_overview_"+seasonInfos.season_number.toString()+"_"+episode.episode_number.toString());
+            ep_tpl.find(".episode_overview").attr("id","collapse_overview_"+seasonInfos.season_number.toString()+"_"+episode.episode_number.toString());
 
             //console.log("ep_tpl.html():",ep_tpl.html());
             template.find(".list-group").append(ep_tpl);

@@ -87,6 +87,10 @@ class MoviesMgr{
         }
     }
 
+    async refreshContent(media){
+        return await this.mediaMgr.refreshMediaById(media.id);
+    }
+
     generateMoviePath(name,release_date){
         return "movies/" + fsutils.cleanFileName(name) + " ("+release_date.getFullYear()+")"
     }

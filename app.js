@@ -368,7 +368,7 @@ async function startApp(){
     //let output = await mediaMgr.refreshMediaById(id);
 
     res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(output));
+    res.send(JSON.stringify({}));
   })
   // app.get('/media/:mediaId/*', safePath, async function (req, res) {
   //   //TODO improve performances by caching requests

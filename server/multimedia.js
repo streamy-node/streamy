@@ -18,7 +18,7 @@ class MultiMediaMgr{
         if(this.registredMgr.has(media.category_id)){
             let specificMgr = this.registredMgr.get(media.category_id);
 
-            specificMgr.refreshContent(media);
+            await specificMgr.refreshContent(media);
         }else{
 
         }
