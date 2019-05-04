@@ -414,6 +414,18 @@ class MediaMgr{
     }
 
     async refreshMedia(media){
+        // Refresh contents
+
+        // Refresh MPD
+        let mpdsInfos = await this.refreshMediaAllMpd(media);
+
+        return mpdsInfos;
+    }
+
+    // This function works only on movies because it looks only at sub media (so season not
+    //  episodes)
+    //
+    async refreshMediaAllMpd(media){ 
         let mpdsInfos = [];
         let mpdFolders = await this.getFsMpdFolders(media,false);
         for(let i=0; i<mpdFolders.length;i++){
@@ -449,7 +461,7 @@ class MediaMgr{
 
         //Upgrade mpd if necessary
         if(!mpdInfos.mpd.sanity.isSane){
-            console.log("Mpd upgraded ",mpdInfos.mpd_id)
+            console.log("Upgrading Mpd ",mpdInfos.mpd_id)
             await mpdUtils.upgradeMpd(this.processManager,mpdInfos.mpd)
         }
         

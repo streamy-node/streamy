@@ -15,6 +15,7 @@ var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
 
 var MediaMgr = require('./server/media.js');
+var MultiMediaMgr = require('./server/multimedia.js');
 var SeriesMgr = require('./server/series.js');
 var MoviesMgr = require('./server/movies');
 var MovieDBMgr = require('./server/moviedb');
@@ -82,6 +83,7 @@ async function startApp(){
 
   /////////// setup managers //////////////////////
   var processesMgr = new ProcessesMgr();
+  var multiMediaMgr = new MultiMediaMgr(dbMgr);
   var mediaMgr = new MediaMgr(dbMgr,processesMgr);
   var movieDBMgr = new MovieDBMgr(settings)
   var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr,movieDBMgr);
@@ -91,6 +93,9 @@ async function startApp(){
   var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
   var userMgr = new Users(dbMgr)
   var bricksMgr = new Bricks(dbMgr)
+
+  multiMediaMgr.registerMediaMgr(serieMgr,1)
+  multiMediaMgr.registerMediaMgr(movieMgr,4)
  
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
@@ -359,7 +364,8 @@ async function startApp(){
   app.post('/media/:id/refresh', loggedIn, async function (req, res) {
     //let type = req.params.type;
     let id = parseInt(req.params.id);
-    let output = await mediaMgr.refreshMediaById(id);
+    let output = await multiMediaMgr.refreshMediaById(id);
+    //let output = await mediaMgr.refreshMediaById(id);
 
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
@@ -534,7 +540,7 @@ async function startApp(){
         res.setHeader('Content-Type', 'application/json');
 
         //Check if serie already exists
-        let mediaId = await serieMgr.findSerieFromMoviedbId(req.body.moviedbId);
+        let mediaId = await dbMgr.findSerieFromMoviedbId(req.body.moviedbId);
         if(mediaId){
           res.status(200).send(JSON.stringify({id:mediaId}));
           return;

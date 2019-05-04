@@ -549,6 +549,21 @@ class DBStructure extends EventEmitter{
         return id;
     }
 
+    async updateMediaTranslation(media_id,lang_id,title,overview){
+        if( !this.checkId(media_id) || !this.checkId(lang_id)){
+            console.error("insertMediaTranslation: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `media_translations` "
+        + " SET `title`='"+title.replace(/'/g,"\\'")+"', "
+        +" `overview`='"+overview.replace(/'/g,"\\'")+"'"
+        + " WHERE `media_id`="+media_id+" AND `lang_id`="+lang_id;
+
+        var sqlres = await this.query(sql);
+        var id = sqlres;
+        return id;
+    }
+
     async getSerieSeasons(serieId,langCode){
         if(!this.checkId(serieId) || !this.checkId(langCode)){
             console.error("getSerieSeasons: Invalid entries ");
@@ -601,6 +616,34 @@ class DBStructure extends EventEmitter{
             return null;
         }else{
             return results;
+        }
+    }
+
+    async findSerieFromMoviedbId(movieDBId){
+        if(!this.checkId(movieDBId)){
+            return null;
+        }
+        var sql = "SELECT media_id FROM series_moviedb "+
+        " WHERE moviedb_id="+movieDBId;
+        let result = await this.query(sql);
+        if(result.length > 0){
+            return result[0].media_id;
+        }else{
+            return null;
+        }
+    }
+
+    async findMoviedbIdFromSerie(serieId){
+        if(!this.checkId(serieId)){
+            return null;
+        }
+        var sql = "SELECT moviedb_id FROM series_moviedb "+
+        " WHERE media_id="+serieId;
+        let result = await this.query(sql);
+        if(result.length > 0){
+            return result[0].moviedb_id;
+        }else{
+            return null;
         }
     }
 
@@ -955,6 +998,24 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async updateSerie(media_id,number_of_seasons,number_of_episodes){
+        try{
+            if( (!this.checkId(media_id) )){
+                console.error("updateSerie: Invalid entries ");
+                return null;
+            }
+            var sql = "UPDATE `media_series`"+
+            " SET `number_of_seasons`="+number_of_seasons+", `number_of_episodes`="+number_of_episodes+""+
+            " WHERE `media_id` = "+media_id
+            var sqlres = await this.query(sql);
+            var id = sqlres;
+            return id;
+        }catch(err){
+            console.error('updateSerie failed'+media_id,err)
+            return null;
+        }
+    }
+
     async insertSeason(media_id,season_number,number_of_episodes){
         if( !this.checkId(media_id)){
             console.error("insertSeason: Invalid entries ");
@@ -962,6 +1023,20 @@ class DBStructure extends EventEmitter{
         }
         var sql = "INSERT INTO `media_seasons` (`media_id`,`season_number`,`number_of_episodes`) "+
         " VALUES ("+media_id+", "+season_number+", "+number_of_episodes+")";
+
+        var sqlres = await this.query(sql);
+        var id = sqlres.insertId;
+        return id;
+    }
+
+    async updateSeason(media_id,season_number,number_of_episodes){
+        if( !this.checkId(media_id)){
+            console.error("updateSeason: Invalid entries ");
+            return null;
+        }
+        var sql = "UPDATE `media_seasons`"+
+        " SET `number_of_episodes`="+number_of_episodes+
+        " WHERE `media_id`="+media_id+" AND `season_number`="+season_number;
 
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;

@@ -35,5 +35,14 @@
 	"Start": "Start",
 	"Connect": "Connect",
 	"Add": "Add",
-	"MediaContent":"Media Content"
+	"MediaContent": "Media Content",
+	"Storage": "Storage",
+	"or": "or",
+	"AddUser": "AddUser",
+	"Name": "Name",
+	"Group": "Group",
+	"AddBrick": "AddBrick",
+	"Alias": "Alias",
+	"SharedPath": "SharedPath",
+	"Save": "Save"
 }

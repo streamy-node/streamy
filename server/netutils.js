@@ -16,12 +16,27 @@ const download = async function(url, filename, replace = true) {
 };
 
 const downloadCB = function(uri, filename, onResult){
-    request(uri).pipe(fs.createWriteStream(filename))
-        .on('close', function(){
-            onResult(null)
+    var req = request(uri)
+        .on('response', function(response) {
+            if(response.statusCode >= 300){
+                console.error("Failed to download ",uri, "status: ",response.statusCode);
+            }else{
+                req.pipe(fs.createWriteStream(filename))
+                .on('error', function(err){
+                    console.log("Error",err) // 
+                    onResult(err)
+                })
+                .on('close', function(){
+                    onResult(null)
+                });
+            }
         })
         .on('error', function(err){
+            console.log("Error",err) // 
             onResult(err)
+        })
+        .on('close', function(){
+            onResult(null)
         });
 };
 

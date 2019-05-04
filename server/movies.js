@@ -68,7 +68,7 @@ class MoviesMgr{
                 movieInfos.langs.en.overview)
 
             
-            if(await this.mediaMgr.createFS(mediaId,movieInfos)){
+            if(await this.mediaMgr.createFS(mediaId)){
                 try{
                     await this.downloadFanarts(mediaId,fanarts);
                 }catch(err){

@@ -17,6 +17,165 @@ class SeriesMgr{
 
     init(){
     }
+
+    async refreshContentTMDB(serieMedia){
+        // Get media tmdb id
+        let tmdbId = await this.con.findMoviedbIdFromSerie(serieMedia.id);
+        
+        if(tmdbId == null){
+            console.error("Cannot refresh media "+serieMedia.original_name+" with unknown TMDB id");
+            return;
+        }
+
+        // Fetch info from tmdb
+        let tmdbContent = await this.fetchSerieContentFromTMDB(tmdbId);
+
+        let seriePath = serieMedia.path;
+        let serieMediaId = serieMedia.id;
+
+        return await this._refreshContent(serieMediaId,tmdbContent.infos,tmdbContent.images)
+    }
+
+    async refreshContent(serieMedia){
+        return await this.refreshContentTMDB(serieMedia);
+    }
+    async _refreshContent(mediaId, serieInfos,serieImages){
+
+        if(!serieInfos){
+            console.error("Cannot refresh content without series Infos")
+            return;
+        }
+
+        //TODO manage multilang add english by default
+        let langId = 1
+
+        // Get previous infos
+        let dbSerieInfos = await this.mediaMgr.getMediaInfos(mediaId,langId, 0, null, [])
+        let sortKeyDepth = ["season_number","episode_number"]
+        let dbSeasonsInfos = await this.mediaMgr.getChildrenMediaInfos(mediaId,langId, 1, null, sortKeyDepth);
+        let seriePath = dbSerieInfos.path;
+
+        // Update episodes and seasons numbers
+        if(dbSerieInfos.number_of_episodes < serieInfos.number_of_episodes){
+            // Update episodes and seasons numbers
+            await this.con.updateSerie(mediaId,
+                serieInfos.number_of_seasons,
+                serieInfos.number_of_episodes);
+        }
+
+        // Update main translations
+        //TODO manage multilang add english by default
+        if(!serieInfos.langs.en){
+            console.error("Serie lang other than english not implemented")
+            return null;
+        }
+
+        if(serieInfos.langs.en.title.length > 0 &&
+            serieInfos.langs.en.overview.length > 0){
+            await this.con.updateMediaTranslation(mediaId,langId,serieInfos.langs.en.title,
+                serieInfos.langs.en.overview)
+        }else{
+            console.warn("Cannot refresh translation with empty values")
+        }
+
+        // Update seasons
+        for(var i=0; i<serieInfos.seasons.length; i++){
+            let seasonInfo = serieInfos.seasons[i];
+            let seasonName = seasonInfo.langs[Object.keys(seasonInfo.langs)[0]].title
+            let seasonPath = seriePath+"/"+this.generateSeasonSubPath(seasonInfo.season_number)
+            let seasonMediaId = null;
+
+            let dbSeason = null;
+            for(let i=0; i < dbSeasonsInfos.length; i++){
+                let season = dbSeasonsInfos[i]
+                if(season.season_number == seasonInfo.season_number){
+                    dbSeason = season;
+                    break
+                }
+            }
+            // If the season is already here
+            if(dbSeason){
+                seasonMediaId = dbSeason.media_id;
+                if(seasonInfo.number_of_episodes > dbSeason.number_of_episodes){
+                    console.log("Adding new episodes to season "+dbSerieInfos.original_name)
+                    await this.con.updateSeason(seasonMediaId,dbSeason.season_number,seasonInfo.number_of_episodes)
+                }
+            }else{
+                // The season is new
+                console.log("Adding new season to "+dbSerieInfos.original_name)
+                seasonMediaId = await this.con.insertMedia(seasonInfo.release_date,
+                    0,
+                    0,
+                    seasonName,
+                    dbSerieInfos.original_language,
+                    "",
+                    dbSerieInfos.brick_id,
+                    0,
+                    0,
+                    seasonPath,
+                    2,
+                    mediaId);
+    
+                let seasonId = await this.con.insertSeason(seasonMediaId,seasonInfo.season_number,seasonInfo.number_of_episodes)
+
+                //TODO manage multilang add english by default
+                langId = 1
+                if(!seasonInfo.langs.en){
+                    console.error("Serie lang other than english not implemented")
+                    return null;
+                }
+                await this.con.insertMediaTranslation(seasonMediaId,langId,seasonInfo.langs.en.title,
+                    seasonInfo.langs.en.overview)
+            }
+            
+            //Add episodes
+            for(var j=0; j<seasonInfo.episodes.length; j++){
+                let episode = seasonInfo.episodes[j];
+                let easyName = dbSerieInfos.original_name+" S"+seasonInfo.season_number+"E"+episode.episode_number;
+                let episodePath = seasonPath+"/"+this.generateEpisodeSubPath(episode.episode_number)
+                
+                if(dbSeason && dbSeason.children.length > j){
+                    //Episode already existing, do nothing for now
+                }else{
+                    //New episode
+                    let episodeMediaId = await this.con.insertMedia(episode.release_date,
+                        episode.rating,
+                        episode.rating_count,
+                        episode.original_name,
+                        serieInfos.original_language,
+                        easyName,
+                        dbSerieInfos.brick_id,
+                        0,
+                        1,
+                        episodePath,
+                        3,
+                        seasonMediaId);
+                    let episode_id = await this.con.insertEpisode(episodeMediaId,
+                        episode.episode_number);
+    
+                    //TODO manage multilang add english by default
+                    langId = 1
+                    if(!episode.langs.en){
+                        console.error("Serie lang other than english not implemented")
+                        return null;
+                    }
+                    await this.con.insertMediaTranslation(episodeMediaId,langId,episode.langs.en.title,
+                        episode.langs.en.overview)
+                }
+            }
+        }     
+
+        if(await this.mediaMgr.createFS(mediaId,serieInfos)){
+            try{
+                await this.downloadFanarts(mediaId,serieImages);
+            }catch(err){
+                console.error("Failed to download some fanarts");
+            }
+        }
+
+        console.log("Serie refreshed: ",dbSerieInfos.original_name);
+        return true;
+    }
     
     async addSerie(serieInfos,serieImages,brickId = null,serieHints){
         //Check if serie is already in an adding state (the original name is suffiscient)
@@ -202,16 +361,11 @@ class SeriesMgr{
     }
 
     generateTMDBImageUrl(imgId,size){
-        return "https://image.tmdb.org/t/p/w"+size.toString()+""+imgId;
+        return "https://image.tmdb.org/t/p/w"+size.toString()+imgId;
     }
 
-    async addSerieFromMovieDB(movieDBId,brickId = null){
-        //Check if serie already added
-        let serieId = await this.findSerieFromMoviedbId(movieDBId);
-        if(serieId){
-            console.error("Failing adding serie with TheMovieDB id already used");
-            return null
-        }
+    async fetchSerieContentFromTMDB(movieDBId){
+        var serieContent = {};
         try{
             //Retreive infos from the movie db
             let tmdbInfos = await this.moviedb.tvInfo({"id":movieDBId,"langage":"en"});
@@ -284,9 +438,27 @@ class SeriesMgr{
                 serieInfos.seasons.push(season);
                 serieImages.seasons.push(seasonImages);
             }
+            serieContent.infos = serieInfos;
+            serieContent.images = serieImages; 
+            return serieContent;
+        }catch(err){
+            console.error("Failing fetch serie from TheMovieDB",movieDBId,err);
+            return null
+        }
+    }
+
+    async addSerieFromMovieDB(movieDBId,brickId = null){
+        //Check if serie already added
+        let serieId = await this.con.findSerieFromMoviedbId(movieDBId);
+        if(serieId){
+            console.error("Failing adding serie with TheMovieDB id already used");
+            return null
+        }
+        try{
+            let tmdbContent = await this.fetchSerieContentFromTMDB(movieDBId);
 
             //Add serie
-            let mediaId = await this.addSerie(serieInfos,serieImages,brickId);
+            let mediaId = await this.addSerie(tmdbContent.infos,tmdbContent.images,brickId);
 
             if(mediaId !== null){
                 //Add link with moviedb to avoid ducplicates
@@ -306,19 +478,7 @@ class SeriesMgr{
         }
     }
 
-    async findSerieFromMoviedbId(movieDBId){
-        if(!this.con.checkId(movieDBId)){
-            return null;
-        }
-        var sql = "SELECT media_id FROM series_moviedb "+
-        " WHERE moviedb_id="+movieDBId;
-        let result = await this.con.query(sql);
-        if(result.length > 0){
-            return result[0].media_id;
-        }else{
-            return null;
-        }
-    }
+
 
 
 }
