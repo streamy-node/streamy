@@ -2,7 +2,7 @@ var fs = require('fs')
 var path = require('path')
 var util = require('util')
 var Stream = require('stream').Stream
-var fsutils = require('./fsutils')
+var fsutils = require('./utils/fsutils')
 const shortId = require('shortid');
 
 class Resumable{

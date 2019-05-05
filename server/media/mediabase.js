@@ -1,13 +1,9 @@
-//var moviedb = require('./moviedb.js');
-var path = require('path');
-var fsutils = require('./fsutils.js');
-var netutils = require('./netutils.js');
-var jsutils = require('./jsutils')
+var fsutils = require('../utils/fsutils.js');
+var netutils = require('../utils/netutils.js');
+var MPDFile = require("../transcoding/mpdutils").MPDFile;
+var mpdUtils = require("../transcoding/mpdutils").MPDUtils;
 
-var MPDFile = require("./transcoding/mpdutils").MPDFile;
-var mpdUtils = require("./transcoding/mpdutils").MPDUtils;
-
-class MediaMgr{
+class MediaBase{
     constructor(dbmanager,processManager){
         this.con = dbmanager;
         this.processManager = processManager;
@@ -310,9 +306,9 @@ class MediaMgr{
             }
 
             var downloads = [];
-            if("fanart500" in images) downloads.push(netutils.download(images.fanart500,absoluteMediaPath+"/fanart/img500.jpg",false));
-            if("fanart300" in images) downloads.push(netutils.download(images.fanart300,absoluteMediaPath+"/fanart/img300.jpg",false));
-            if("fanart200" in images) downloads.push(netutils.download(images.fanart200,absoluteMediaPath+"/fanart/img200.jpg",false));
+            if("fanart500" in images && images.fanart500) downloads.push(netutils.download(images.fanart500,absoluteMediaPath+"/fanart/img500.jpg",false));
+            if("fanart300" in images && images.fanart300) downloads.push(netutils.download(images.fanart300,absoluteMediaPath+"/fanart/img300.jpg",false));
+            if("fanart200" in images && images.fanart200) downloads.push(netutils.download(images.fanart200,absoluteMediaPath+"/fanart/img200.jpg",false));
 
             if(downloads.length == 0){
                 console.warn("No fanart images provided for ",absoluteMediaPath)
@@ -399,25 +395,35 @@ class MediaMgr{
         }
         let mediaList = await this.con.getMediaUsingMpdOnBrick(brickId);
         for(let i=0; i<mediaList.length; i++){
-            await this.refreshMedia(mediaList[i]);
+            await this.refreshMediaAllMpd(mediaList[i]);
         }
         console.log("Brick refreshed: "+brickId);
     }
 
-    async refreshMediaById(mediaId){
+    async refreshMediaAllMpdById(mediaId, recursive = true){
         let media = await this.con.getMedia(mediaId)
         if(!media){
             console.error("cannot refresh unexisting media ",mediaId)
             return null
         } 
-        return await this.refreshMedia(media)
+        return await this.refreshMediaAllMpd(media, recursive)
     }
 
-    async refreshMedia(media){
-        // Refresh contents
+    async refreshMediaAllMpd(media, recursive = true){
 
         // Refresh MPD
-        let mpdsInfos = await this.refreshMediaAllMpd(media);
+        let mpdsInfos = null;
+        if(media.use_mpd){
+            mpdsInfos = await this.refreshMediaMpds(media);
+        }
+        
+        if(recursive){
+            let childMedias = await this.con.getMediaChildrenFull(media.id,null, null, null, null)
+            for(let i=0; i<childMedias.length;i++){
+                let childMedia = childMedias[i]
+                await this.refreshMediaAllMpd(childMedia,true)
+            }
+        }
 
         return mpdsInfos;
     }
@@ -425,7 +431,7 @@ class MediaMgr{
     // This function works only on movies because it looks only at sub media (so season not
     //  episodes)
     //
-    async refreshMediaAllMpd(media){ 
+    async refreshMediaMpds(media){ 
         let mpdsInfos = [];
         let mpdFolders = await this.getFsMpdFolders(media,false);
         for(let i=0; i<mpdFolders.length;i++){
@@ -565,8 +571,6 @@ class MediaMgr{
         //If no resolution match send the larger one
         return resolutions[resolutions.length-1];
     }
-
-
 }
 
-module.exports=MediaMgr
+module.exports=MediaBase

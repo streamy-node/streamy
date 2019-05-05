@@ -647,6 +647,20 @@ class DBStructure extends EventEmitter{
         }
     }
 
+    async findMovieFromMoviedbId(movieDBId){
+        if(!this.con.checkId(movieDBId)){
+            return null;
+        }
+        var sql = "SELECT media_id FROM movies_moviedb "+
+        " WHERE moviedb_id="+movieDBId;
+        let result = await this.con.query(sql);
+        if(result.length > 0){
+            return result[0].media_id;
+        }else{
+            return null;
+        }
+    }
+
     async getMediaPath(mediaId){
         if(!this.checkId(mediaId) ){
             console.error("getMediaPath: Invalid entries ");
@@ -1183,15 +1197,15 @@ class DBStructure extends EventEmitter{
 
     async setAddFileTaskHasErrorByFile(file,has_error,msg){
         try{
-            let _stopped = stopped ? 1 : 0;
+            let _has_error = has_error ? 1 : 0;
             var sql = "UPDATE `add_file_tasks`  "
-            + " SET had_error = "+has_error
+            + " SET had_error = "+_has_error
             +", msg = '"+msg+"'"
             + " WHERE file = '"+file+"'";
             var sqlres = await this.query(sql);
             return sqlres;
         }catch(err){
-            console.warn("Cannot stop file ",err)
+            console.warn("Cannot set file Error ",err)
             return null;
         }
     }

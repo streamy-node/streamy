@@ -1,7 +1,7 @@
 const shortId = require('shortid');
 var path = require('path');
-var fsutils = require('../fsutils');
-var jsutils = require("../jsutils");
+var fsutils = require('../utils/fsutils');
+var jsutils = require("../utils/jsutils");
 
 var Process = require('./ffmpegprocesses').Process;
 var Hardware = require('./ffmpegprocesses').Hardware;

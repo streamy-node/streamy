@@ -1,6 +1,6 @@
 var path = require('path');
-var fsutils = require('../fsutils');
-var jsutils = require('../jsutils');
+var fsutils = require('../utils/fsutils');
+var jsutils = require('../utils/jsutils');
 const Semaphore = require("await-semaphore").Semaphore;
 
 

@@ -1,16 +1,16 @@
 //var moviedb = require('./moviedb.js');
-var fsutils = require('./fsutils.js');
+var fsutils = require('./utils/fsutils.js');
 
 var MPD = require("./transcoding/mpdutils.js").MPDFile;
 //var mpdUtils = require("./mpdutils").MPDUtils;
 
 
 class Importer{
-    constructor(dbMgr, mediaMgr, transcoderMgr, seriesMgr){
+    constructor(dbMgr, multimediaMgr, transcoderMgr){
         this.dbMgr = dbMgr;
-        this.seriesMgr = seriesMgr;
+        this.multimediaMgr = multimediaMgr;
         this.trMgr = transcoderMgr; // for converting width to resolution
-        this.mediaMgr = mediaMgr;
+        this.mediaMgr = multimediaMgr.getMediaBase();
     }
 
     async importBrick(brickPath,alias){
@@ -78,7 +78,7 @@ class Importer{
             if(await fsutils.exists(infoFile)){
                 let infos = await fsutils.parseJsonFile(infoFile);
                 if(infos && infos.tmdb_id){
-                    let mediaId = await this.seriesMgr.addSerieFromMovieDB(infos.tmdb_id,brickId);
+                    let mediaId = await this.multimediaMgr.addSerieFromTMDb(infos.tmdb_id,brickId);
                     if(mediaId){
                         //console.log("Serie metadata imported "+serieFolder);
                     }else{

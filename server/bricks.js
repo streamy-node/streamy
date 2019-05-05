@@ -1,4 +1,4 @@
-var fsutils = require("./fsutils")
+var fsutils = require("./utils/fsutils")
 
 class Bricks{
   constructor(dbManager){

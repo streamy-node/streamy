@@ -3,11 +3,11 @@ const FinalMsg = require('./messages').FinalMsg
 const StatusMsg = require('./messages').StatusMsg
 
 // Load utils functions
-const getHTTPContent = require('../netutils.js').getContent;
-const sendAsJson = require('../netutils.js').sendAsJson;
-const parseJson = require('../netutils').parseJson
-const moveFromToArray = require('../jsutils.js').moveFromToArray;
-const removeFromList = require('../jsutils.js').removeFromList;
+const getHTTPContent = require('../utils/netutils.js').getContent;
+const sendAsJson = require('../utils/netutils.js').sendAsJson;
+const parseJson = require('../utils/netutils').parseJson
+const moveFromToArray = require('../utils/jsutils.js').moveFromToArray;
+const removeFromList = require('../utils/jsutils.js').removeFromList;
 const EventEmitter = require('events');
 
 class Hardware{
@@ -928,10 +928,13 @@ class FfmpegProcessManager extends EventEmitter{
     return 0;
   }
 
-  getConnectedWorker(){
+  getConnectedWorker(enabled = false){
     for(let i=0; i<this.workers.length; i++){
       let worker = this.workers[i];
       if(worker.status == "online"){
+        if(enabled && worker.enabled == 0){
+          continue;
+        }
         return worker;
       }
     }
@@ -945,8 +948,12 @@ class FfmpegProcessManager extends EventEmitter{
         console.error("ffprobe cannot be use, no workers availables ");
         return null;
       }
-      //For the moment take first online worker
-      worker = this.getConnectedWorker();
+      //For the moment take first online worker (enabled if possible)
+      worker = this.getConnectedWorker(true);
+      if(!worker){
+        worker = this.getConnectedWorker(false);
+      }
+
       if(worker){
         return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
       }else{

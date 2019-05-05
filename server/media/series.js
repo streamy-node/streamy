@@ -1,7 +1,4 @@
-//var moviedb = require('./moviedb.js');
-var fsutils = require('./fsutils.js');
-var netutils = require('./netutils.js');
-const Media = require('./media.js');
+var fsutils = require('../utils/fsutils.js');
 
 class SeriesMgr{
     constructor(dbmanager, settings, mediaMgr,movieDBMgr){
@@ -30,10 +27,12 @@ class SeriesMgr{
         // Fetch info from tmdb
         let tmdbContent = await this.fetchSerieContentFromTMDB(tmdbId);
 
-        let seriePath = serieMedia.path;
-        let serieMediaId = serieMedia.id;
+        return await this._refreshContent(serieMedia.id,tmdbContent.infos,tmdbContent.images)
+    }
 
-        return await this._refreshContent(serieMediaId,tmdbContent.infos,tmdbContent.images)
+    async refresh(serieMedia){
+        await this.refreshContent(serieMedia)
+        await this.mediaMgr.refreshMediaAllMpd(serieMedia,true);
     }
 
     async refreshContent(serieMedia){
@@ -49,7 +48,7 @@ class SeriesMgr{
         //TODO manage multilang add english by default
         let langId = 1
 
-        // Get previous infos
+        // Get database infos
         let dbSerieInfos = await this.mediaMgr.getMediaInfos(mediaId,langId, 0, null, [])
         let sortKeyDepth = ["season_number","episode_number"]
         let dbSeasonsInfos = await this.mediaMgr.getChildrenMediaInfos(mediaId,langId, 1, null, sortKeyDepth);
@@ -361,6 +360,9 @@ class SeriesMgr{
     }
 
     generateTMDBImageUrl(imgId,size){
+        if(!imgId){
+            return null;
+        }
         return "https://image.tmdb.org/t/p/w"+size.toString()+imgId;
     }
 
@@ -447,35 +449,30 @@ class SeriesMgr{
         }
     }
 
-    async addSerieFromMovieDB(movieDBId,brickId = null){
+    async addFromMovieDB(movieDBId,brickId = null){
         //Check if serie already added
         let serieId = await this.con.findSerieFromMoviedbId(movieDBId);
         if(serieId){
-            console.error("Failing adding serie with TheMovieDB id already used");
-            return null
+            let errMsg = "Failing adding serie with TheMovieDB id already used"
+            throw new Error(errMsg)
         }
-        try{
-            let tmdbContent = await this.fetchSerieContentFromTMDB(movieDBId);
 
-            //Add serie
-            let mediaId = await this.addSerie(tmdbContent.infos,tmdbContent.images,brickId);
+        let tmdbContent = await this.fetchSerieContentFromTMDB(movieDBId);
 
-            if(mediaId !== null){
-                //Add link with moviedb to avoid ducplicates
-                var sql = "INSERT INTO `series_moviedb` (`media_id`,`moviedb_id`)"+
-                " VALUES("+mediaId+", "+movieDBId+")";
-                await this.con.query(sql);
+        //Add serie
+        let mediaId = await this.addSerie(tmdbContent.infos,tmdbContent.images,brickId);
 
-                //Add hint to be faster if you copy the serie folder to another streamy serv
-                await this.mediaMgr.addHintInfos(mediaId,{tmdb_id:movieDBId});
-            }
+        if(mediaId !== null){
+            //Add link with moviedb to avoid ducplicates
+            var sql = "INSERT INTO `series_moviedb` (`media_id`,`moviedb_id`)"+
+            " VALUES("+mediaId+", "+movieDBId+")";
+            await this.con.query(sql);
 
-            return mediaId;
-
-        } catch (e) {
-            console.error("Failing adding serie from TheMovieDB",movieDBId,e);
-            return null;
+            //Add hint to be faster if you copy the serie folder to another streamy serv
+            await this.mediaMgr.addHintInfos(mediaId,{tmdb_id:movieDBId});
         }
+
+        return mediaId;
     }
 
 

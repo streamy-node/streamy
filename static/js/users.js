@@ -142,6 +142,10 @@ class UsersController extends ContentController{
 
     setWorkerStatus(workerId,status){
         let workerElem = this.workersStatus[workerId]
+        if(!workerElem){
+            console.error('Cannot set status on an unknown worker')
+            return;
+        }
         if(status == "online"){
             workerElem.find(".connect_worker_btn").addClass("hidden");
             workerElem.find(".online_status").removeClass("hidden");

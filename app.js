@@ -14,11 +14,7 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var bodyParser = require('body-parser');
 
-var MediaMgr = require('./server/media.js');
 var MultiMediaMgr = require('./server/multimedia.js');
-var SeriesMgr = require('./server/series.js');
-var MoviesMgr = require('./server/movies');
-var MovieDBMgr = require('./server/moviedb');
 var DBStructure = require('./server/dbstructure.js');
 var Settings = require('./server/settings.js');
 var Users = require('./server/users');
@@ -29,7 +25,7 @@ var Bricks = require('./server/bricks');
 var i18n  = require('i18n');
 var consolidate = require('consolidate');
 var path = require('path');
-var fsUtils = require('./server/fsutils.js')
+var fsUtils = require('./server/utils/fsutils.js')
 
 //Ffmpeg manager
 const ProcessesMgr = require('./server/transcoding/ffmpegprocesses').FfmpegProcessManager;
@@ -82,21 +78,12 @@ async function startApp(){
   });
 
   /////////// setup managers //////////////////////
-  var processesMgr = new ProcessesMgr();
-  var multiMediaMgr = new MultiMediaMgr(dbMgr);
-  var mediaMgr = new MediaMgr(dbMgr,processesMgr);
-  var movieDBMgr = new MovieDBMgr(settings)
-  var serieMgr = new SeriesMgr(dbMgr,settings,mediaMgr,movieDBMgr);
-  var movieMgr = new MoviesMgr(dbMgr,settings,mediaMgr,movieDBMgr)
-
-  var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,mediaMgr,settings);
-  var importer = new Importer(dbMgr,mediaMgr, transcodeMgr,serieMgr);
+  var processesMgr = new ProcessesMgr()
+  var multiMediaMgr = new MultiMediaMgr(dbMgr,settings,processesMgr);
+  var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,multiMediaMgr.getMediaBase(),settings);
+  var importer = new Importer(dbMgr,multiMediaMgr, transcodeMgr);
   var userMgr = new Users(dbMgr)
   var bricksMgr = new Bricks(dbMgr)
-
-  multiMediaMgr.registerMediaMgr(serieMgr,1)
-  multiMediaMgr.registerMediaMgr(movieMgr,4)
- 
 
   processesMgr.setMinTimeBetweenProgresses(5000);//Min 5 sec between updates 
   processesMgr.addWorkersFromDB(dbMgr,true);
@@ -345,13 +332,17 @@ async function startApp(){
     var lang = req.query.lang;
     var userId = 1;//TODO get userId
 
+    if(isNaN(mediaId)){
+      res.status(400).send('Invalid media id given');
+      return
+    }
+
     //Set default lang
     if(!lang){
       lang = 'en';
     }
     var langId = await dbMgr.getLangsId(lang);
-    let infos = await mediaMgr.getMediaInfos(parseInt(mediaId),langId, 0, userId, [])
-
+    let infos = await multiMediaMgr.getMediaInfos(parseInt(mediaId),langId, 0, userId, []);
 
     if(infos === null){
       res.status(404).send('No season found');
@@ -388,7 +379,7 @@ async function startApp(){
       let mediaId = parseInt(req.params.mediaId);
       let folder = req.params.folder;
       
-      let result = await mediaMgr.removeMpd(mediaId, folder)
+      let result = await multiMediaMgr.removeMpd(mediaId, folder)
 
       if(result){
         res.sendStatus(200);
@@ -404,7 +395,7 @@ async function startApp(){
     //let type = req.params.type;
     let id = parseInt(req.params.id);
     let output = {};
-    output = await mediaMgr.getPlayerMpdFiles(id)
+    output = await multiMediaMgr.getPlayerMpdFiles(id)
 
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
@@ -413,7 +404,7 @@ async function startApp(){
   app.get('/media/:id/mpd_files_resume', loggedIn, async function (req, res) {
     //let type = req.params.type;
     let id = parseInt(req.params.id);
-    let output = await mediaMgr.getMediaMpdsSummary(id)
+    let output = await multiMediaMgr.getMediaMpdsSummary(id)
 
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
@@ -423,7 +414,7 @@ async function startApp(){
     //let type = req.params.type;
     let id = parseInt(req.params.id);
     let folderName = req.params.folderName;
-    let output = await mediaMgr.getPlayerMpdFile(id,folderName)
+    let output = await multiMediaMgr.getPlayerMpdFile(id,folderName)
 
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
@@ -433,7 +424,7 @@ async function startApp(){
     //let type = req.params.type;
     let id = parseInt(req.params.id);
     let folderName = req.params.folderName;
-    let output = await mediaMgr.refreshMediaMpd(id,folderName);
+    let output = await multiMediaMgr.refreshMediaMpd(id,folderName);
 
     res.setHeader('Content-Type', 'application/json');
     res.send(JSON.stringify(output));
@@ -447,7 +438,7 @@ async function startApp(){
       let rep_id = req.params.rep_id; // rep id is not safe, it changes on delete
       var safeHash = req.query.safe_hash; //Safer id to prevent the unwanted deletion of rep
 
-      let result = await mediaMgr.removeRepresentation(mediaId, folder,rep_id,safeHash)
+      let result = await multiMediaMgr.removeRepresentation(mediaId, folder,rep_id,safeHash)
 
       if(result){
         res.sendStatus(200);
@@ -485,8 +476,7 @@ async function startApp(){
         lang = 'en';
       }
       var langId = await dbMgr.getLangsId(lang);
-      let series = await mediaMgr.getMediaListByCategory(1, langId, userId, orderby, ascending, count, offset, pattern)
-      //let series = await serieMgr.getSeriesInfos(lang);
+      let series = await multiMediaMgr.getMediaListByCategory(1, langId, userId, orderby, ascending, count, offset, pattern)
 
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(series));
@@ -494,9 +484,14 @@ async function startApp(){
   });
 
   app.get('/series/:mediaId/seasons', async function (req, res) {
-    var mediaId = req.params.mediaId;
+    var mediaId = parseInt(req.params.mediaId);
     var lang = req.query.lang;
     var userId = 1;//TODO get userId
+
+    if(isNaN(mediaId)){
+      res.status(404).send('Invalid media Id');
+      return
+    }
 
     //Set default lang
     if(!lang){
@@ -504,8 +499,8 @@ async function startApp(){
     }
     var langId = await dbMgr.getLangsId(lang);
     let sortKeyDepth = ["season_number","episode_number"]
-    let infos = await mediaMgr.getChildrenMediaInfos(parseInt(mediaId),langId, 1, userId, sortKeyDepth)
-
+    let infos = await multiMediaMgr.getChildrenMediaInfos(parseInt(mediaId),langId, 1, userId, sortKeyDepth)
+    
     if(infos === null){
       res.status(404).send('No season found');
     }else{
@@ -534,30 +529,26 @@ async function startApp(){
       console.log("body",req.body);
 
       //For the moment only moviedb id
-      if(req.body.moviedbId != null){
+      if(req.body.moviedbId == null){
+        res.status(400).send('Unknown request')
+        return
+      }
 
-        // prepare response
-        res.setHeader('Content-Type', 'application/json');
+      // prepare response
+      res.setHeader('Content-Type', 'application/json');
 
-        //Check if serie already exists
-        let mediaId = await dbMgr.findSerieFromMoviedbId(req.body.moviedbId);
-        if(mediaId){
+      try{
+        let mediaId = await multiMediaMgr.addSerieFromTMDb(req.body.moviedbId)  
+        if(mediaId !== null){
           res.status(200).send(JSON.stringify({id:mediaId}));
-          return;
-        }
-
-        //The serie don't exist, create it
-        console.log("Adding a new serie");
-        serieId = await serieMgr.addSerieFromMovieDB(req.body.moviedbId);
-        if(serieId !== null){
-          res.status(200).send(JSON.stringify({id:serieId}));
         }else{
           console.error("Failed to add serie from ",req.body);
           res.status(500).send('Cannot create serie');
         }
-      }else{
-        res.status(400).send('Unknown request');
-      }
+      } catch (e) {
+        console.error("Failing adding serie from TheMovieDB",req.body.moviedbId,e);
+        res.status(500).send('Cannot create serie');
+      }      
     }else{
       res.status(401).send("You don't have the permission to add a serie");
     }
@@ -579,9 +570,8 @@ async function startApp(){
         lang = 'en';
       }
       var langId = await dbMgr.getLangsId(lang);
-      let movies = await mediaMgr.getMediaListByCategory(4, langId, userId, orderby, ascending, count, offset, pattern)
-      //let series = await serieMgr.getSeriesInfos(lang);
-
+      let movies = await multiMediaMgr.getMediaListByCategory(4, langId, userId, orderby, ascending, count, offset, pattern)
+      
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(movies));
     }
@@ -598,24 +588,15 @@ async function startApp(){
           // prepare response
           res.setHeader('Content-Type', 'application/json');
 
-          //Check if movie already exists
-          let mediaId = await movieMgr.findMovieFromMoviedbId(req.body.moviedbId);
+          let mediaId = await multiMediaMgr.addMovieFromTMDb(req.body.moviedbId)
+
           if(mediaId){
             res.status(200).send(JSON.stringify({id:mediaId}));
-            return;
           }
-
-          //The serie don't exist, create it
-          console.log("Adding a new movie");
-
-          let dbId = await movieMgr.addMovieFromMovieDB(req.body.moviedbId);
-          res.status(201).send(JSON.stringify({id:dbId}));
         } catch (e) {
           console.error("Failing adding movie from TheMovieDB ",req.body.moviedbId,e);
           res.status(500).send('Cannot create movie: '+e.message);
         }
-        
-
       }else{
         res.status(400).send('Unknown request');
       }

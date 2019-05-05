@@ -1,7 +1,7 @@
 //var moviedb = require('./moviedb.js');
-var fsutils = require('./fsutils.js');
-var netutils = require('./netutils.js');
-const Media = require('./media.js');
+var fsutils = require('../utils/fsutils.js');
+var netutils = require('../utils/netutils.js');
+const Media = require('./mediabase.js');
 
 class MoviesMgr{
     constructor(dbmanager, settings, mediaMgr,moviedbMgr){
@@ -87,8 +87,13 @@ class MoviesMgr{
         }
     }
 
+    async refresh(media){
+        await this.refreshContent(media)
+        await this.mediaMgr.refreshMediaAllMpd(media,true);
+    }
+
     async refreshContent(media){
-        return await this.mediaMgr.refreshMediaById(media.id);
+        return await this.mediaMgr.refreshMediaAllMpdById(media.id);
     }
 
     generateMoviePath(name,release_date){
@@ -114,12 +119,11 @@ class MoviesMgr{
         return "https://image.tmdb.org/t/p/w"+size.toString()+""+imgId;
     }
 
-    async addMovieFromMovieDB(movieDBId,brickId = null){
+    async addFromMovieDB(movieDBId,brickId = null){
         //Check if movie already added
-        let mediaId = await this.findMovieFromMoviedbId(movieDBId);
+        let mediaId = await this.con.findMovieFromMoviedbId(movieDBId);
         if(mediaId){
             let errMsg = "Failing adding movie with TheMovieDB id already used";
-            console.error(errMsg);
             throw new Error(errMsg)
         }
 
@@ -157,22 +161,6 @@ class MoviesMgr{
         }
         return mediaId;
     }
-
-    async findMovieFromMoviedbId(movieDBId){
-        if(!this.con.checkId(movieDBId)){
-            return null;
-        }
-        var sql = "SELECT media_id FROM movies_moviedb "+
-        " WHERE moviedb_id="+movieDBId;
-        let result = await this.con.query(sql);
-        if(result.length > 0){
-            return result[0].media_id;
-        }else{
-            return null;
-        }
-    }
-
-
 }
 
 module.exports=MoviesMgr
