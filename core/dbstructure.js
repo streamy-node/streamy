@@ -3,6 +3,7 @@ var fs = require('fs');
 const EventEmitter = require('events');
 var mysql = require('mysql');
 
+
 class DBStructure extends EventEmitter{
     constructor(){
         super();
@@ -36,7 +37,21 @@ class DBStructure extends EventEmitter{
         return true;
     }
 
-    async initialize(pool){
+    async initialize(dbOptions){
+
+        // setup database
+        let defaultOptions = {
+            connectionLimit : 10,
+            host: '127.0.0.1',
+            port: 3306,
+            user: 'streamy',
+            password: 'pwd',
+            database: 'streamy',
+            multipleStatements: true
+        }
+        let combinedOptions = {...defaultOptions, ...dbOptions }        
+        var pool  = mysql.createPool(combinedOptions);
+
         if(!await this.createDatabase(pool.config.connectionConfig)){
             console.error("Cannot create the db :'(");
             return false;
@@ -141,7 +156,7 @@ class DBStructure extends EventEmitter{
 
     async setup_database(connection){
         //If the database is available, create tables if necessary
-        var sql = fs.readFileSync('server/sql/init_db.sql').toString();
+        var sql = fs.readFileSync('core/sql/init_db.sql').toString();
         try{
             await this._query(sql,connection);
             console.log("Database tables initialized");

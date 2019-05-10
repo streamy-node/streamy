@@ -10,6 +10,11 @@ class Bricks{
     return bricks;
   }
 
+  async getBrick(brickid){
+    let brick = await this.dbMgr.getBrick(brickid);
+    return brick;
+  }
+
   async addBrick(alias,path,enabled = 1){
     if(! await fsutils.exists(path)){
         throw new Error("Folder not existing "+path)

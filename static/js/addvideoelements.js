@@ -269,7 +269,7 @@ class AddEpisodeFileItem extends AddMediaFileItem{
 
     getEpisodeId(mediaId,seasonNumber,episodeNumber, onResult){
         ///episode/id
-        $.getJSON( "episode/id?serie_id="+mediaId.toString()+"&season_nb="+seasonNumber.toString()+"&episode_nb="+episodeNumber.toString(), function( data ) {
+        $.getJSON( "series/episode/id?serie_id="+mediaId.toString()+"&season_nb="+seasonNumber.toString()+"&episode_nb="+episodeNumber.toString(), function( data ) {
             onResult(data.episode_id)
         });
     }

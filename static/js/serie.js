@@ -71,8 +71,8 @@ class SerieController extends ContentController{
         for(var i=0; i<seasonInfos.children.length; i++){
             let episode = seasonInfos.children[i];
             let ep_tpl = $("#serie_episode_tpl").clone();
-            //let data_path = "brick/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString();
-            let data_path = "brick/"+brickId+"/"+encodeURIComponent(episode.path);
+            //let data_path = "bricks/"+serieId+"/data/season_"+seasonInfos.season_number.toString()+"/episode_"+episode.episode_number.toString();
+            let data_path = "bricks/"+brickId+"/"+encodeURIComponent(episode.path);
             
             ep_tpl.removeClass("hidden");
             ep_tpl.find(".box").attr("video_id",episode.id.toString());
@@ -123,7 +123,7 @@ class SerieController extends ContentController{
             $("#rating").text(mediaData.rating);
             $("#ratingcount").text(mediaData.rating_count);
             $("#overview").text(mediaData.overview);
-            $("#poster").attr("src","/brick/"+mediaData.brick_id+"/"+encodeURIComponent(mediaData.path)+"/fanart/img500.jpg");
+            $("#poster").attr("src","/bricks/"+mediaData.brick_id+"/"+encodeURIComponent(mediaData.path)+"/fanart/img500.jpg");
             //$("#poster2").attr("src","/data/series/"+data.brick_id+"/"+data.original_name+" ("+data.release_date.substr(0,4)+")/fanart/img300.jpg");
             //$('#box-1').css('background-image', 'url(' + '"/data/series/'+data.brick_id+'/'+data.original_name+' ('+data.release_date.substr(0,4)+')/fanart/img300.jpg"' + ')');
                 

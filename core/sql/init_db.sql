@@ -597,7 +597,7 @@ INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(47, 'ie');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(48, 'ik');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(49, 'in');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(50, 'is');
-INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(51, 'it');
+INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(51, 'ita');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(52, 'iw');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(53, 'ja');
 INSERT INTO `languages_iso_639_2` (`language_id`,`iso_639_2`) VALUES(54, 'ji');

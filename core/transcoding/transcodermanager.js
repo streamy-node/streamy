@@ -150,7 +150,13 @@ class TranscoderManager extends EventEmitter{
             return null;
         }
 
-        await this.convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,userId,false, true);
+        try{
+            await this.convertFileToMpd(filename,original_name,mediaId,task_id,workingFolder,userId,false, true);
+        }catch(err){
+            console.error("Failed to convert file to mpd: ",filename," error: ",err);
+            return null;
+        }
+        
     }
 
     async generateLiveMpd(mediaId,original_name,workingFolder = null){
@@ -315,17 +321,32 @@ class TranscoderManager extends EventEmitter{
                     dashName = "p"+idx.toString()+".mpd";
                     dashPartFiles.push(absoluteWorkingFolder+"/"+dashName);
 
-                    let cmd = await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_,withSubs);
-                    let subtaskId = await this.dbMgr.insertAddFileSubTask(task_id,JSON.stringify(this.simplifyCmd(cmd)),false,absoluteWorkingFolder+"/"+dashName);
-                    ffmpegCmds.push(cmd);
-                    subTasksIds.push(subtaskId);   
-                    idx++;
+                    try{
+                        let cmd = await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions_,audios_channels_,withSubs);
+                        let subtaskId = await this.dbMgr.insertAddFileSubTask(task_id,JSON.stringify(this.simplifyCmd(cmd)),false,absoluteWorkingFolder+"/"+dashName);
+                        ffmpegCmds.push(cmd);
+                        subTasksIds.push(subtaskId);   
+                        idx++;
+                    } catch(err){
+                        self.createProgression(media,type,filename,original_name,1,0,"Cannot generate ffmpeg command: ",err);
+                        console.log("Cannot generate ffmpeg command: ",err);
+                        return null;//return later?
+                    }
                 }
             }else{ // Send as a single command
                 //command
-                let dashName = "all.mpd";
-                //insertAddFileSubTask(task_id,command,done)
-                ffmpegCmds.push(await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels,true));    
+                try{
+                    let dashName = "all.mpd";
+
+                    let cmd = await this._generateFfmpegCmd(absoluteSourceFile,original_name,absoluteWorkingFolder,dashName,infos,resolutions,audios_channels,true);
+                    //insertAddFileSubTask(task_id,command,done)
+                    ffmpegCmds.push(cmd);  
+                    
+                } catch(err){
+                    self.createProgression(media,type,filename,original_name,1,0,"Cannot generate ffmpeg command: ",err);
+                    console.log("Cannot generate ffmpeg command: ",err);
+                    return null;//return later?
+                }  
             }
 
             let mdpFileUpdated = false;
@@ -832,7 +853,7 @@ class TranscoderManager extends EventEmitter{
         for(var i=0; i<infos.streams.length; i++){
             let stream = infos.streams[i];
 
-            if(stream.codec_type === "video" && bestVideoStream == stream){ //Take the best video stream
+            if(stream.codec_type === "video" && stream.codec_name !== "gif"  && bestVideoStream == stream){ //Take the best video stream
                 let src_width = stream.width;
                 let src_height = stream.height;
 
@@ -1052,7 +1073,7 @@ class TranscoderManager extends EventEmitter{
         let bestStream = null;
         for(let i=0; i<streams.length; i++){
             let stream = streams[i];
-            if(stream.codec_type === "video" && (!bestStream || bestStream.width < stream.width)){
+            if(stream.codec_type === "video" && stream.codec_name !== "gif" && (!bestStream || bestStream.width < stream.width)){
                 bestStream = stream;
             }
         }
@@ -1063,6 +1084,10 @@ class TranscoderManager extends EventEmitter{
         let bitrate = await this.computeBitrate(stream.width,stream.height,target_resolution.id);//await this.dbMgr.getBitrate(target_resolution.resolution_id);
         var segmentduration = this.settings.global.segment_duration;
         var framerate = this._getFramerate(stream);
+
+        if(framerate === null){
+            throw new Error("Cannot generate x264 part with no valid framerate");
+        }
         var key_int = Math.floor(framerate * segmentduration);
 
         return [
@@ -1174,6 +1199,11 @@ class TranscoderManager extends EventEmitter{
         let arrayOfStrings = stream.r_frame_rate.split('/');
         if(arrayOfStrings.length != 2){
             console.error("Invalid framerate: ",stream.r_frame_rate)
+            return null;
+        }
+        let frameRate = parseInt(arrayOfStrings[0])/parseInt(arrayOfStrings[1]);
+        if(frameRate > 120 || frameRate < 1){
+            console.error("Invalid framerate: ",frameRate," should be between 120 and 1")
             return null;
         }
         return parseInt(arrayOfStrings[0])/parseInt(arrayOfStrings[1]);

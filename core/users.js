@@ -12,6 +12,8 @@ class Users{
     this.failedAttempts = 0;
     this.securePassout = false;
     this.usersLastConnection = new Map()
+
+    this.usersLastIps = new Map();
   }
 
   async addDefaultUsers(){
@@ -91,7 +93,21 @@ class Users{
     }
   }
 
-  async checkUserPasswordSecure(username, password){
+  checkAccountLeak(userId, ip){
+    if(!this.usersLastIps.has(userId)){
+      this.usersLastIps.set(userId,new Set([ip]))
+    }else{
+      let ips = this.usersLastIps.get(userId)
+      ips.add(ip)
+      if(ips.length > 1){
+        console.warn("Account may have leaked, they are "+ips.size()+" different ips in one day")
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async checkUserPasswordSecure(username, password, ipAddress){
     var self=this;
     if(this.securePassout){
       throw ("Too many invalid connections attemps, wait "+passoutDurationMs/1000+" seconds") 
@@ -112,7 +128,13 @@ class Users{
           self.securePassout = false
         },passoutDurationMs);
       }
+    }else{
+      // Check if this user has not leaked his address (Work only with reverse proxy)
+      let id = await this.dbMgr.getUserId(username);
+      success = this.checkAccountLeak(id, ipAddress);
     }
+
+
     return success;
 }
 
@@ -157,7 +179,6 @@ class Users{
     }catch(err){
       console.error("Failed to update last connection time for user "+userId);
     }
-
   }
 
   async getUserPermissions(userId){

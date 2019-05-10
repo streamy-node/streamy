@@ -3,6 +3,10 @@ var MoviesMgr = require('./media/movies');
 var MovieDBMgr = require('./media/moviedb');
 var MediaBase = require('./media/mediabase.js');
 
+const MEDIA_CATEGORIES = {
+    "SERIE":1,
+    "MOVIE":4,
+}
 class MultiMediaMgr{
     constructor(dbmanager,settings,processesMgr){
         this.con = dbmanager;
@@ -24,44 +28,9 @@ class MultiMediaMgr{
         this.registredMgr.set(category,mediaMgr);
     }
 
-    async addSerieFromTMDb(tmdbId, brickId=null){
-        //Check if serie already exists
-        let mediaId = await this.con.findSerieFromMoviedbId(tmdbId);
-        if(mediaId){
-            return mediaId;
-        }
-
-        //The serie don't exist, create it
-        let specificMgr = this.registredMgr.get( this.cat_serie);
-
-        if(!specificMgr){
-            console.error("No serie manager registred")
-            return null
-        }
-
-        console.log("Adding a new serie");
-        let serieId = await specificMgr.addFromMovieDB(tmdbId,brickId)
-        return serieId;
-    }
-
-    async addMovieFromTMDb(tmdbId, brickId=null){
-        //Check if serie already exists
-        let mediaId = await this.con.findSerieFromMoviedbId(tmdbId);
-        if(mediaId){
-            return mediaId;
-        }
-
-        //The serie don't exist, create it
-        let specificMgr = this.registredMgr.get(this.cat_movie);
-
-        if(!specificMgr){
-            console.error("No serie manager registred")
-            return null
-        }
-
-        console.log("Adding a new movie");
-        let serieId = await specificMgr.addFromMovieDB(tmdbId,brickId)
-        return serieId;
+    async addMediaFromTMDb(category_id, tmdbId, brickId=null){
+        let specificMgr = this.registredMgr.get(category_id);
+        return await specificMgr.addMediaFromTMDb(tmdbId,brickId);
     }
 
     async refreshMediaById(mediaId){
@@ -120,5 +89,7 @@ class MultiMediaMgr{
         return this.mediaBase;
     }
 }
+
+MultiMediaMgr.CATEGORIES = MEDIA_CATEGORIES
 
 module.exports=MultiMediaMgr

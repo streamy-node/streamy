@@ -12,12 +12,12 @@
     <link rel="stylesheet" href="third_party/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
 
     <!-- Custom styles for this template -->
-    <link href="signin.css" rel="stylesheet">
+    <link href="css/login.css" rel="stylesheet">
 </head>
 
        
 <!-- Our Custom CSS -->
-<link rel="stylesheet" href="css/login.css">
+
 <!--link rel="stylesheet" type="text/css" href="/css/material-design.css"-->
 <body class="text-center">
     <form class="form-signin" action="/login" method="post">
@@ -25,11 +25,11 @@
         <h1 class="h3 mb-3 font-weight-normal">Please sign in</h1>
         <div>
             <label class="sr-only">{{#__}}Username{{/__}}:</label>
-            <input type="text" name="username" class="form-control" placeholder="{{#__}}Username{{/__}}" />
+            <input type="text" name="username" autocomplete="username" class="form-control" placeholder="{{#__}}Username{{/__}}" />
         </div>
         <div>
             <label class="inputPassword sr-only" >{{#__}}Password{{/__}}:</label>
-            <input  type="password" name="password" class="form-control" placeholder="{{#__}}Password{{/__}}" required/>
+            <input  type="password" name="password"  autocomplete="current-password" class="form-control" placeholder="{{#__}}Password{{/__}}" required/>
         </div>
         <div>
             <input class="btn btn-lg btn-primary btn-block" type="submit" value="Log In"/>

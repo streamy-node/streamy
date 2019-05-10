@@ -945,7 +945,7 @@ class FfmpegProcessManager extends EventEmitter{
     var worker = null;
     try{
       if(this.workers.length == 0){
-        console.error("ffprobe cannot be use, no workers availables ");
+        console.error("ffprobe cannot be used, no workers availables ");
         return null;
       }
       //For the moment take first online worker (enabled if possible)
@@ -957,7 +957,7 @@ class FfmpegProcessManager extends EventEmitter{
       if(worker){
         return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
       }else{
-        console.error("ffprobe cannot be use, no workers online ");
+        console.error("ffprobe cannot be used, no workers online ");
         return null;
       }
     }catch(err){

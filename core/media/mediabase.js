@@ -39,7 +39,7 @@ class MediaBase{
     }
 
     getMpdUrl(media, folder){
-        return "/brick/"+media.brick_id+"/"+media.path+"/"+folder+"/allsub.mpd";
+        return "/bricks/"+media.brick_id+"/"+media.path+"/"+folder+"/allsub.mpd";
     }
 
     async getPlayerMpdFile(mediaId, folder){

@@ -16,6 +16,18 @@ class MoviesMgr{
 
     init(){
     }
+
+    async addMovieFromTMDb(tmdbId, brickId=null){
+        //Check if serie already exists
+        let mediaId = await this.con.findMovieFromMoviedbId(tmdbId);
+        if(mediaId){
+            return mediaId;
+        }
+
+        console.log("Adding a new movie");
+        let id = await this.addFromMovieDB(tmdbId,brickId)
+        return id;
+    }
     
     async addMovie(movieInfos,fanarts,brickId = null,movieHints){
         //Check if movie is already in an adding state (the original name is suffiscient)

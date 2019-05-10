@@ -43,8 +43,6 @@ class SettingsController extends ContentController{
     }
     
     renderSetting(setting){
-        var self = this;
-
         var template = null;
         if(setting[0] == "new_video_brick" ||
         setting[0] == "upload_brick"){
@@ -64,6 +62,7 @@ class SettingsController extends ContentController{
     }
 
     generateSelectBrickSetting(settingName, value){
+        var self = this;
         var template = $("#setting_brick_select_tpl").clone();
         template.attr('id','');
         template.removeClass("hidden");
@@ -81,7 +80,7 @@ class SettingsController extends ContentController{
         });
 
         listElem.on('change',function(){
-            this.settings[settingName] = listElem.val()
+            self.settings[settingName] = listElem.val()
         })
         return template;
     }

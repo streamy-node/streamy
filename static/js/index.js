@@ -157,7 +157,7 @@ class ContentManager{
     });
 
     //get out own permissions to know what to show
-    $.getJSON("/user/permissions",function(data){
+    $.getJSON("/users/permissions",function(data){
       self.updatePermissions(data);
     });
     

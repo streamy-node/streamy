@@ -15,6 +15,19 @@ class SeriesMgr{
     init(){
     }
 
+    async addMediaFromTMDb(tmdbId, brickId=null){
+        //Check if serie already exists
+        let mediaId = await this.con.findSerieFromMoviedbId(tmdbId);
+        if(mediaId){
+            return mediaId;
+        }
+
+        //The serie don't exist, create it
+        console.log("Adding a new serie");
+        let serieId = await this.addFromMovieDB(tmdbId,brickId)
+        return serieId;
+    }
+
     async refreshContentTMDB(serieMedia){
         // Get media tmdb id
         let tmdbId = await this.con.findMoviedbIdFromSerie(serieMedia.id);

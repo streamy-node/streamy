@@ -31,7 +31,7 @@ class UploadMgr{
             testChunks:false,
             throttleProgressCallbacks:1,
             generateUniqueIdentifier:function(file){
-                return $.get("/fileid?filename=" + encodeURI(file.name)+"&size="+file.size+"&id="+id);
+                return $.get("/upload/fileid?filename=" + encodeURI(file.name)+"&size="+file.size+"&id="+id);
             }
         });
 

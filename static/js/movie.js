@@ -76,7 +76,7 @@ class MovieContent extends ContentController{
             $("#rating").text(mediaData.rating);
             $("#ratingcount").text(mediaData.rating_count);
             $("#overview").text(mediaData.overview);
-            $("#poster").attr("src","/brick/"+mediaData.brick_id+"/"+encodeURIComponent(mediaData.path)+"/fanart/img500.jpg");
+            $("#poster").attr("src","/bricks/"+mediaData.brick_id+"/"+encodeURIComponent(mediaData.path)+"/fanart/img500.jpg");
 
             let block_tpl = $(".box");
             //block_tpl.attr("video_id",mediaId.toString());
