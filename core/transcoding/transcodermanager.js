@@ -26,6 +26,8 @@ class TranscoderManager extends EventEmitter{
         this.filesProcesses = {}
         this.audioEncoder = 'libfdk_aac'
         this.videoEncoder = 'x264'
+
+        this.unsupportedVideoCodecs = ["gif","mjpeg"]
     }
 
     getProgressions(){
@@ -328,7 +330,7 @@ class TranscoderManager extends EventEmitter{
                         subTasksIds.push(subtaskId);   
                         idx++;
                     } catch(err){
-                        self.createProgression(media,type,filename,original_name,1,0,"Cannot generate ffmpeg command: ",err);
+                        self.createProgression(media,type,filename,original_name,1,0,"Cannot generate ffmpeg command: "+err);
                         console.log("Cannot generate ffmpeg command: ",err);
                         return null;//return later?
                     }
@@ -343,7 +345,7 @@ class TranscoderManager extends EventEmitter{
                     ffmpegCmds.push(cmd);  
                     
                 } catch(err){
-                    self.createProgression(media,type,filename,original_name,1,0,"Cannot generate ffmpeg command: ",err);
+                    self.createProgression(media,type,filename,original_name,1,0,"Cannot generate ffmpeg command: "+err);
                     console.log("Cannot generate ffmpeg command: ",err);
                     return null;//return later?
                 }  
@@ -853,7 +855,7 @@ class TranscoderManager extends EventEmitter{
         for(var i=0; i<infos.streams.length; i++){
             let stream = infos.streams[i];
 
-            if(stream.codec_type === "video" && stream.codec_name !== "gif"  && bestVideoStream == stream){ //Take the best video stream
+            if(stream.codec_type === "video" && !this.unsupportedVideoCodecs.includes(stream.codec_name)  && bestVideoStream == stream){ //Take the best video stream
                 let src_width = stream.width;
                 let src_height = stream.height;
 
@@ -1073,7 +1075,7 @@ class TranscoderManager extends EventEmitter{
         let bestStream = null;
         for(let i=0; i<streams.length; i++){
             let stream = streams[i];
-            if(stream.codec_type === "video" && stream.codec_name !== "gif" && (!bestStream || bestStream.width < stream.width)){
+            if(stream.codec_type === "video" && !this.unsupportedVideoCodecs.includes(stream.codec_name) && (!bestStream || bestStream.width < stream.width)){
                 bestStream = stream;
             }
         }
