@@ -28,6 +28,9 @@ class TranscoderManager extends EventEmitter{
         this.videoEncoder = 'x264'
 
         this.unsupportedVideoCodecs = ["gif","mjpeg"]
+        this.unsupportedSubCodecs = [
+            "hdmv_pgs_subtitle" // It's a bitmap based subtitle format. Ffmpeg cannot convert it to text subs
+        ]
     }
 
     getProgressions(){
@@ -909,7 +912,7 @@ class TranscoderManager extends EventEmitter{
                         adaptation_index++;
                     }
                 }
-            }else if(stream.codec_type === "subtitle" && with_subs){
+            }else if(stream.codec_type === "subtitle" && !this.unsupportedSubCodecs.includes(stream.codec_name) && with_subs){
                 //Subtitle are not handled directly by ffmpeg in mpd file. So there is no adaptation set
                 let output_stream = {};//jsutils.clone(stream);
                 output_stream.codec_type = stream.codec_type;
