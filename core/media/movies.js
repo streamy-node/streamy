@@ -17,7 +17,7 @@ class MoviesMgr{
     init(){
     }
 
-    async addMovieFromTMDb(tmdbId, brickId=null){
+    async addMediaFromTMDb(tmdbId, brickId=null){
         //Check if serie already exists
         let mediaId = await this.con.findMovieFromMoviedbId(tmdbId);
         if(mediaId){

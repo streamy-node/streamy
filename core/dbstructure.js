@@ -663,7 +663,7 @@ class DBStructure extends EventEmitter{
     }
 
     async findMovieFromMoviedbId(movieDBId){
-        if(!this.con.checkId(movieDBId)){
+        if(!this.checkId(movieDBId)){
             return null;
         }
         var sql = "SELECT media_id FROM movies_moviedb "+
