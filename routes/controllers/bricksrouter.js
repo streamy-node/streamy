@@ -20,9 +20,9 @@ class BricksRouter{
         var router = express.Router();
 
         //User must be logged for all requests
-        router.use(loggedIn)
+        //router.use(loggedIn)
         
-        router.get('/', async function (req, res) {
+        router.get('/',loggedIn, async function (req, res) {
             if(req.user.permissions.has("manage_bricks")){
                 let bricks = await self.bricksMgr.getBricks();
 
@@ -33,7 +33,7 @@ class BricksRouter{
         });
 
         //Add brick
-        router.post('/', async function (req, res) {
+        router.post('/',loggedIn, async function (req, res) {
             if(req.user.permissions.has("manage_bricks")){
                 let alias = req.body.alias;
                 let path = req.body.path;
@@ -52,7 +52,7 @@ class BricksRouter{
         });
 
         //Update user
-        router.post('/:id', async function (req, res) {
+        router.post('/:id',loggedIn, async function (req, res) {
             if(req.user.permissions.has("manage_bricks")){
             let id = req.params.id;
             let alias = req.body.alias;
@@ -85,7 +85,7 @@ class BricksRouter{
             }
         });
 
-        router.delete('/:id', async function (req, res) {
+        router.delete('/:id',loggedIn, async function (req, res) {
             try{
                 if(req.user.permissions.has("manage_bricks")){
                     var id = parseInt(req.params.id);
