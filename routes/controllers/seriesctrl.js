@@ -21,7 +21,7 @@ class SeriesCtrl extends MediaBaseCtrl{
         var router = super.buildRouter();
 
         // Add seasons getter
-        router.get('/:mediaId/seasons', async function (req, res) {
+        router.get('/:mediaId/seasons', loggedIn, async function (req, res) {
             var mediaId = parseInt(req.params.mediaId);
             var lang = req.query.lang;
             var userId = 1;//TODO get userId
@@ -48,15 +48,15 @@ class SeriesCtrl extends MediaBaseCtrl{
 
         });
 
-        router.get('episode/id', loggedIn, async function (req, res) {
+        router.get('/episode/id', loggedIn, async function (req, res) {
             if(req.user){
-            let serieId = parseInt(req.query.serie_id);
-            let seasonNb = parseInt(req.query.season_nb);
-            let episodeNb = parseInt(req.query.episode_nb);
+                let serieId = parseInt(req.query.serie_id);
+                let seasonNb = parseInt(req.query.season_nb);
+                let episodeNb = parseInt(req.query.episode_nb);
 
-            var episodeId = await self.dbMgr.getEpisodeId(serieId,seasonNb,episodeNb);
-            res.setHeader('Content-Type', 'application/json');
-            res.send(JSON.stringify({episode_id:episodeId}));
+                var episodeId = await self.dbMgr.getEpisodeId(serieId,seasonNb,episodeNb);
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify({episode_id:episodeId}));
             }
         });
 
