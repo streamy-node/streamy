@@ -18,7 +18,7 @@ class AuthRouter{
         this.passport = passport;
     }
 
-    buildRouter(){
+    buildRouter(locales_path){
         var self = this;
         var router = express.Router();
 
@@ -35,7 +35,7 @@ class AuthRouter{
             }
         );
 
-        router.get('/login', i18n.init, setupLocals, function (req, res) {
+        router.get('/login', i18n(locales_path).init, setupLocals, function (req, res) {
             res.render('login.html')
         })
 

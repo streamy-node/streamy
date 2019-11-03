@@ -2,7 +2,6 @@
 var express = require('express')
 var bodyParser = require('body-parser');
 var app = express()
-var server  = require('http').createServer(app);
 
 // Create sessions management
 var session = require('express-session');
@@ -10,9 +9,6 @@ var MySQLStore = require('express-mysql-session')(session);
 
 // Use consolidate to use mustache for multilang support
 var consolidate = require('consolidate');
-
-// Notifications using websockets
-var io = require('socket.io').listen(server);
 
 // Import top level managers
 var MultiMediaMgr = require('./core/multimedia.js');
@@ -30,7 +26,8 @@ const TranscodeMgr = require('./core/transcoding/transcodermanager');
 var langMW = require('./routes/middlewares/lang_mw'); // Langs
 var authMW = require('./routes/middlewares/auth_mw'); // Authentification
 var utilsMW = require('./routes/middlewares/utils_mw'); // Utils
-var i18n = langMW.i18n
+var locales_path = __dirname + '/static/locales';
+var i18n = langMW.i18n(locales_path)
 var setupLocals = langMW.setupLocals
 var loggedIn = authMW.loggedIn
 var safePath = utilsMW.safePath
@@ -48,7 +45,7 @@ const TranscodingTasksRouter = require('./routes/controllers/transcodingtasksrou
 const AuthRouter = require('./routes/controllers/authrouter');
 
 // Entry point function
-async function startApp(){
+app.initialize = async function(io_notifications){
   // Setup Database and load settings
   var dbMgr = new DBStructure();
   var settings = new Settings(dbMgr);
@@ -211,7 +208,7 @@ async function startApp(){
   })
 
   /// Add routers ///
-  app.use('/', authRouter.buildRouter());
+  app.use('/', authRouter.buildRouter(locales_path));
   app.use('/media', mediactrl.buildRouter());
   app.use('/series', seriesctrl.buildRouter());
   app.use('/movies', moviesctrl.buildRouter());
@@ -220,38 +217,9 @@ async function startApp(){
   app.use('/users', usersRouter.buildRouter());
   app.use('/bricks', bricksRouter.buildRouter());
   app.use('/settings', settingsRouter.buildRouter());
-  app.use('/transcoding_tasks', transcodingTasksRouter.buildRouter());
+  app.use('/transcoding_tasks', transcodingTasksRouter.buildRouter()); 
 
-  /////////////////////// Notifications ///////////////////////////
-  
-  var wsWorkers = io.of('/notifications/workers');
-  processesMgr.on('workerAdded', function(worker){
-    wsWorkers.emit('workerAdded',processesMgr.getLightWorker(worker))
-  });
-  processesMgr.on('workerEnabled', function(worker){
-    wsWorkers.emit('workerEnabled',worker.ip,worker.port)
-  });
-  processesMgr.on('workerDisabled', function(worker){
-    wsWorkers.emit('workerDisabled',worker.ip,worker.port)
-  });
-  processesMgr.on('workerRemoved', function(worker){
-    wsWorkers.emit('workerRemoved',worker.ip,worker.port)
-  });
-  processesMgr.on('workerStatus', function(ip,port,status){
-    wsWorkers.emit('workerStatus',ip,port,status)
-  });
-
-  var wsTranscode = io.of('/notifications/transcoding');
-  transcodeMgr.on('taskAdded', function(task){
-    wsTranscode.emit('taskAdded',task)
-  });
-  transcodeMgr.on('taskUpdated', function(task){
-    wsTranscode.emit('taskUpdated',task)
-  });
-  transcodeMgr.on('taskRemoved', function(filename){
-    wsTranscode.emit('taskRemoved',filename)
-  });
-  
+  app.setupNotifications(io_notifications,processesMgr,transcodeMgr)
 
   // Restart failed or not finished add file tasks
   // as soon as there is a ffmpeg worker available
@@ -259,15 +227,6 @@ async function startApp(){
     transcodeMgr.loadAddFileTasks();
   });
     
-  ///////// Start the server ///////
-  server.listen(8080, function () {
-
-    var host = server.address().address
-    var port = server.address().port
-    
-    console.log("Streamy node listening at http://%s:%s", host, port)
-  });
-
   // importer.importBrick('/data/streamy',"brick1");
   // importer.refreshBrickMetadata(0);
   // importer.refreshBrickData(0)
@@ -283,4 +242,36 @@ async function startApp(){
   // sessionStore.close();
 }
 
-startApp();
+app.setupNotifications = function(io,processesMgr,transcodeMgr){
+
+    /////////////////////// Notifications ///////////////////////////
+    var wsWorkers = io.of('/notifications/workers');
+    processesMgr.on('workerAdded', function(worker){
+      wsWorkers.emit('workerAdded',processesMgr.getLightWorker(worker))
+    });
+    processesMgr.on('workerEnabled', function(worker){
+      wsWorkers.emit('workerEnabled',worker.ip,worker.port)
+    });
+    processesMgr.on('workerDisabled', function(worker){
+      wsWorkers.emit('workerDisabled',worker.ip,worker.port)
+    });
+    processesMgr.on('workerRemoved', function(worker){
+      wsWorkers.emit('workerRemoved',worker.ip,worker.port)
+    });
+    processesMgr.on('workerStatus', function(ip,port,status){
+      wsWorkers.emit('workerStatus',ip,port,status)
+    });
+  
+    var wsTranscode = io.of('/notifications/transcoding');
+    transcodeMgr.on('taskAdded', function(task){
+      wsTranscode.emit('taskAdded',task)
+    });
+    transcodeMgr.on('taskUpdated', function(task){
+      wsTranscode.emit('taskUpdated',task)
+    });
+    transcodeMgr.on('taskRemoved', function(filename){
+      wsTranscode.emit('taskRemoved',filename)
+    });
+}
+
+module.exports = app;
