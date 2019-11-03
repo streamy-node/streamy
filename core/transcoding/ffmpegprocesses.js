@@ -256,10 +256,17 @@ class FfmpegProcessManager extends EventEmitter {
 
   async tryConnectWorker(id) {
     let worker = this.getWorker(id);
-    if (worker && (await this.reachWorkerInfos(worker))) {
-      //this.setWorkerStatus(worker,"online")
-    } else {
-      console.warn("Failed reconnect " + worker.id + " not reachable");
+    if (!worker) {
+      console.warn("Cannot connect to an unxesting worker with id: " + id);
+      return;
+    }
+    try {
+      await this.reachWorkerInfos(worker);
+    } catch (err) {
+      console.warn(
+        "Failed reconnect worker with id: " + id + " not reachable",
+        err
+      );
       worker.enabled = false;
     }
   }
@@ -363,10 +370,9 @@ class FfmpegProcessManager extends EventEmitter {
           this.emit("workerAvailable", worker);
         }
       }
-      return true;
     } catch (err) {
       this.setWorkerStatus(worker, "offline");
-      return false;
+      throw err;
     }
   }
 
@@ -381,8 +387,10 @@ class FfmpegProcessManager extends EventEmitter {
     this.unreachedWorkers.push(worker);
 
     worker.enabled = enabled;
-    let success = await this.reachWorkerInfos(worker);
-    if (success) {
+
+    try {
+      await this.reachWorkerInfos(worker);
+
       this.emit("workerAdded", worker);
       console.log("Worker added ", ip, port);
       if (worker.enabled) {
@@ -398,13 +406,27 @@ class FfmpegProcessManager extends EventEmitter {
       // this.fillupWorker(worker);
 
       return true;
-    } else {
-      console.error("Failed to add worker: ", ip, ":", port);
+    } catch (err) {
+      var error_description = "";
+      if ("code" in err) {
+        error_description = err.code;
+      } else {
+        error_description = err;
+      }
+      console.error(
+        "Failed to add worker: ",
+        ip,
+        ":",
+        port,
+        " error:",
+        err.code
+      );
       if (force) {
         this.unreachedWorkers.push(worker);
       }
       return false;
     }
+
     //   // var ffmpegInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/ffmpeg_infos" ));
     //   // var rawHwInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/hw_infos" ));
     //   // var hwInfos =  {

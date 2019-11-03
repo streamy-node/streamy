@@ -45,19 +45,30 @@ const SettingsRouter = require("./routes/controllers/settingsrouter");
 const TranscodingTasksRouter = require("./routes/controllers/transcodingtasksrouter");
 const AuthRouter = require("./routes/controllers/authrouter");
 
+var loadConfig = require("./core/configuration");
+
 // Entry point function
-app.initialize = async function(io_notifications) {
+app.initialize = async function(config_file, io_notifications) {
+  //Load configuration
+  let config = null;
+  try {
+    config = loadConfig(config_file);
+  } catch (e) {
+    console.error("Failed to load config file: ", e);
+    process.exit(1);
+  }
+
   // Setup Database and load settings
   var dbMgr = new DBStructure();
   var settings = new Settings(dbMgr);
 
   // TODO put this conf inside on configuration file YAML
   let conf = {
-    host: "127.0.0.1",
-    port: 3306,
-    user: "streamy",
-    password: "pwd",
-    database: "streamy"
+    host: config.db.host,
+    port: config.db.port,
+    user: config.db.user,
+    password: config.db.password,
+    database: config.db.database
   };
 
   // Wait for the database to be ready
@@ -71,7 +82,7 @@ app.initialize = async function(io_notifications) {
   /// Setup sessions ///
   var sessionStore = new MySQLStore({}, dbMgr.getConnection());
   var sess = {
-    secret: "sup3rs3cur3",
+    secret: config.session.secret,
     name: "sessionId",
     store: sessionStore,
     resave: false,

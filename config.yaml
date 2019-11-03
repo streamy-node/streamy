@@ -1,0 +1,11 @@
+# Database parameters
+# Do not use the default user/password for safety reason
+db:
+  host: "127.0.0.1"
+  port: 3306
+  user: "streamy"
+  password: "pwd"
+  database: "streamy"
+
+session:
+  secret: "pwd"

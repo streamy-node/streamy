@@ -17,7 +17,7 @@ var server = http.createServer(app);
 var io = require("socket.io").listen(server);
 
 async function startStreamyWebServer() {
-  await app.initialize(io);
+  await app.initialize("config.yaml", io);
 
   ///////// Start the server ///////
   server.listen(port, function() {
@@ -48,4 +48,17 @@ function normalizePort(val) {
   return false;
 }
 
-startStreamyWebServer();
+// Get the config file argument if any
+var myArgs = process.argv.slice(2);
+var default_config = "config.yaml";
+if (myArgs.length >= 1) {
+  if (typeof myArgs[0] === "string") {
+    default_config = myArgs[0];
+  } else {
+    console.error("Invalid non string argument");
+    process.exit(1);
+  }
+}
+
+console.log("Using config file: ", default_config);
+startStreamyWebServer(default_config);

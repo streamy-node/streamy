@@ -72,7 +72,7 @@ const getContent = function(url) {
         // handle connection errors of the request
       })
       .on("error", err => {
-        console.log(err);
+        ////console.log(err);
         reject(err);
       });
   });
