@@ -1,11 +1,11 @@
-var app = require('../app');
-var http = require('http');
+var app = require("../app");
+var http = require("http");
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '8080');
+var port = normalizePort(process.env.PORT || "8080");
 
 /**
  * Create HTTP server.
@@ -14,21 +14,18 @@ var port = normalizePort(process.env.PORT || '8080');
 var server = http.createServer(app);
 
 // Notifications using websockets
-var io = require('socket.io').listen(server);
+var io = require("socket.io").listen(server);
 
+async function startStreamyWebServer() {
+  await app.initialize(io);
 
-async function startStreamyWebServer(){
+  ///////// Start the server ///////
+  server.listen(port, function() {
+    var host = server.address().address;
+    var port = server.address().port;
 
-    await app.initialize(io);
-
-    ///////// Start the server ///////
-    server.listen(port, function () {
-
-        var host = server.address().address
-        var port = server.address().port
-
-        console.log("Streamy node listening at http://%s:%s", host, port)
-    });
+    console.log("Streamy node listening at http://%s:%s", host, port);
+  });
 }
 
 /**
@@ -51,4 +48,4 @@ function normalizePort(val) {
   return false;
 }
 
-startStreamyWebServer()
+startStreamyWebServer();

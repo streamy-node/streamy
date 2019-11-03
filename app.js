@@ -1,66 +1,67 @@
-// Nodejs base modules
-var express = require('express')
-var bodyParser = require('body-parser');
-var app = express()
+//////////// Nodejs base modules ////////////
+var express = require("express");
+var bodyParser = require("body-parser");
+var app = express();
 
 // Create sessions management
-var session = require('express-session');
-var MySQLStore = require('express-mysql-session')(session);
+var session = require("express-session");
+var MySQLStore = require("express-mysql-session")(session);
 
 // Use consolidate to use mustache for multilang support
-var consolidate = require('consolidate');
+var consolidate = require("consolidate");
 
 // Import top level managers
-var MultiMediaMgr = require('./core/multimedia.js');
-var DBStructure = require('./core/dbstructure.js');
-var Settings = require('./core/settings.js');
-var Users = require('./core/users');
-var Bricks = require('./core/bricks');
-var Importer = require('./core/importer.js')
+var MultiMediaMgr = require("./core/multimedia.js");
+var DBStructure = require("./core/dbstructure.js");
+var Settings = require("./core/settings.js");
+var Users = require("./core/users");
+var Bricks = require("./core/bricks");
+var Importer = require("./core/importer.js");
 
 // Import Transcoder/FFMpeg managers
-const ProcessesMgr = require('./core/transcoding/ffmpegprocesses').FfmpegProcessManager;
-const TranscodeMgr = require('./core/transcoding/transcodermanager');
+const ProcessesMgr = require("./core/transcoding/ffmpegprocesses")
+  .FfmpegProcessManager;
+const TranscodeMgr = require("./core/transcoding/transcodermanager");
 
 //Import middlewares
-var langMW = require('./routes/middlewares/lang_mw'); // Langs
-var authMW = require('./routes/middlewares/auth_mw'); // Authentification
-var utilsMW = require('./routes/middlewares/utils_mw'); // Utils
-var locales_path = __dirname + '/static/locales';
-var i18n = langMW.i18n(locales_path)
-var setupLocals = langMW.setupLocals
-var loggedIn = authMW.loggedIn
-var safePath = utilsMW.safePath
+var langMW = require("./routes/middlewares/lang_mw"); // Langs
+var authMW = require("./routes/middlewares/auth_mw"); // Authentification
+var utilsMW = require("./routes/middlewares/utils_mw"); // Utils
+var locales_path = __dirname + "/static/locales";
+var i18n = langMW.i18n(locales_path);
+var setupLocals = langMW.setupLocals;
+var loggedIn = authMW.loggedIn;
+var safePath = utilsMW.safePath;
 
 //include the routes file
-const Seriesctrl = require('./routes/controllers/seriesctrl');
-const Moviesctrl = require('./routes/controllers/moviesctrl');
-const Mediactrl = require('./routes/controllers/mediactrl');
-const UploadCtrl = require('./routes/controllers/uploadctrl');
-const WorkersRouter = require('./routes/controllers/workersrouter');
-const UsersRouter = require('./routes/controllers/usersrouter');
-const BricksRouter = require('./routes/controllers/bricksrouter');
-const SettingsRouter = require('./routes/controllers/settingsrouter');
-const TranscodingTasksRouter = require('./routes/controllers/transcodingtasksrouter');
-const AuthRouter = require('./routes/controllers/authrouter');
+const Seriesctrl = require("./routes/controllers/seriesctrl");
+const Moviesctrl = require("./routes/controllers/moviesctrl");
+const Mediactrl = require("./routes/controllers/mediactrl");
+const UploadCtrl = require("./routes/controllers/uploadctrl");
+const WorkersRouter = require("./routes/controllers/workersrouter");
+const UsersRouter = require("./routes/controllers/usersrouter");
+const BricksRouter = require("./routes/controllers/bricksrouter");
+const SettingsRouter = require("./routes/controllers/settingsrouter");
+const TranscodingTasksRouter = require("./routes/controllers/transcodingtasksrouter");
+const AuthRouter = require("./routes/controllers/authrouter");
 
 // Entry point function
-app.initialize = async function(io_notifications){
+app.initialize = async function(io_notifications) {
   // Setup Database and load settings
   var dbMgr = new DBStructure();
   var settings = new Settings(dbMgr);
 
   // TODO put this conf inside on configuration file YAML
   let conf = {
-    host: '127.0.0.1',
+    host: "127.0.0.1",
     port: 3306,
-    user: 'streamy',
-    password: 'pwd',
-    database: 'streamy'
-  }
+    user: "streamy",
+    password: "pwd",
+    database: "streamy"
+  };
 
   // Wait for the database to be ready
-  if(!await dbMgr.initialize(conf)){
+  if (!(await dbMgr.initialize(conf))) {
     process.exit(1);
   }
 
@@ -68,10 +69,10 @@ app.initialize = async function(io_notifications){
   await settings.pullSettings();
 
   /// Setup sessions ///
-  var sessionStore = new MySQLStore({},dbMgr.getConnection());
+  var sessionStore = new MySQLStore({}, dbMgr.getConnection());
   var sess = {
-    secret : 'sup3rs3cur3',
-    name : 'sessionId',
+    secret: "sup3rs3cur3",
+    name: "sessionId",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -80,20 +81,25 @@ app.initialize = async function(io_notifications){
   };
 
   // Handle reconnection
-  dbMgr.on("connected",function(connection){
-    sess.store = new MySQLStore({},connection);
-  })
+  dbMgr.on("connected", function(connection) {
+    sess.store = new MySQLStore({}, connection);
+  });
 
   /// setup managers ///
-  var processesMgr = new ProcessesMgr()
-  var multiMediaMgr = new MultiMediaMgr(dbMgr,settings,processesMgr);
-  var transcodeMgr = new TranscodeMgr(processesMgr,dbMgr,multiMediaMgr.getMediaBase(),settings);
-  var importer = new Importer(dbMgr,multiMediaMgr, transcodeMgr);
-  var userMgr = new Users(dbMgr)
-  var bricksMgr = new Bricks(dbMgr)
+  var processesMgr = new ProcessesMgr();
+  var multiMediaMgr = new MultiMediaMgr(dbMgr, settings, processesMgr);
+  var transcodeMgr = new TranscodeMgr(
+    processesMgr,
+    dbMgr,
+    multiMediaMgr.getMediaBase(),
+    settings
+  );
+  var importer = new Importer(dbMgr, multiMediaMgr, transcodeMgr);
+  var userMgr = new Users(dbMgr);
+  var bricksMgr = new Bricks(dbMgr);
 
   /// Setup Middleware ///
-  var passport = authMW.setupPassport(userMgr)
+  var passport = authMW.setupPassport(userMgr);
 
   /// Add routers ///
   var mediactrl = new Mediactrl(dbMgr, multiMediaMgr);
@@ -111,29 +117,29 @@ app.initialize = async function(io_notifications){
   processesMgr.setMinTimeBetweenProgresses(5000);
 
   // Try to reach workers from database
-  processesMgr.addWorkersFromDB(dbMgr,true);
+  processesMgr.addWorkersFromDB(dbMgr, true);
 
   // Try to add default users if not already done
   userMgr.addDefaultUsers();
 
   //Setup lang
-  app.engine('html', consolidate.mustache); // Assign html to mustache engine
-  app.set('view engine', 'html'); // Set default extension
-  app.set('views', __dirname + '/views');
+  app.engine("html", consolidate.mustache); // Assign html to mustache engine
+  app.set("view engine", "html"); // Set default extension
+  app.set("views", __dirname + "/views");
   //app.use(i18n.init);
 
   /// Setup more secure option in production
-  if (app.get('env') === 'production') {
+  if (app.get("env") === "production") {
     //minimale security
-    app.disable('x-powered-by');
-    app.set('trust proxy', 1) // trust first proxy
+    app.disable("x-powered-by");
+    app.set("trust proxy", 1); // trust first proxy
     app.use(helmet());
-    sess.cookie.secure = true // serve secure cookies
+    sess.cookie.secure = true; // serve secure cookies
   }
 
   /// Setup express server ///
   //app.use(cors());
-  app.use(express.static('static'));
+  app.use(express.static("static"));
   app.use(session(sess));
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(passport.initialize());
@@ -141,92 +147,112 @@ app.initialize = async function(io_notifications){
   app.use(express.json());
 
   /// Setup main entry point ///
-  app.get('/', function (req, res) {
-    res.redirect('/index');
-  })
+  app.get("/", function(req, res) {
+    res.redirect("/index");
+  });
 
-  app.get('/index', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('index.html',{UserName:req.user.displayName});
-  })
-
+  app.get("/index", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("index.html", { UserName: req.user.displayName });
+  });
 
   ////////////////////// templates //////////////////////////////////////////
-  app.get('/movies.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/movies.html');
-  })
-  app.get('/movie.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/movie.html');
-  })
-  app.get('/series.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/series.html');
-  })
-  app.get('/serie.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/serie.html');
-  })
-  app.get('/addvideo.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/addvideo.html');
-  })
-  app.get('/workers.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/workers.html');
-  })
-  app.get('/transcoding.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/transcoding.html');
-  })
-  app.get('/mediacontent.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/mediacontent.html');
-  })
-  app.get('/common.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/common.html');
-  })
-  app.get('/users.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/users.html');
-  })
-  app.get('/storage.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/storage.html');
-  })
-  app.get('/settings.html', i18n.init, setupLocals, loggedIn, function (req, res) {
-    res.render('templates/settings.html');
-  })
+  app.get("/movies.html", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("templates/movies.html");
+  });
+  app.get("/movie.html", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("templates/movie.html");
+  });
+  app.get("/series.html", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("templates/series.html");
+  });
+  app.get("/serie.html", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("templates/serie.html");
+  });
+  app.get("/addvideo.html", i18n.init, setupLocals, loggedIn, function(
+    req,
+    res
+  ) {
+    res.render("templates/addvideo.html");
+  });
+  app.get("/workers.html", i18n.init, setupLocals, loggedIn, function(
+    req,
+    res
+  ) {
+    res.render("templates/workers.html");
+  });
+  app.get("/transcoding.html", i18n.init, setupLocals, loggedIn, function(
+    req,
+    res
+  ) {
+    res.render("templates/transcoding.html");
+  });
+  app.get("/mediacontent.html", i18n.init, setupLocals, loggedIn, function(
+    req,
+    res
+  ) {
+    res.render("templates/mediacontent.html");
+  });
+  app.get("/common.html", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("templates/common.html");
+  });
+  app.get("/users.html", i18n.init, setupLocals, loggedIn, function(req, res) {
+    res.render("templates/users.html");
+  });
+  app.get("/storage.html", i18n.init, setupLocals, loggedIn, function(
+    req,
+    res
+  ) {
+    res.render("templates/storage.html");
+  });
+  app.get("/settings.html", i18n.init, setupLocals, loggedIn, function(
+    req,
+    res
+  ) {
+    res.render("templates/settings.html");
+  });
 
   //static files from node_modules
-  app.get('/js/shaka/*', loggedIn, safePath, function (req, res) {
-    res.sendFile(__dirname + '/node_modules/shaka-player/' + req.params[0]);
-  })
+  app.get("/js/shaka/*", loggedIn, safePath, function(req, res) {
+    res.sendFile(__dirname + "/node_modules/shaka-player/" + req.params[0]);
+  });
 
-  app.get('/js/socket.io/*', loggedIn, safePath, function (req, res) {
-    res.sendFile(__dirname + '/node_modules/socket.io-client/dist/' + req.params[0]);
-  })
+  app.get("/js/socket.io/*", loggedIn, safePath, function(req, res) {
+    res.sendFile(
+      __dirname + "/node_modules/socket.io-client/dist/" + req.params[0]
+    );
+  });
 
-  app.get('/css/material-icons/*', loggedIn, safePath, function (req, res) {
-    res.sendFile(__dirname + '/node_modules/material-icons/css/' + req.params[0]);
-  })
+  app.get("/css/material-icons/*", loggedIn, safePath, function(req, res) {
+    res.sendFile(
+      __dirname + "/node_modules/material-icons/css/" + req.params[0]
+    );
+  });
 
   // API key
-  app.get('/moviedb/key', loggedIn, function (req, res) {
-    
+  app.get("/moviedb/key", loggedIn, function(req, res) {
     res.send(settings.global.tmdb_api_key);
-  })
+  });
 
   /// Add routers ///
-  app.use('/', authRouter.buildRouter(locales_path));
-  app.use('/media', mediactrl.buildRouter());
-  app.use('/series', seriesctrl.buildRouter());
-  app.use('/movies', moviesctrl.buildRouter());
-  app.use('/upload', uploadCtrl.buildRouter());
-  app.use('/workers', workersRouter.buildRouter());
-  app.use('/users', usersRouter.buildRouter());
-  app.use('/bricks', bricksRouter.buildRouter());
-  app.use('/settings', settingsRouter.buildRouter());
-  app.use('/transcoding_tasks', transcodingTasksRouter.buildRouter()); 
+  app.use("/", authRouter.buildRouter(locales_path));
+  app.use("/media", mediactrl.buildRouter());
+  app.use("/series", seriesctrl.buildRouter());
+  app.use("/movies", moviesctrl.buildRouter());
+  app.use("/upload", uploadCtrl.buildRouter());
+  app.use("/workers", workersRouter.buildRouter());
+  app.use("/users", usersRouter.buildRouter());
+  app.use("/bricks", bricksRouter.buildRouter());
+  app.use("/settings", settingsRouter.buildRouter());
+  app.use("/transcoding_tasks", transcodingTasksRouter.buildRouter());
 
-  app.setupNotifications(io_notifications,processesMgr,transcodeMgr)
+  app.setupNotifications(io_notifications, processesMgr, transcodeMgr);
 
   // Restart failed or not finished add file tasks
   // as soon as there is a ffmpeg worker available
-  processesMgr.on('workerAvailable', function(){
+  processesMgr.on("workerAvailable", function() {
     transcodeMgr.loadAddFileTasks();
   });
-    
+
   // importer.importBrick('/data/streamy',"brick1");
   // importer.refreshBrickMetadata(0);
   // importer.refreshBrickData(0)
@@ -237,41 +263,40 @@ app.initialize = async function(io_notifications){
   //   //let success = await transcodeMgr.updateMpdAudioChannels("/data/upload/allsub.mpd")
   // }
   // setTimeout(dostuff, 1500, 'funky');
-  
+
   // TODO properly shutdown
   // sessionStore.close();
-}
+};
 
-app.setupNotifications = function(io,processesMgr,transcodeMgr){
+app.setupNotifications = function(io, processesMgr, transcodeMgr) {
+  /////////////////////// Notifications ///////////////////////////
+  var wsWorkers = io.of("/notifications/workers");
+  processesMgr.on("workerAdded", function(worker) {
+    wsWorkers.emit("workerAdded", processesMgr.getLightWorker(worker));
+  });
+  processesMgr.on("workerEnabled", function(worker) {
+    wsWorkers.emit("workerEnabled", worker.ip, worker.port);
+  });
+  processesMgr.on("workerDisabled", function(worker) {
+    wsWorkers.emit("workerDisabled", worker.ip, worker.port);
+  });
+  processesMgr.on("workerRemoved", function(worker) {
+    wsWorkers.emit("workerRemoved", worker.ip, worker.port);
+  });
+  processesMgr.on("workerStatus", function(ip, port, status) {
+    wsWorkers.emit("workerStatus", ip, port, status);
+  });
 
-    /////////////////////// Notifications ///////////////////////////
-    var wsWorkers = io.of('/notifications/workers');
-    processesMgr.on('workerAdded', function(worker){
-      wsWorkers.emit('workerAdded',processesMgr.getLightWorker(worker))
-    });
-    processesMgr.on('workerEnabled', function(worker){
-      wsWorkers.emit('workerEnabled',worker.ip,worker.port)
-    });
-    processesMgr.on('workerDisabled', function(worker){
-      wsWorkers.emit('workerDisabled',worker.ip,worker.port)
-    });
-    processesMgr.on('workerRemoved', function(worker){
-      wsWorkers.emit('workerRemoved',worker.ip,worker.port)
-    });
-    processesMgr.on('workerStatus', function(ip,port,status){
-      wsWorkers.emit('workerStatus',ip,port,status)
-    });
-  
-    var wsTranscode = io.of('/notifications/transcoding');
-    transcodeMgr.on('taskAdded', function(task){
-      wsTranscode.emit('taskAdded',task)
-    });
-    transcodeMgr.on('taskUpdated', function(task){
-      wsTranscode.emit('taskUpdated',task)
-    });
-    transcodeMgr.on('taskRemoved', function(filename){
-      wsTranscode.emit('taskRemoved',filename)
-    });
-}
+  var wsTranscode = io.of("/notifications/transcoding");
+  transcodeMgr.on("taskAdded", function(task) {
+    wsTranscode.emit("taskAdded", task);
+  });
+  transcodeMgr.on("taskUpdated", function(task) {
+    wsTranscode.emit("taskUpdated", task);
+  });
+  transcodeMgr.on("taskRemoved", function(filename) {
+    wsTranscode.emit("taskRemoved", filename);
+  });
+};
 
 module.exports = app;

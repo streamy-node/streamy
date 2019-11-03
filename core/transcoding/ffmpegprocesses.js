@@ -1,17 +1,17 @@
-const WebSocket = require('ws');
-const FinalMsg = require('./messages').FinalMsg
-const StatusMsg = require('./messages').StatusMsg
+const WebSocket = require("ws");
+const FinalMsg = require("./messages").FinalMsg;
+const StatusMsg = require("./messages").StatusMsg;
 
 // Load utils functions
-const getHTTPContent = require('../utils/netutils.js').getContent;
-const sendAsJson = require('../utils/netutils.js').sendAsJson;
-const parseJson = require('../utils/netutils').parseJson
-const moveFromToArray = require('../utils/jsutils.js').moveFromToArray;
-const removeFromList = require('../utils/jsutils.js').removeFromList;
-const EventEmitter = require('events');
+const getHTTPContent = require("../utils/netutils.js").getContent;
+const sendAsJson = require("../utils/netutils.js").sendAsJson;
+const parseJson = require("../utils/netutils").parseJson;
+const moveFromToArray = require("../utils/jsutils.js").moveFromToArray;
+const removeFromList = require("../utils/jsutils.js").removeFromList;
+const EventEmitter = require("events");
 
-class Hardware{
-  constructor(core,gpu,vaapi,omx){
+class Hardware {
+  constructor(core, gpu, vaapi, omx) {
     this.core = core;
     this.gpu = gpu;
     this.vaapi = vaapi;
@@ -20,17 +20,26 @@ class Hardware{
 }
 
 const PROCESS_STATUS = {
-  NONE: 'NONE',
-  QUEUED: 'QUEUED',
-  RUNNING: 'RUNNING',
-  WAITING: 'WAITING',
-  STOPPED: 'STOPPED',
-  TERMINATED: 'TERMINATED'
-}
+  NONE: "NONE",
+  QUEUED: "QUEUED",
+  RUNNING: "RUNNING",
+  WAITING: "WAITING",
+  STOPPED: "STOPPED",
+  TERMINATED: "TERMINATED"
+};
 
-class Process extends EventEmitter{
-   
-  constructor(cmd,args,priority,hw,exclusive, onStart, onStop, onProgression, onFinal){
+class Process extends EventEmitter {
+  constructor(
+    cmd,
+    args,
+    priority,
+    hw,
+    exclusive,
+    onStart,
+    onStop,
+    onProgression,
+    onFinal
+  ) {
     super();
     this.cmd = cmd;
     this.args = args;
@@ -49,12 +58,11 @@ class Process extends EventEmitter{
     this.creationDate = new Date();
   }
 
-  setProcessStatus(status){
+  setProcessStatus(status) {
     switch (status) {
       case value:
-        
         break;
-    
+
       default:
         break;
     }
@@ -72,55 +80,58 @@ class Process extends EventEmitter{
   //   }
   // }
 
-  _setWaiting(){
-    if(this.status != PROCESS_STATUS.TERMINATED){
+  _setWaiting() {
+    if (this.status != PROCESS_STATUS.TERMINATED) {
       this.status = PROCESS_STATUS.WAITING;
-      this.emit('waiting');
+      this.emit("waiting");
     }
   }
 
-  _setRunning(){
+  _setRunning() {
     this.status = PROCESS_STATUS.RUNNING;
-    this.emit('running');
+    this.emit("running");
   }
 
-  _setStopped(){
-    if(this.status != PROCESS_STATUS.TERMINATED){
+  _setStopped() {
+    if (this.status != PROCESS_STATUS.TERMINATED) {
       this.status = PROCESS_STATUS.STOPPED;
-      this.emit('stopped');
+      this.emit("stopped");
     }
   }
 
-  _onProgression(msg){
-    this.emit('progression',msg);
+  _onProgression(msg) {
+    this.emit("progression", msg);
   }
-  
-  _onFinal(msg){
-    if(this.status != PROCESS_STATUS.TERMINATED){
-      if(this.ws.readyState == WebSocket.CONNECTING || this.ws.readyState == WebSocket.OPEN ){
-        this.ws.close(1000,"work finished");//1000 means close normal (cf https://developer.mozilla.org/fr/docs/Web/API/CloseEvent )
+
+  _onFinal(msg) {
+    if (this.status != PROCESS_STATUS.TERMINATED) {
+      if (
+        this.ws.readyState == WebSocket.CONNECTING ||
+        this.ws.readyState == WebSocket.OPEN
+      ) {
+        this.ws.close(1000, "work finished"); //1000 means close normal (cf https://developer.mozilla.org/fr/docs/Web/API/CloseEvent )
       }
       this.status = PROCESS_STATUS.TERMINATED;
-      this.emit('final',msg);
+      this.emit("final", msg);
     }
   }
 
-  clearWorkerInfos(){
-    this.ws = null
+  clearWorkerInfos() {
+    this.ws = null;
     this.worker = null;
     this.progression = 0;
   }
 }
 
-class Worker{
-  constructor(ip,port){
+class Worker {
+  constructor(ip, port) {
     this.ip = ip;
     this.port = port;
     this.ffmpegInfos = null;
     this.processes = [];
     this.hw = null;
-    this.id = ip+":"+port.toString();
-    this.ws_uri = "ws://"+ip+":"+port.toString();
+    this.id = ip + ":" + port.toString();
+    this.ws_uri = "ws://" + ip + ":" + port.toString();
     this.enabled = true;
     this.error_msg;
     this.failures = 0;
@@ -129,17 +140,17 @@ class Worker{
     this.status = "offline";
     this.reached = false;
   }
-  
-  setupReached(ffmpegInfos,hwInfos){
+
+  setupReached(ffmpegInfos, hwInfos) {
     this.hw = hwInfos;
     this.ffmpegInfos = ffmpegInfos;
     this.reached = true;
-    this.status = "online"
+    this.status = "online";
   }
 }
 
-class FfmpegProcessManager extends EventEmitter{
-  constructor(){
+class FfmpegProcessManager extends EventEmitter {
+  constructor() {
     super();
     this.workers = [];
     this.unreachedWorkers = [];
@@ -149,118 +160,117 @@ class FfmpegProcessManager extends EventEmitter{
     this.minTimeBetweenProgresses = 0;
   }
 
-  setMinTimeBetweenProgresses(val){
+  setMinTimeBetweenProgresses(val) {
     this.minTimeBetweenProgresses = val;
   }
 
-  setWorkerStatus(worker,status){
-    if(status != worker.status){
+  setWorkerStatus(worker, status) {
+    if (status != worker.status) {
       worker.status = status;
-      this.emit("workerStatus",worker.ip,worker.port,worker.status);
+      this.emit("workerStatus", worker.ip, worker.port, worker.status);
     }
   }
 
-  getWorkers(){
+  getWorkers() {
     return this.workers.concat(this.unreachedWorkers);
   }
 
-  getWorker(id){
+  getWorker(id) {
     let worker = this.getReachedWorker(id);
-    if(worker){
+    if (worker) {
       return worker;
     }
     //Try with unreachable workers
-    worker = this.getUnreachedWorker(id)
+    worker = this.getUnreachedWorker(id);
     return worker;
   }
 
-  getReachedWorker(id){
-    for(let i=0; i<this.workers.length; i++){
+  getReachedWorker(id) {
+    for (let i = 0; i < this.workers.length; i++) {
       let worker = this.workers[i];
-      if(worker.id == id){
+      if (worker.id == id) {
         return worker;
       }
     }
     return null;
   }
 
-  getUnreachedWorker(id){
-    for(let i=0; i<this.unreachedWorkers.length; i++){
+  getUnreachedWorker(id) {
+    for (let i = 0; i < this.unreachedWorkers.length; i++) {
       let worker = this.unreachedWorkers[i];
-      if(worker.id == id){
+      if (worker.id == id) {
         return worker;
       }
     }
     return null;
   }
 
-  _removeUnreachedWorkerFromList(id){
-    for(let i=0; i<this.unreachedWorkers.length; i++){
+  _removeUnreachedWorkerFromList(id) {
+    for (let i = 0; i < this.unreachedWorkers.length; i++) {
       let worker = this.unreachedWorkers[i];
-      if(worker.id == id){
+      if (worker.id == id) {
         this.unreachedWorkers.splice(i, 1);
         return true;
       }
     }
     return false;
   }
-  _removeReachedWorkerFromList(id){
-    for(let i=0; i<this.workers.length; i++){
+  _removeReachedWorkerFromList(id) {
+    for (let i = 0; i < this.workers.length; i++) {
       let worker = this.workers[i];
-      if(worker.id == id){
+      if (worker.id == id) {
         this.workers.splice(i, 1);
         return true;
       }
     }
-    return false
+    return false;
   }
 
-  _removeWorkerFromList(id){
-    if(!this._removeReachedWorkerFromList(id)){
-      return this._removeUnreachedWorkerFromList(id)
-    }else{
+  _removeWorkerFromList(id) {
+    if (!this._removeReachedWorkerFromList(id)) {
+      return this._removeUnreachedWorkerFromList(id);
+    } else {
       return true;
     }
   }
 
-  enableWorkerFromId(id,value){
+  enableWorkerFromId(id, value) {
     let worker = this.getWorker(id);
-    if(worker){
-      this.enableWorker(worker,value);
-    }    
+    if (worker) {
+      this.enableWorker(worker, value);
+    }
   }
 
-  async enableWorker(worker,value){
-    if(worker.enabled != value){
+  async enableWorker(worker, value) {
+    if (worker.enabled != value) {
       worker.enabled = value;
-      if(value){
-          this.emit('workerEnabled',worker);
-          this.fillupWorker(worker);
-
-      }else{
-        this.removeWorkerProcesses(worker)
-        this.emit('workerDisabled',worker);
+      if (value) {
+        this.emit("workerEnabled", worker);
+        this.fillupWorker(worker);
+      } else {
+        this.removeWorkerProcesses(worker);
+        this.emit("workerDisabled", worker);
       }
     }
   }
 
-  async tryConnectWorker(id){
+  async tryConnectWorker(id) {
     let worker = this.getWorker(id);
-    if(worker && await this.reachWorkerInfos(worker)){
+    if (worker && (await this.reachWorkerInfos(worker))) {
       //this.setWorkerStatus(worker,"online")
-    }else{
-      console.warn("Failed reconnect "+worker.id+" not reachable")
+    } else {
+      console.warn("Failed reconnect " + worker.id + " not reachable");
       worker.enabled = false;
     }
   }
 
   // Remove all processes on a worker and queue them
-  removeWorkerProcesses(worker){
-    let socketsToClose = []
-    let processesToRelaunch = []
+  removeWorkerProcesses(worker) {
+    let socketsToClose = [];
+    let processesToRelaunch = [];
 
     //Transfert active processes
-    for(let i=0; i<worker.processes.length; i++){
+    for (let i = 0; i < worker.processes.length; i++) {
       socketsToClose.push(worker.processes[i].ws);
       worker.processes[i].clearWorkerInfos();
     }
@@ -268,7 +278,7 @@ class FfmpegProcessManager extends EventEmitter{
     worker.processes = [];
 
     //Transfert waiting processes
-    for(let i=0; i<worker.waitingProcesses.length; i++){
+    for (let i = 0; i < worker.waitingProcesses.length; i++) {
       socketsToClose.push(worker.waitingProcesses[i].ws);
       worker.waitingProcesses[i].clearWorkerInfos();
     }
@@ -276,33 +286,35 @@ class FfmpegProcessManager extends EventEmitter{
     worker.waitingProcesses = [];
 
     //Transfert stopped processes
-    for(let i=0; i<worker.stoppedProcesses.length; i++){
+    for (let i = 0; i < worker.stoppedProcesses.length; i++) {
       socketsToClose.push(worker.stoppedProcesses[i].ws);
       worker.stoppedProcesses[i].clearWorkerInfos();
     }
-    this.stoppedProcesses = this.stoppedProcesses.concat(worker.stoppedProcesses);
-    worker.stoppedProcesses = []
+    this.stoppedProcesses = this.stoppedProcesses.concat(
+      worker.stoppedProcesses
+    );
+    worker.stoppedProcesses = [];
 
     //Close all sockets
-    for(let i=0; i<socketsToClose.length; i++){
+    for (let i = 0; i < socketsToClose.length; i++) {
       socketsToClose[i].close();
     }
 
     //Re-launch all active processes
-    for(let i=0; i<processesToRelaunch.length; i++){
+    for (let i = 0; i < processesToRelaunch.length; i++) {
       this.launchProcess(processesToRelaunch[i]);
     }
   }
 
-  removeWorker(id){
+  removeWorker(id) {
     let worker = this.getWorker(id);
-    if(worker){
-      if(worker.enabled == false){
-        this.emit('workerRemoved',worker);
+    if (worker) {
+      if (worker.enabled == false) {
+        this.emit("workerRemoved", worker);
         this._removeWorkerFromList(worker.id);
-      }else{
-        console.warn("removeWorker cannot remove a worker which is enabled")
-        return false
+      } else {
+        console.warn("removeWorker cannot remove a worker which is enabled");
+        return false;
       }
     }
     // for(let i=0; i<this.workers.length; i++){
@@ -321,71 +333,78 @@ class FfmpegProcessManager extends EventEmitter{
     return true;
   }
 
-  async reachWorkerInfos(worker){
-    try{
-      var ffmpegInfos = parseJson(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffmpeg_infos" ));
-      var rawHwInfos = parseJson(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/hw_infos" ));
-      var hwInfos =  {
-        core:rawHwInfos.cpu.cores,
-        gpu:rawHwInfos.graphics.length,//For the moment when don't check differences
-        vaapi:0.0,//TODO
-        omx:0.0  //TODO
+  async reachWorkerInfos(worker) {
+    try {
+      var ffmpegInfos = parseJson(
+        await getHTTPContent(
+          "http://" + worker.ip + ":" + worker.port.toString() + "/ffmpeg_infos"
+        )
+      );
+      var rawHwInfos = parseJson(
+        await getHTTPContent(
+          "http://" + worker.ip + ":" + worker.port.toString() + "/hw_infos"
+        )
+      );
+      var hwInfos = {
+        core: rawHwInfos.cpu.cores,
+        gpu: rawHwInfos.graphics.length, //For the moment when don't check differences
+        vaapi: 0.0, //TODO
+        omx: 0.0 //TODO
       };
       let wasReached = worker.reached;
-      this.setWorkerStatus(worker,"online");
-      worker.setupReached(ffmpegInfos,hwInfos);
-      
+      this.setWorkerStatus(worker, "online");
+      worker.setupReached(ffmpegInfos, hwInfos);
 
       // If it never reached before, add it to worker pool
-      if(!wasReached){
+      if (!wasReached) {
         this._removeUnreachedWorkerFromList(worker.id);
         this.workers.push(worker);
-        if(this.workers.length == 1){
-          this.emit('workerAvailable',worker);
+        if (this.workers.length == 1) {
+          this.emit("workerAvailable", worker);
         }
       }
       return true;
-    }catch(err){
-      this.setWorkerStatus(worker,"offline");
+    } catch (err) {
+      this.setWorkerStatus(worker, "offline");
       return false;
     }
   }
 
-  async addWorker(ip,port,enabled=true,force=false){
-  //  try{
-      var worker = new Worker(ip,port);
-      if(this.getWorker(worker.id)){
-        console.error("Worker already added: ",ip,":",port);
-        return false;
+  async addWorker(ip, port, enabled = true, force = false) {
+    //  try{
+    var worker = new Worker(ip, port);
+    if (this.getWorker(worker.id)) {
+      console.error("Worker already added: ", ip, ":", port);
+      return false;
+    }
+
+    this.unreachedWorkers.push(worker);
+
+    worker.enabled = enabled;
+    let success = await this.reachWorkerInfos(worker);
+    if (success) {
+      this.emit("workerAdded", worker);
+      console.log("Worker added ", ip, port);
+      if (worker.enabled) {
+        this.fillupWorker(worker);
       }
 
-      this.unreachedWorkers.push(worker);
+      // this.workers.push(worker);
+      // if(this.workers.length == 1){
+      //   this.emit('workerAvailable',worker);
+      // }
+      // this.emit('workerAdded',worker);
+      // console.log("Worker added ",ip,port);
+      // this.fillupWorker(worker);
 
-      worker.enabled = enabled;
-      let success = await this.reachWorkerInfos(worker)
-      if(success){
-        this.emit('workerAdded',worker);
-        console.log("Worker added ",ip,port);
-        if(worker.enabled){
-          this.fillupWorker(worker);
-        }
-        
-        // this.workers.push(worker);
-        // if(this.workers.length == 1){
-        //   this.emit('workerAvailable',worker);
-        // }
-        // this.emit('workerAdded',worker);
-        // console.log("Worker added ",ip,port);
-        // this.fillupWorker(worker);
-        
-        return true;
-      }else{
-        console.error("Failed to add worker: ",ip,":",port);
-        if(force){
-          this.unreachedWorkers.push(worker)
-        }
-        return false;
+      return true;
+    } else {
+      console.error("Failed to add worker: ", ip, ":", port);
+      if (force) {
+        this.unreachedWorkers.push(worker);
       }
+      return false;
+    }
     //   // var ffmpegInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/ffmpeg_infos" ));
     //   // var rawHwInfos = parseJson(await getHTTPContent("http://"+ip+":"+port.toString()+"/hw_infos" ));
     //   // var hwInfos =  {
@@ -405,7 +424,7 @@ class FfmpegProcessManager extends EventEmitter{
     //   this.emit('workerAdded',worker);
     //   console.log("Worker added ",ip,port);
     //   this.fillupWorker(worker);
-      
+
     //   return true;
     // }catch(err){
     //   console.error("Failed to add worker: ",ip," ",err);
@@ -414,29 +433,36 @@ class FfmpegProcessManager extends EventEmitter{
     //     this.unreachedWorkers.push(worker)
     //   }
     //   return false;
-    // } 
+    // }
   }
 
   // Find a worker to run a task meeting hw properties and considering priorities.
   // return {worker,processesToStop}
-  findAvailableWorker(process/*priority,hw*/){
+  findAvailableWorker(process /*priority,hw*/) {
     var worker = null;
     var processesToStop = [];
 
     // Check all worker and take the one which will stop less tasks with higher priority
     var bestWorker = null;
     var bestprocessesToStopPriority = null;
-    for(var worker of this.workers){
-      if(worker.enabled == false){
+    for (var worker of this.workers) {
+      if (worker.enabled == false) {
         continue;
       }
-      var [available, processesToStop, processesToStopPriority] = this.checkWorkerAvailablity(worker,process);
-      if(available){
-        if(processesToStop.length == 0){
+      var [
+        available,
+        processesToStop,
+        processesToStopPriority
+      ] = this.checkWorkerAvailablity(worker, process);
+      if (available) {
+        if (processesToStop.length == 0) {
           //This worker won't stop anything so it's a perfect choice
-          return [worker,[]];
-        }else{
-          if(!bestWorker || processesToStopPriority < bestprocessesToStopPriority){
+          return [worker, []];
+        } else {
+          if (
+            !bestWorker ||
+            processesToStopPriority < bestprocessesToStopPriority
+          ) {
             bestWorker = worker;
             bestprocessesToStopPriority = processesToStopPriority;
             processesToStop = processesToStop;
@@ -447,48 +473,52 @@ class FfmpegProcessManager extends EventEmitter{
     return [bestWorker, processesToStop];
   }
 
-
   //Check if a process requiring hw can run on daemon with priority
-  checkWorkerAvailablity(worker,inproc/*priority,hw*/){
+  checkWorkerAvailablity(worker, inproc /*priority,hw*/) {
     var available = false;
     var processesToStop = [];
     var processesToStopPriority = 20;
 
     // Check if base hw compatible
-    if( worker.hw.core < inproc.hw.core
-      && worker.hw.gpu < inproc.hw.gpu 
-      && worker.hw.vaapi < inproc.hw.vaapi 
-      && worker.hw.omx < inproc.hw.core ){
-        return [available,processesToStop,processesToStopPriority];
+    if (
+      worker.hw.core < inproc.hw.core &&
+      worker.hw.gpu < inproc.hw.gpu &&
+      worker.hw.vaapi < inproc.hw.vaapi &&
+      worker.hw.omx < inproc.hw.core
+    ) {
+      return [available, processesToStop, processesToStopPriority];
     }
 
     /// Compute availablehw: remaining hardware considering only higher or equal priority running tasks
     //  Compute freehw: remaining hardware considering all running tasks
     var lowerProcesses = [];
-    var availablehw = Object.assign({}, worker.hw);// this copy work only if hw does not contain objects
+    var availablehw = Object.assign({}, worker.hw); // this copy work only if hw does not contain objects
     var freehw = Object.assign({}, worker.hw);
-    var isLocal = (worker.processes.indexOf(inproc) > 0);//Is the process already launched locally?
+    var isLocal = worker.processes.indexOf(inproc) > 0; //Is the process already launched locally?
 
     // Remove ressource from higher or equal priority
-    for( var process of worker.processes){
-      if(inproc == process){
+    for (var process of worker.processes) {
+      if (inproc == process) {
         continue;
       }
-      if((process.status == PROCESS_STATUS.RUNNING || (process.status == PROCESS_STATUS.WAITING && !isLocal)) 
-        && process.priority<=inproc.priority ){
+      if (
+        (process.status == PROCESS_STATUS.RUNNING ||
+          (process.status == PROCESS_STATUS.WAITING && !isLocal)) &&
+        process.priority <= inproc.priority
+      ) {
         availablehw.core -= process.hw.core;
         availablehw.gpu -= process.hw.gpu;
         availablehw.vaapi -= process.hw.vaapi;
         availablehw.omx -= process.hw.omx;
-        if(process.exclusive || inproc.exclusive){
-          // The process argument cannot stop higher or equal priority running process 
-          return [available,processesToStop,processesToStopPriority];
+        if (process.exclusive || inproc.exclusive) {
+          // The process argument cannot stop higher or equal priority running process
+          return [available, processesToStop, processesToStopPriority];
         }
-      }else if(process.status == PROCESS_STATUS.RUNNING){
+      } else if (process.status == PROCESS_STATUS.RUNNING) {
         lowerProcesses.push(process);
       }
 
-      if(process.status == PROCESS_STATUS.RUNNING){
+      if (process.status == PROCESS_STATUS.RUNNING) {
         freehw.core -= process.hw.core;
         freehw.gpu -= process.hw.gpu;
         freehw.vaapi -= process.hw.vaapi;
@@ -496,18 +526,20 @@ class FfmpegProcessManager extends EventEmitter{
       }
     }
 
-    var diffCore = availablehw.core-worker.hw.core;
-    var diffGPU = availablehw.gpu-worker.hw.gpu;
-    var diffVaapi = availablehw.vaapi-worker.hw.vaapi;
-    var diffOmx = availablehw.omx-worker.hw.omx;
+    var diffCore = availablehw.core - worker.hw.core;
+    var diffGPU = availablehw.gpu - worker.hw.gpu;
+    var diffVaapi = availablehw.vaapi - worker.hw.vaapi;
+    var diffOmx = availablehw.omx - worker.hw.omx;
 
     // If not enough ressources availables
-    if(availablehw.core < inproc.hw.core 
-      || availablehw.diffGPU < inproc.hw.gpu  
-      || availablehw.diffVaapi < inproc.hw.vaapi 
-      || availablehw.diffOmx < inproc.hw.omx ){
-        return [available,processesToStop,processesToStopPriority];
-    }else{
+    if (
+      availablehw.core < inproc.hw.core ||
+      availablehw.diffGPU < inproc.hw.gpu ||
+      availablehw.diffVaapi < inproc.hw.vaapi ||
+      availablehw.diffOmx < inproc.hw.omx
+    ) {
+      return [available, processesToStop, processesToStopPriority];
+    } else {
       available = true;
     }
 
@@ -515,195 +547,231 @@ class FfmpegProcessManager extends EventEmitter{
     // check if we need to stop lower priority tasks
     var processesToStop = [];
     lowerProcesses.sort(this.compareProcesses).reverse(); // Put lower priority on top (so bigger priority)
-    for( var lprocess of lowerProcesses){
-      if(freehw.core<inproc.hw.core && lprocess.hw.core > 0 
-        || freehw.gpu<inproc.hw.gpu && lprocess.hw.gpu > 0 
-        || freehw.gpvaapiu<inproc.hw.vaapi && lprocess.hw.vaapi > 0 
-        || freehw.omx<inproc.hw.omx && lprocess.hw.omx > 0 ){
-          processesToStop.push(lprocess);
-          processesToStopPriority = lprocess.priority;
+    for (var lprocess of lowerProcesses) {
+      if (
+        (freehw.core < inproc.hw.core && lprocess.hw.core > 0) ||
+        (freehw.gpu < inproc.hw.gpu && lprocess.hw.gpu > 0) ||
+        (freehw.gpvaapiu < inproc.hw.vaapi && lprocess.hw.vaapi > 0) ||
+        (freehw.omx < inproc.hw.omx && lprocess.hw.omx > 0)
+      ) {
+        processesToStop.push(lprocess);
+        processesToStopPriority = lprocess.priority;
 
-          freehw.core += lprocess.hw.core;
-          freehw.gpu += lprocess.hw.gpu;
-          freehw.vaapi += lprocess.hw.vaapi;
-          freehw.omx += lprocess.hw.omx;
-          //available not setted here, TODO
+        freehw.core += lprocess.hw.core;
+        freehw.gpu += lprocess.hw.gpu;
+        freehw.vaapi += lprocess.hw.vaapi;
+        freehw.omx += lprocess.hw.omx;
+        //available not setted here, TODO
       }
     }
 
-    return [available,processesToStop,processesToStopPriority];
+    return [available, processesToStop, processesToStopPriority];
   }
 
   // Return true if worker is available for the process
-  launchProcessOnWorker(process,worker){
+  launchProcessOnWorker(process, worker) {
     var self = this;
-    var [available, processesToStop, processesToStopPriority] = this.checkWorkerAvailablity(worker,process);
+    var [
+      available,
+      processesToStop,
+      processesToStopPriority
+    ] = this.checkWorkerAvailablity(worker, process);
 
-    if(!available){
+    if (!available) {
       return false;
     }
 
-    console.log("launching process ",process.args," on worker ",worker.ip,":",worker.port);
+    console.log(
+      "launching process ",
+      process.args,
+      " on worker ",
+      worker.ip,
+      ":",
+      worker.port
+    );
 
     // Stop enough lower priority processes on that worker
-    for(var proc of processesToStop){
-      this.stopProcess(proc,true);
+    for (var proc of processesToStop) {
+      this.stopProcess(proc, true);
       worker.waitingProcesses.push(proc);
       //waitingProcesses.push(proc);
     }
 
     // Setup the call
-    if(process.ws == null){
+    if (process.ws == null) {
       //Reserve ressource
-      process._setRunning()
+      process._setRunning();
       process.worker = worker;
       worker.processes.push(process);
 
       var ws = new WebSocket(worker.ws_uri);
       process.ws = ws;
-      ws.on('open', function open() {
-        console.log("Openning WebSocket for ",process.args);
+      ws.on("open", function open() {
+        console.log("Openning WebSocket for ", process.args);
         var msg = {};
         msg.command = process.cmd;
         msg.niceness = process.priority;
         msg.args = process.args;
         msg.min_time_btw_progressions = self.minTimeBetweenProgresses;
-  
-        sendAsJson(ws,msg,
-          ()=>{
+
+        sendAsJson(
+          ws,
+          msg,
+          () => {
             //process._onStart();
-            if(process.status != PROCESS_STATUS.RUNNING){//Stopped before open event
-              if(process.status == PROCESS_STATUS.STOPPED){
-                self.stopProcess(process,false);
-              }else if(process.status == PROCESS_STATUS.WAITING){
-                self.stopProcess(process,true);
+            if (process.status != PROCESS_STATUS.RUNNING) {
+              //Stopped before open event
+              if (process.status == PROCESS_STATUS.STOPPED) {
+                self.stopProcess(process, false);
+              } else if (process.status == PROCESS_STATUS.WAITING) {
+                self.stopProcess(process, true);
               }
             }
           },
-          (error)=>{
-            process._onFinal(new FinalMsg(2,"Socket send error",error));
+          error => {
+            process._onFinal(new FinalMsg(2, "Socket send error", error));
             //worker.enabled = false;
             worker.error = error;
-            this.setWorkerStatus(worker,"offline")
-            this.enableWorker(worker,false);
+            this.setWorkerStatus(worker, "offline");
+            this.enableWorker(worker, false);
 
             //this.emit('workerDisabled',worker);
           }
         );
       });
-      ws.on('message', function incoming(data) {
+      ws.on("message", function incoming(data) {
         try {
           var jsonContent = parseJson(data);
-  
-          if(typeof jsonContent.progression !== 'undefined'){
-            process._onProgression(jsonContent)
-          }else if(typeof jsonContent.code !== 'undefined'){
+
+          if (typeof jsonContent.progression !== "undefined") {
+            process._onProgression(jsonContent);
+          } else if (typeof jsonContent.code !== "undefined") {
             process._onFinal(jsonContent);
-          }else{
-            process._onFinal(new FinalMsg(3,"Unknown message",data));
-            console.err("Invalid message received ",data);
+          } else {
+            process._onFinal(new FinalMsg(3, "Unknown message", data));
+            console.err("Invalid message received ", data);
           }
-        }catch(error){
+        } catch (error) {
           var errdata = {};
           errdata.error = error;
           errdata.mesg = data;
-          process._onFinal(new FinalMsg(3,"Invalid Json ",errdata));
-          console.error("ffmpegProc: Invalid Json ",error)
+          process._onFinal(new FinalMsg(3, "Invalid Json ", errdata));
+          console.error("ffmpegProc: Invalid Json ", error);
         }
-        
       });
-      ws.on('close', function close() {
+      ws.on("close", function close() {
         //console.log('disconnected');
-        if(process.ws == null){ //This means that the task is no longer on the worker (this can be due to worker disabled)
+        if (process.ws == null) {
+          //This means that the task is no longer on the worker (this can be due to worker disabled)
           return;
         }
 
-        process._onFinal(new FinalMsg(2,"Socket closed",null));
-        if(!(removeFromList(process,worker.processes)
-          || removeFromList(process,worker.waitingProcesses)
-          || removeFromList(process,worker.stoppedProcesses))
-        ){
-          console.warn("Cannot remove unlisted worker process")
+        process._onFinal(new FinalMsg(2, "Socket closed", null));
+        if (
+          !(
+            removeFromList(process, worker.processes) ||
+            removeFromList(process, worker.waitingProcesses) ||
+            removeFromList(process, worker.stoppedProcesses)
+          )
+        ) {
+          console.warn("Cannot remove unlisted worker process");
         }
         self.fillupWorker(worker);
       });
-      ws.on('error', function (error) {
-        console.warn('worker socket error');
-        process._onFinal(new FinalMsg(2,"Socket error",error));
+      ws.on("error", function(error) {
+        console.warn("worker socket error");
+        process._onFinal(new FinalMsg(2, "Socket error", error));
         //worker.enabled = false;
         worker.error = error;
-        self.setWorkerStatus(worker,"offline")
-        self.enableWorker(worker,false);
+        self.setWorkerStatus(worker, "offline");
+        self.enableWorker(worker, false);
 
         //console.log('disconnected');
-        if(process.ws == null){ //This means that the task is no longer on the worker (this can be due to worker disabled)
+        if (process.ws == null) {
+          //This means that the task is no longer on the worker (this can be due to worker disabled)
           return;
         }
 
-        process._onFinal(new FinalMsg(2,"Socket error",null));
-        if(!(removeFromList(process,worker.processes)
-          || removeFromList(process,worker.waitingProcesses)
-          || removeFromList(process,worker.stoppedProcesses))
-        ){
-          console.warn("Cannot remove unlisted worker process")
+        process._onFinal(new FinalMsg(2, "Socket error", null));
+        if (
+          !(
+            removeFromList(process, worker.processes) ||
+            removeFromList(process, worker.waitingProcesses) ||
+            removeFromList(process, worker.stoppedProcesses)
+          )
+        ) {
+          console.warn("Cannot remove unlisted worker process");
         }
       });
-    }else{
-      console.warn("process already launched",process.args);
+    } else {
+      console.warn("process already launched", process.args);
     }
-    
+
     return true;
   }
 
   // API Add process to be executed
-  launchProcess(process){
-    var [worker,processesToStop] = this.findAvailableWorker(process);
+  launchProcess(process) {
+    var [worker, processesToStop] = this.findAvailableWorker(process);
 
     // If there are no worker available, queue the task
     process._setWaiting();
-    if(worker == null || !this.launchProcessOnWorker(process,worker)){
+    if (worker == null || !this.launchProcessOnWorker(process, worker)) {
       this.waitingProcesses.push(process);
     }
     return;
   }
 
-  _launchLocalProcess(process){
-    var [worker,processesToStop] = this.findAvailableWorker(process);
+  _launchLocalProcess(process) {
+    var [worker, processesToStop] = this.findAvailableWorker(process);
 
     // If there are no worker available, queue the task
     process._setWaiting();
-    if(worker == null || !this.launchProcessOnWorker(process,worker)){
+    if (worker == null || !this.launchProcessOnWorker(process, worker)) {
       this.waitingProcesses.push(process);
     }
     return;
   }
 
   // API Start stopped launched process
-  // TODO POSSIBLE BUG: worker.processes not updated here 
-  startProcess(process){
-    console.log("Starting process ",process.args);
+  // TODO POSSIBLE BUG: worker.processes not updated here
+  startProcess(process) {
+    console.log("Starting process ", process.args);
     //var self = this;
-    
-    if(process.status != PROCESS_STATUS.STOPPED && process.status != PROCESS_STATUS.WAITING){
-      console.warn("Cannot start process that is not stopped or waiting",process.args);
+
+    if (
+      process.status != PROCESS_STATUS.STOPPED &&
+      process.status != PROCESS_STATUS.WAITING
+    ) {
+      console.warn(
+        "Cannot start process that is not stopped or waiting",
+        process.args
+      );
       return false;
     }
 
-    if(!process.ws){
+    if (!process.ws) {
       //If the process was in stoppedProcesses (not on worker) move try to launch it
-      if(!(removeFromList(process,this.stoppedProcesses))){
-        console.warn("Cannot start process that should be stopped",process.args);
+      if (!removeFromList(process, this.stoppedProcesses)) {
+        console.warn(
+          "Cannot start process that should be stopped",
+          process.args
+        );
         return false;
-      }else{
+      } else {
         this._launchLocalProcess(process);
         return true;
       }
-    }else{
+    } else {
       //Check if there is availability
-      var [available,processesToStop,processesToStopPriority] = this.checkWorkerAvailablity(process.worker,process);
-      
-      for(var proc of processesToStop){
-        this.stopProcess(proc,true);
+      var [
+        available,
+        processesToStop,
+        processesToStopPriority
+      ] = this.checkWorkerAvailablity(process.worker, process);
+
+      for (var proc of processesToStop) {
+        this.stopProcess(proc, true);
         //process.worker.waitingProcesses.push(proc);
         //waitingProcesses.push(proc);
       }
@@ -712,66 +780,94 @@ class FfmpegProcessManager extends EventEmitter{
 
       //The process is on a worker
       var self = this;
-      if(process.ws.readyState == WebSocket.OPEN ){
-        if(available && process.status != PROCESS_STATUS.RUNNING){
+      if (process.ws.readyState == WebSocket.OPEN) {
+        if (available && process.status != PROCESS_STATUS.RUNNING) {
           var previousStatus = process.status;
-          process._setRunning();//Reserve it now
+          process._setRunning(); //Reserve it now
           let succeed = false;
-          if(previousStatus == PROCESS_STATUS.WAITING){
-            succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
-          }else{
-            succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
+          if (previousStatus == PROCESS_STATUS.WAITING) {
+            succeed = moveFromToArray(
+              process,
+              process.worker.waitingProcesses,
+              process.worker.processes
+            );
+          } else {
+            succeed = moveFromToArray(
+              process,
+              process.worker.stoppedProcesses,
+              process.worker.processes
+            );
           }
-          if(!succeed){
-            console.warn("Cannot start process that should be stopped or waiting ",process.args);
+          if (!succeed) {
+            console.warn(
+              "Cannot start process that should be stopped or waiting ",
+              process.args
+            );
           }
 
-          sendAsJson(process.ws,{ command:"kill",signal:"SIGCONT" }
-            ,() => { 
+          sendAsJson(
+            process.ws,
+            { command: "kill", signal: "SIGCONT" },
+            () => {
               //process._onStart();
-              self.setWorkerStatus(process.worker,"online")
+              self.setWorkerStatus(process.worker, "online");
               // let succeed = false;
               // if(previousStatus == PROCESS_STATUS.WAITING){
               //   succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
               // }else{
               //   succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
               // }
-
+            },
+            error => {
+              //The worker made a socker error => disable it
+              if (error) {
+                process._onFinal(new FinalMsg(2, "Socket send error", error));
+                //process.worker.enabled = false;
+                process.worker.error = error;
+                this.setWorkerStatus(process.worker, "offline");
+                this.enableWorker(worker, false);
+                //this.emit('workerDisabled',worker);
+              }
             }
-            ,(error) => {
-            //The worker made a socker error => disable it
-            if(error){
-              process._onFinal(new FinalMsg(2,"Socket send error",error));
-              //process.worker.enabled = false;
-              process.worker.error = error
-              this.setWorkerStatus(process.worker,"offline")
-              this.enableWorker(worker,false);
-              //this.emit('workerDisabled',worker);
-            }
-          });
+          );
           return true;
-        }else if(!available){
-          if(process.status == PROCESS_STATUS.STOPPED){
+        } else if (!available) {
+          if (process.status == PROCESS_STATUS.STOPPED) {
             process._setWaiting();
-            let succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.waitingProcesses);
+            let succeed = moveFromToArray(
+              process,
+              process.worker.stoppedProcesses,
+              process.worker.waitingProcesses
+            );
             //ADD here a signal from stoped to waitinh
             //process._onStart();
           }
           return false;
         }
-      }else if(process.ws.readyState == WebSocket.CONNECTING){
+      } else if (process.ws.readyState == WebSocket.CONNECTING) {
         // Set running to false so that on connection, stop request will be done
         //process.isRunning = false;
         var previousStatus = process.status;
-        process._setRunning();//Reserve it now
+        process._setRunning(); //Reserve it now
         let succeed = false;
-        if(previousStatus == PROCESS_STATUS.WAITING){
-          succeed = moveFromToArray(process,process.worker.waitingProcesses,process.worker.processes);
-        }else{
-          succeed = moveFromToArray(process,process.worker.stoppedProcesses,process.worker.processes)
+        if (previousStatus == PROCESS_STATUS.WAITING) {
+          succeed = moveFromToArray(
+            process,
+            process.worker.waitingProcesses,
+            process.worker.processes
+          );
+        } else {
+          succeed = moveFromToArray(
+            process,
+            process.worker.stoppedProcesses,
+            process.worker.processes
+          );
         }
-        if(!succeed){
-          console.warn("Cannot start process that should be stopped or waiting ",process.args);
+        if (!succeed) {
+          console.warn(
+            "Cannot start process that should be stopped or waiting ",
+            process.args
+          );
         }
         //process._setRunning();
         return true;
@@ -779,118 +875,154 @@ class FfmpegProcessManager extends EventEmitter{
     }
   }
 
-  stopProcess(process,autoRestart=false){
-    console.log("Stopping process ",process.args);
+  stopProcess(process, autoRestart = false) {
+    console.log("Stopping process ", process.args);
     var self = this;
 
-    if(process.ws){
+    if (process.ws) {
       // The process is already launched, stop it on worker
-      if(process.ws.readyState == WebSocket.OPEN ){//Can be true before onOpen event
-        if(process.status == PROCESS_STATUS.RUNNING){
-          sendAsJson(process.ws,{ command:"kill",signal:"SIGSTOP" }
-            ,() => {
+      if (process.ws.readyState == WebSocket.OPEN) {
+        //Can be true before onOpen event
+        if (process.status == PROCESS_STATUS.RUNNING) {
+          sendAsJson(
+            process.ws,
+            { command: "kill", signal: "SIGSTOP" },
+            () => {
               var succeed = false;
-              if(autoRestart){
-                succeed = moveFromToArray(process,process.worker.processes,process.worker.waitingProcesses);
-              }else{
-                succeed = moveFromToArray(process,process.worker.processes,process.worker.stoppedProcesses);
+              if (autoRestart) {
+                succeed = moveFromToArray(
+                  process,
+                  process.worker.processes,
+                  process.worker.waitingProcesses
+                );
+              } else {
+                succeed = moveFromToArray(
+                  process,
+                  process.worker.processes,
+                  process.worker.stoppedProcesses
+                );
               }
-              if(succeed){
-                if(autoRestart){
+              if (succeed) {
+                if (autoRestart) {
                   process._setWaiting();
-                }else{
+                } else {
                   process._setStopped();
                 }
                 // process._onStop(autoRestart);
                 self.fillupWorker(process.worker);
-              }else{
-                console.warn("Cannot stop process that should be running ",process.args);
+              } else {
+                console.warn(
+                  "Cannot stop process that should be running ",
+                  process.args
+                );
+              }
+            },
+            error => {
+              //The worker made a socker error => disable it
+              if (error) {
+                process._onFinal(new FinalMsg(2, "Socket send error", error));
+                //process.worker.enabled = false;
+                process.worker.error = error;
+                this.setWorkerStatus(process.worker, "offline");
+                this.enableWorker(worker, false);
+                //this.emit('workerDisabled',worker);
+                //self.fillupWorker(process.worker);
               }
             }
-            ,(error) => {
-            //The worker made a socker error => disable it
-            if(error){
-              process._onFinal(new FinalMsg(2,"Socket send error",error));
-              //process.worker.enabled = false;
-              process.worker.error = error
-              this.setWorkerStatus(process.worker,"offline")
-              this.enableWorker(worker,false);
-              //this.emit('workerDisabled',worker);
-              //self.fillupWorker(process.worker);
-            }
-          });
-        }else if(process.status == PROCESS_STATUS.WAITING){
-          if(!autoRestart){
-            if(moveFromToArray(process,process.worker.waitingProcesses,process.worker.stoppedProcesses)){
-              if(autoRestart){
+          );
+        } else if (process.status == PROCESS_STATUS.WAITING) {
+          if (!autoRestart) {
+            if (
+              moveFromToArray(
+                process,
+                process.worker.waitingProcesses,
+                process.worker.stoppedProcesses
+              )
+            ) {
+              if (autoRestart) {
                 process._setWaiting();
-              }else{
+              } else {
                 process._setStopped();
               }
               //process._onStop(autoRestart);
               self.fillupWorker(process.worker);
               return true;
-            }else{
-              console.warn("Cannot stop process that should be waiting ",process.args);
+            } else {
+              console.warn(
+                "Cannot stop process that should be waiting ",
+                process.args
+              );
               return false;
             }
           }
         }
-      }else if(process.ws.readyState == WebSocket.CONNECTING){
+      } else if (process.ws.readyState == WebSocket.CONNECTING) {
         // Set running to false so that on connection, stop request will be done
         //process.isRunning = false;
-        if(autoRestart){
+        if (autoRestart) {
           process._setWaiting();
-        }else{
+        } else {
           process._setStopped();
         }
         return true;
       }
-    }else{
+    } else {
       //The process is queued, not yet in a worker
-      if(moveFromToArray(process,this.waitingProcesses,this.stoppedProcesses)){
-        if(autoRestart){
+      if (
+        moveFromToArray(process, this.waitingProcesses, this.stoppedProcesses)
+      ) {
+        if (autoRestart) {
           process._setWaiting();
-        }else{
+        } else {
           process._setStopped();
         }
         //process._onStop(autoRestart);
         return true;
-      }else{
-        console.warn("Cannot stop process that should be queued ",process.args);
+      } else {
+        console.warn(
+          "Cannot stop process that should be queued ",
+          process.args
+        );
         return false;
       }
     }
   }
 
   //OnWorker process Done, try to push as many task as possible
-  fillupWorker(worker){
-    if(!worker.enabled || worker.status == "offline"){
+  fillupWorker(worker) {
+    if (!worker.enabled || worker.status == "offline") {
       return;
     }
     //First try to autostart local stopped processes if there are no higher task in queue
     worker.waitingProcesses.sort(this.compareProcesses);
     this.waitingProcesses.sort(this.compareProcesses);
     var queuedIdx = 0;
-    for(var proc of worker.waitingProcesses){
-      if(this.waitingProcesses.length == 0 || proc.priority <= this.waitingProcesses[0].priority){
+    for (var proc of worker.waitingProcesses) {
+      if (
+        this.waitingProcesses.length == 0 ||
+        proc.priority <= this.waitingProcesses[0].priority
+      ) {
         //If there are no queued process more with more priority, start local waiting processes
-        var [available, processesToStop, processesToStopPriority] = this.checkWorkerAvailablity(worker, proc);
+        var [
+          available,
+          processesToStop,
+          processesToStopPriority
+        ] = this.checkWorkerAvailablity(worker, proc);
 
-        if(available){
+        if (available) {
           this.startProcess(proc);
         }
-        
+
         // if(!this.launchProcessOnWorker(proc,worker)){
         //   //Not enough ressources for next priority task, stop
         //   return;
         // }
-      }else{
+      } else {
         //Try to start queued process
-        if(!this.launchProcessOnWorker(this.waitingProcesses[0],worker)){
+        if (!this.launchProcessOnWorker(this.waitingProcesses[0], worker)) {
           //Not enough ressources for next priority task, stop
           return;
-        }else{
+        } else {
           //Remove queued task
           this.waitingProcesses.shift();
         }
@@ -898,41 +1030,37 @@ class FfmpegProcessManager extends EventEmitter{
       //this.waitingProcesses;
     }
 
-    while(this.waitingProcesses.length > 0){
+    while (this.waitingProcesses.length > 0) {
       let waitingProcess = this.waitingProcesses[0];
-      if(!this.launchProcessOnWorker(waitingProcess,worker)){
+      if (!this.launchProcessOnWorker(waitingProcess, worker)) {
         //Not enough ressources for next priority task, stop
         return;
-      }else{
+      } else {
         this.waitingProcesses.shift();
       }
     }
   }
 
-  removeProcess(process){
-    if(!process.ws){
-      removeFromList(process,this.waitingProcesses);
-      removeFromList(process,this.waitingProcesses);
+  removeProcess(process) {
+    if (!process.ws) {
+      removeFromList(process, this.waitingProcesses);
+      removeFromList(process, this.waitingProcesses);
     }
   }
 
-  compareProcesses(a,b) {
-    if (a.priority < b.priority)
-      return -1;
-    if (a.priority > b.priority)
-      return 1;
-    if(a.creationDate < b.creationDate)
-      return -1
-    if(a.creationDate > b.creationDate)
-      return 1
+  compareProcesses(a, b) {
+    if (a.priority < b.priority) return -1;
+    if (a.priority > b.priority) return 1;
+    if (a.creationDate < b.creationDate) return -1;
+    if (a.creationDate > b.creationDate) return 1;
     return 0;
   }
 
-  getConnectedWorker(enabled = false){
-    for(let i=0; i<this.workers.length; i++){
+  getConnectedWorker(enabled = false) {
+    for (let i = 0; i < this.workers.length; i++) {
       let worker = this.workers[i];
-      if(worker.status == "online"){
-        if(enabled && worker.enabled == 0){
+      if (worker.status == "online") {
+        if (enabled && worker.enabled == 0) {
           continue;
         }
         return worker;
@@ -941,37 +1069,46 @@ class FfmpegProcessManager extends EventEmitter{
     return null;
   }
 
-  async ffprobe(file){
+  async ffprobe(file) {
     var worker = null;
-    try{
-      if(this.workers.length == 0){
+    try {
+      if (this.workers.length == 0) {
         console.error("ffprobe cannot be used, no workers availables ");
         return null;
       }
       //For the moment take first online worker (enabled if possible)
       worker = this.getConnectedWorker(true);
-      if(!worker){
+      if (!worker) {
         worker = this.getConnectedWorker(false);
       }
 
-      if(worker){
-        return JSON.parse(await getHTTPContent("http://"+worker.ip+":"+worker.port.toString()+"/ffprobe/"+file ));
-      }else{
+      if (worker) {
+        return JSON.parse(
+          await getHTTPContent(
+            "http://" +
+              worker.ip +
+              ":" +
+              worker.port.toString() +
+              "/ffprobe/" +
+              file
+          )
+        );
+      } else {
         console.error("ffprobe cannot be used, no workers online ");
         return null;
       }
-    }catch(err){
-      if(worker){
-        this.setWorkerStatus(worker,"offline");
+    } catch (err) {
+      if (worker) {
+        this.setWorkerStatus(worker, "offline");
       }
-      console.error("ffprobe failed with file ",file,err);
+      console.error("ffprobe failed with file ", file, err);
       return null;
     }
     return null;
   }
 
-  getLightWorker(worker){
-    let lightWorker = {}
+  getLightWorker(worker) {
+    let lightWorker = {};
     lightWorker.ip = worker.ip;
     lightWorker.port = worker.port;
     lightWorker.processes_count = worker.processes.length;
@@ -986,46 +1123,46 @@ class FfmpegProcessManager extends EventEmitter{
     return lightWorker;
   }
 
-  getLightWorkers(){
-    let workers = []
+  getLightWorkers() {
+    let workers = [];
     let fullWorkers = this.getWorkers();
-    for(let i=0; i<fullWorkers.length; i++){
+    for (let i = 0; i < fullWorkers.length; i++) {
       let worker = this.getLightWorker(fullWorkers[i]);
-      workers.push(worker)
+      workers.push(worker);
     }
     return workers;
   }
 
   /////////// OPTIONAL METHODS /////////////
-  async addWorkersFromDB(dbMgr,linkWithDB){
-    let workers = await dbMgr.getFfmpegWorkers()
-    for(let i=0; i<workers.length; i++){
+  async addWorkersFromDB(dbMgr, linkWithDB) {
+    let workers = await dbMgr.getFfmpegWorkers();
+    for (let i = 0; i < workers.length; i++) {
       let worker = workers[i];
-      await this.addWorker(worker.ipv4,worker.port,worker.enabled,true);
+      await this.addWorker(worker.ipv4, worker.port, worker.enabled, true);
     }
-    if(linkWithDB){
-      this._linkWithDB(dbMgr)
+    if (linkWithDB) {
+      this._linkWithDB(dbMgr);
     }
   }
 
-  _linkWithDB(dbMgr){
-    this.on('workerAdded', function(worker){
-      dbMgr.insertWorker(worker.ip,worker.port,worker.enabled)
+  _linkWithDB(dbMgr) {
+    this.on("workerAdded", function(worker) {
+      dbMgr.insertWorker(worker.ip, worker.port, worker.enabled);
     });
-    this.on('workerEnabled', function(worker){
-      dbMgr.setWorkerEnabled(worker.ip,worker.port,worker.enabled)
+    this.on("workerEnabled", function(worker) {
+      dbMgr.setWorkerEnabled(worker.ip, worker.port, worker.enabled);
     });
-    this.on('workerDisabled', function(worker){
-      dbMgr.setWorkerEnabled(worker.ip,worker.port,worker.enabled)
+    this.on("workerDisabled", function(worker) {
+      dbMgr.setWorkerEnabled(worker.ip, worker.port, worker.enabled);
     });
-    this.on('workerRemoved', function(worker){
-      dbMgr.removeWorker(worker.ip,worker.port)
+    this.on("workerRemoved", function(worker) {
+      dbMgr.removeWorker(worker.ip, worker.port);
     });
   }
 }
-module.exports.FfmpegProcessManager=FfmpegProcessManager
-module.exports.Process=Process
-module.exports.Hardware=Hardware
+module.exports.FfmpegProcessManager = FfmpegProcessManager;
+module.exports.Process = Process;
+module.exports.Hardware = Hardware;
 // const ws = new WebSocket('ws://127.0.0.1:8080/');
 
 // var args = [

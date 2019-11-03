@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-
 /** @namespace */
 let lightDemoUtils = {};
-
 
 /**
  * @param {shakaAssets.AssetInfo} asset
  * @param {shaka.Player} player
  */
 lightDemoUtils.setupAssetMetadata = function(asset, player) {
-  let config = /** @type {shakaExtern.PlayerConfiguration} */(
-      {drm: {}, manifest: {dash: {}}});
+  let config = /** @type {shakaExtern.PlayerConfiguration} */ ({
+    drm: {},
+    manifest: { dash: {} }
+  });
 
   // Add config from this asset.
   if (asset.licenseServers) {
@@ -47,7 +47,9 @@ lightDemoUtils.setupAssetMetadata = function(asset, player) {
 
   if (asset.licenseRequestHeaders) {
     let filter = lightDemoUtils.addLicenseRequestHeaders_.bind(
-        null, asset.licenseRequestHeaders);
+      null,
+      asset.licenseRequestHeaders
+    );
     networkingEngine.registerRequestFilter(filter);
   }
 
@@ -59,10 +61,10 @@ lightDemoUtils.setupAssetMetadata = function(asset, player) {
   }
   if (asset.extraConfig) {
     player.configure(
-        /** @type {shakaExtern.PlayerConfiguration} */ (asset.extraConfig));
+      /** @type {shakaExtern.PlayerConfiguration} */ (asset.extraConfig)
+    );
   }
 };
-
 
 /**
  * @param {!Object.<string, string>} headers
@@ -70,8 +72,11 @@ lightDemoUtils.setupAssetMetadata = function(asset, player) {
  * @param {shakaExtern.Request} request
  * @private
  */
-lightDemoUtils.addLicenseRequestHeaders_ =
-    function(headers, requestType, request) {
+lightDemoUtils.addLicenseRequestHeaders_ = function(
+  headers,
+  requestType,
+  request
+) {
   if (requestType != shaka.net.NetworkingEngine.RequestType.LICENSE) return;
 
   // Add these to the existing headers.  Do not clobber them!
@@ -80,7 +85,6 @@ lightDemoUtils.addLicenseRequestHeaders_ =
     request.headers[k] = headers[k];
   }
 };
-
 
 /**
  * Return true if the current content is Transport Stream.
@@ -96,7 +100,7 @@ lightDemoUtils.isTsContent = function(player) {
   });
   let activeTrack = activeTracks[0];
   if (activeTrack) {
-    return activeTrack.mimeType == 'video/mp2t';
+    return activeTrack.mimeType == "video/mp2t";
   }
   return false;
 };

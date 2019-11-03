@@ -22,28 +22,30 @@
  *   refactor the demo into classes that talk via public method.  TODO
  */
 
-
 /** @suppress {duplicate} */
-var lightDemo = lightDemo || {};  // eslint-disable-line no-var
-
+var lightDemo = lightDemo || {}; // eslint-disable-line no-var
 
 /** @private */
 lightDemo.setupInfo_ = function() {
   window.setInterval(lightDemo.updateDebugInfo_, 125);
   lightDemo.player_.addEventListener(
-      'trackschanged', lightDemo.onTracksChanged_);
-  lightDemo.player_.addEventListener(
-      'adaptation', lightDemo.onAdaptation_);
-  document.getElementById('variantTracks').addEventListener(
-      'change', lightDemo.onTrackSelected_);
-  document.getElementById('textTracks').addEventListener(
-      'change', lightDemo.onTrackSelected_);
-  document.getElementById('audioLanguages').addEventListener(
-      'change', lightDemo.onAudioLanguageSelected_);
-  document.getElementById('textLanguages').addEventListener(
-      'change', lightDemo.onTextLanguageSelected_);
+    "trackschanged",
+    lightDemo.onTracksChanged_
+  );
+  lightDemo.player_.addEventListener("adaptation", lightDemo.onAdaptation_);
+  document
+    .getElementById("variantTracks")
+    .addEventListener("change", lightDemo.onTrackSelected_);
+  document
+    .getElementById("textTracks")
+    .addEventListener("change", lightDemo.onTrackSelected_);
+  document
+    .getElementById("audioLanguages")
+    .addEventListener("change", lightDemo.onAudioLanguageSelected_);
+  document
+    .getElementById("textLanguages")
+    .addEventListener("change", lightDemo.onTextLanguageSelected_);
 };
-
 
 /**
  * @param {!Event} event
@@ -57,16 +59,16 @@ lightDemo.onTracksChanged_ = function(event) {
   lightDemo.updateTextTracks_();
 };
 
-
 /**
  * @private
  */
 lightDemo.updateVariantTracks_ = function() {
-  let trackList = document.getElementById('variantTracks');
-  let langList = document.getElementById('audioLanguages');
-  let languageAndRole = langList.selectedIndex >= 0 ?
-      langList.options[langList.selectedIndex].value :
-      '';
+  let trackList = document.getElementById("variantTracks");
+  let langList = document.getElementById("audioLanguages");
+  let languageAndRole =
+    langList.selectedIndex >= 0
+      ? langList.options[langList.selectedIndex].value
+      : "";
 
   let tracks = lightDemo.player_.getVariantTracks();
 
@@ -78,17 +80,17 @@ lightDemo.updateVariantTracks_ = function() {
   lightDemo.updateTrackOptions_(trackList, tracks, languageAndRole);
 };
 
-
 /**
  * @private
  */
 lightDemo.updateTextTracks_ = function() {
-  let trackList = document.getElementById('textTracks');
+  let trackList = document.getElementById("textTracks");
 
-  let langList = document.getElementById('textLanguages');
-  let languageAndRole = langList.selectedIndex >= 0 ?
-      langList.options[langList.selectedIndex].value :
-      '';
+  let langList = document.getElementById("textLanguages");
+  let languageAndRole =
+    langList.selectedIndex >= 0
+      ? langList.options[langList.selectedIndex].value
+      : "";
 
   let tracks = lightDemo.player_.getTextTracks();
 
@@ -101,13 +103,12 @@ lightDemo.updateTextTracks_ = function() {
     lightDemo.player_.selectEmbeddedTextTrack();
   }
   if (lightDemoUtils.isTsContent(lightDemo.player_)) {
-    let option = document.createElement('option');
-    option.textContent = 'Default Text';
+    let option = document.createElement("option");
+    option.textContent = "Default Text";
     option.selected = lightDemo.player_.getUseEmbeddedTextTrack();
     trackList.appendChild(option);
   }
 };
-
 
 /**
  * @param {Element} list
@@ -118,25 +119,25 @@ lightDemo.updateTextTracks_ = function() {
 lightDemo.updateTrackOptions_ = function(list, tracks, languageAndRole) {
   let formatters = {
     variant: function(track) {
-      let trackInfo = '';
-      if (track.language) trackInfo += 'language: ' + track.language + ', ';
-      if (track.label) trackInfo += 'label: ' + track.label + ', ';
+      let trackInfo = "";
+      if (track.language) trackInfo += "language: " + track.language + ", ";
+      if (track.label) trackInfo += "label: " + track.label + ", ";
       if (track.roles.length) {
-        trackInfo += 'roles: [' + track.roles.join() + '], ';
+        trackInfo += "roles: [" + track.roles.join() + "], ";
       }
       if (track.width && track.height) {
-        trackInfo += track.width + 'x' + track.height + ', ';
+        trackInfo += track.width + "x" + track.height + ", ";
       }
-      trackInfo += track.bandwidth + ' bits/s';
+      trackInfo += track.bandwidth + " bits/s";
       return trackInfo;
-    } ,
+    },
     text: function(track) {
-      let trackInfo = 'language: ' + track.language + ', ';
-      if (track.label) trackInfo += 'label: ' + track.label + ', ';
+      let trackInfo = "language: " + track.language + ", ";
+      if (track.label) trackInfo += "label: " + track.label + ", ";
       if (track.roles.length) {
-        trackInfo += 'roles: [' + track.roles.join() + '], ';
+        trackInfo += "roles: [" + track.roles.join() + "], ";
       }
-      trackInfo += 'kind: ' + track.kind;
+      trackInfo += "kind: " + track.kind;
       return trackInfo;
     }
   };
@@ -146,18 +147,18 @@ lightDemo.updateTrackOptions_ = function(list, tracks, languageAndRole) {
   }
 
   // Split language and role
-  let res = languageAndRole.split(':');
+  let res = languageAndRole.split(":");
   let language = res[0];
-  let role = res[1] || '';
+  let role = res[1] || "";
 
   tracks = tracks.filter(function(track) {
     let langMatch = track.language == language;
-    let roleMatch = role == '' || track.roles.indexOf(role) > -1;
+    let roleMatch = role == "" || track.roles.indexOf(role) > -1;
     return langMatch && roleMatch;
   });
 
   tracks.forEach(function(track) {
-    let option = document.createElement('option');
+    let option = document.createElement("option");
     option.textContent = formatters[track.type](track);
     option.track = track;
     option.value = track.id;
@@ -165,7 +166,6 @@ lightDemo.updateTrackOptions_ = function(list, tracks, languageAndRole) {
     list.appendChild(option);
   });
 };
-
 
 /**
  * @private
@@ -175,20 +175,18 @@ lightDemo.updateLanguages_ = function() {
   lightDemo.updateAudioLanguages_();
 };
 
-
 /**
  * Updates options for text language selection.
  * @private
  */
 lightDemo.updateTextLanguages_ = function() {
   let player = lightDemo.player_;
-  let list = document.getElementById('textLanguages');
+  let list = document.getElementById("textLanguages");
   let languagesAndRoles = player.getTextLanguagesAndRoles();
   let tracks = player.getTextTracks();
 
   lightDemo.updateLanguageOptions_(list, languagesAndRoles, tracks);
 };
-
 
 /**
  * Updates options for audio language selection.
@@ -196,13 +194,12 @@ lightDemo.updateTextLanguages_ = function() {
  */
 lightDemo.updateAudioLanguages_ = function() {
   let player = lightDemo.player_;
-  let list = document.getElementById('audioLanguages');
+  let list = document.getElementById("audioLanguages");
   let languagesAndRoles = player.getAudioLanguagesAndRoles();
   let tracks = player.getVariantTracks();
 
   lightDemo.updateLanguageOptions_(list, languagesAndRoles, tracks);
 };
-
 
 /**
  * @param {Element} list
@@ -210,8 +207,7 @@ lightDemo.updateAudioLanguages_ = function() {
  * @param {!Array.<shakaExtern.Track>} tracks
  * @private
  */
-lightDemo.updateLanguageOptions_ =
-    function(list, languagesAndRoles, tracks) {
+lightDemo.updateLanguageOptions_ = function(list, languagesAndRoles, tracks) {
   // Remove old options
   while (list.firstChild) {
     list.removeChild(list.firstChild);
@@ -231,12 +227,12 @@ lightDemo.updateLanguageOptions_ =
 
     let label = language;
     if (role) {
-      label += ' (role: ' + role + ')';
+      label += " (role: " + role + ")";
     }
 
-    let option = document.createElement('option');
+    let option = document.createElement("option");
     option.textContent = label;
-    option.value = language + ':' + role;
+    option.value = language + ":" + role;
     let isSelected = false;
 
     if (selectedTrack.language == language) {
@@ -256,13 +252,12 @@ lightDemo.updateLanguageOptions_ =
   });
 };
 
-
 /**
  * @param {!Event} event
  * @private
  */
 lightDemo.onAdaptation_ = function(event) {
-  let list = document.getElementById('variantTracks');
+  let list = document.getElementById("variantTracks");
 
   // Find the row for the active track and select it.
   let tracks = lightDemo.player_.getVariantTracks();
@@ -280,7 +275,6 @@ lightDemo.onAdaptation_ = function(event) {
   });
 };
 
-
 /**
  * @param {!Event} event
  * @private
@@ -291,15 +285,15 @@ lightDemo.onTrackSelected_ = function(event) {
   let track = option.track;
   let player = lightDemo.player_;
 
-  if (list.id == 'variantTracks') {
+  if (list.id == "variantTracks") {
     // Disable abr manager before changing tracks
-    let config = {abr: {enabled: false}};
+    let config = { abr: { enabled: false } };
     player.configure(config);
 
     player.selectVariantTrack(track, /* clearBuffer */ true);
   } else {
     // CEA 608/708 captions data is embedded inside the video stream.
-    if (option.textContent == 'Default Text') {
+    if (option.textContent == "Default Text") {
       player.selectEmbeddedTextTrack();
     } else {
       player.selectTextTrack(track);
@@ -309,9 +303,8 @@ lightDemo.onTrackSelected_ = function(event) {
   // Adaptation might have been changed by calling selectTrack().
   // Update the adaptation checkbox.
   let enableAdaptation = player.getConfiguration().abr.enabled;
-  document.getElementById('enableAdaptation').checked = enableAdaptation;
+  document.getElementById("enableAdaptation").checked = enableAdaptation;
 };
-
 
 /**
  * @param {!Event} event
@@ -321,13 +314,12 @@ lightDemo.onAudioLanguageSelected_ = function(event) {
   let list = event.target;
   let option = list.options[list.selectedIndex].value;
   let player = lightDemo.player_;
-  let res = option.split(':');
+  let res = option.split(":");
   let language = res[0];
-  let role = res[1] || '';
+  let role = res[1] || "";
   player.selectAudioLanguage(language, role);
   lightDemo.updateVariantTracks_();
 };
-
 
 /**
  * @param {!Event} event
@@ -337,21 +329,20 @@ lightDemo.onTextLanguageSelected_ = function(event) {
   let list = event.target;
   let option = list.options[list.selectedIndex].value;
   let player = lightDemo.player_;
-  let res = option.split(':');
+  let res = option.split(":");
   let language = res[0];
-  let role = res[1] || '';
+  let role = res[1] || "";
 
   player.selectTextLanguage(language, role);
   lightDemo.updateTextTracks_();
 };
 
-
 /** @private */
 lightDemo.updateDebugInfo_ = function() {
   let video = lightDemo.video_;
 
-  document.getElementById('videoResDebug').textContent =
-      video.videoWidth + ' x ' + video.videoHeight;
+  document.getElementById("videoResDebug").textContent =
+    video.videoWidth + " x " + video.videoHeight;
 
   let behind = 0;
   let ahead = 0;
@@ -366,6 +357,6 @@ lightDemo.updateDebugInfo_ = function() {
     }
   }
 
-  document.getElementById('bufferedDebug').textContent =
-      '- ' + behind.toFixed(0) + 's / + ' + ahead.toFixed(0) + 's';
+  document.getElementById("bufferedDebug").textContent =
+    "- " + behind.toFixed(0) + "s / + " + ahead.toFixed(0) + "s";
 };

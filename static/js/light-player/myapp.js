@@ -1,6 +1,6 @@
 // myapp.js
 
-var lightDemo = lightDemo || {};  // eslint-disable-line no-var
+var lightDemo = lightDemo || {}; // eslint-disable-line no-var
 
 console.log("uri: ");
 
@@ -12,34 +12,30 @@ var manifestUri = null;
  * @const {string}
  * @private
  */
-lightDemo.CC_APP_ID_ = '00A3C5E8';
+lightDemo.CC_APP_ID_ = "00A3C5E8";
 
 /** @private {shaka.cast.CastProxy} */
 lightDemo.castProxy_ = null;
 
-
 /** @private {HTMLMediaElement} */
 lightDemo.video_ = null;
-
 
 /** @private {shaka.Player} */
 lightDemo.player_ = null;
 
-
 /** @private {ShakaControls} */
 lightDemo.controls_ = null;
 
-lightDemo.getURLParameter_ = function(sParam){
+lightDemo.getURLParameter_ = function(sParam) {
   var sPageURL = window.location.search.substring(1);
-  var sURLVariables = sPageURL.split('&');
-  for (var i = 0; i < sURLVariables.length; i++){
-      var sParameterName = sURLVariables[i].split('=');
-      if (sParameterName[0] == sParam)
-      {
-          return sParameterName[1];
-      }
+  var sURLVariables = sPageURL.split("&");
+  for (var i = 0; i < sURLVariables.length; i++) {
+    var sParameterName = sURLVariables[i].split("=");
+    if (sParameterName[0] == sParam) {
+      return sParameterName[1];
+    }
   }
-}
+};
 
 //let type = lightDemo.getURLParameter_("type");
 let id = lightDemo.getURLParameter_("id");
@@ -48,20 +44,20 @@ let mpdGenId = lightDemo.getURLParameter_("mpd_gen_id");
 
 var protocol = location.protocol;
 var slashes = protocol.concat("//");
-var host = slashes.concat(window.location.hostname)+":"+location.port;
+var host = slashes.concat(window.location.hostname) + ":" + location.port;
 //TODO prefered language
 // config.preferredAudioLanguage = document.getElementById('preferredAudioLanguage').value;
 // config.preferredTextLanguage = document.getElementById('preferredTextLanguage').value;
 
-function addMPDAsset(mpdFile,index = null){
+function addMPDAsset(mpdFile, index = null) {
   let title = mpdFile.title;
-  if(index){
-    title += " ("+index.toString()+")";
+  if (index) {
+    title += " (" + index.toString() + ")";
   }
 
   shakaAssets.enabledAssets.push({
-    name: title,//TODO put explicit name
-    manifestUri: host+mpdFile.filename,
+    name: title, //TODO put explicit name
+    manifestUri: host + mpdFile.filename,
     encoder: shakaAssets.Encoder.STREAMY,
     source: shakaAssets.Source.STREAMY,
     drm: [],
@@ -75,27 +71,29 @@ function addMPDAsset(mpdFile,index = null){
 }
 
 lightDemo.loadMpdFiles = function() {
-  if(mpdGenId){
-    $.getJSON( "/media/"+id+"/gen_mpd_file/"+folderName+"/"+mpdGenId, function( mpdfile ) {
+  if (mpdGenId) {
+    $.getJSON(
+      "/media/" + id + "/gen_mpd_file/" + folderName + "/" + mpdGenId,
+      function(mpdfile) {
+        addMPDAsset(mpdfile);
+        lightDemo.startPlayer();
+      }
+    );
+  } else if (folderName) {
+    $.getJSON("/media/" + id + "/mpd_file/" + folderName, function(mpdfile) {
       addMPDAsset(mpdfile);
       lightDemo.startPlayer();
     });
-  }else if(folderName){
-    $.getJSON( "/media/"+id+"/mpd_file/"+folderName, function( mpdfile ) {
-      addMPDAsset(mpdfile);
-      lightDemo.startPlayer();
-    });
-  }else{
-    $.getJSON( "/media/"+id+"/mpd_files", function( mpdfiles ) {
-      for(let i=0; i<mpdfiles.length; i++){
-        addMPDAsset(mpdfiles[i],i);
+  } else {
+    $.getJSON("/media/" + id + "/mpd_files", function(mpdfiles) {
+      for (let i = 0; i < mpdfiles.length; i++) {
+        addMPDAsset(mpdfiles[i], i);
       }
       lightDemo.startPlayer();
     });
   }
-}
+};
 // get manifest
-
 
 //manifestUri = decodeURIComponent(lightDemo.getURLParameter_("episode_id"));
 
@@ -109,59 +107,61 @@ lightDemo.init = function() {
     lightDemo.initPlayer();
   } else {
     // This browser does not have the minimum set of APIs we need.
-    console.error('Browser not supported!');
+    console.error("Browser not supported!");
   }
-}
-
-
+};
 
 lightDemo.initPlayer = function() {
-
   //Check support (highlight only compatible streams)
-  shaka.Player.probeSupport().then(function(support) {
-  lightDemo.support_ = support;
+  shaka.Player.probeSupport()
+    .then(function(support) {
+      lightDemo.support_ = support;
 
-    // Create a Player instance.
-    let localVideo = document.getElementById('video');
-    let localPlayer = new shaka.Player(video);
-    //shaka.log.setLevel(shaka.log.Level.V2);//V2
+      // Create a Player instance.
+      let localVideo = document.getElementById("video");
+      let localPlayer = new shaka.Player(video);
+      //shaka.log.setLevel(shaka.log.Level.V2);//V2
 
-    lightDemo.castProxy_ =  new shaka.cast.CastProxy(
-            localVideo, localPlayer, lightDemo.CC_APP_ID_);
+      lightDemo.castProxy_ = new shaka.cast.CastProxy(
+        localVideo,
+        localPlayer,
+        lightDemo.CC_APP_ID_
+      );
 
-    lightDemo.video_ = lightDemo.castProxy_.getVideo();
-    lightDemo.player_ = lightDemo.castProxy_.getPlayer();
-    lightDemo.player_.addEventListener('error', lightDemo.onErrorEvent);
-    lightDemo.localVideo_ = localVideo;
-    lightDemo.localPlayer_ = localPlayer;
+      lightDemo.video_ = lightDemo.castProxy_.getVideo();
+      lightDemo.player_ = lightDemo.castProxy_.getPlayer();
+      lightDemo.player_.addEventListener("error", lightDemo.onErrorEvent);
+      lightDemo.localVideo_ = localVideo;
+      lightDemo.localPlayer_ = localPlayer;
 
-    // Set the default poster.
-    //shakaDemo.localVideo_.poster = shakaDemo.mainPoster_;
+      // Set the default poster.
+      //shakaDemo.localVideo_.poster = shakaDemo.mainPoster_;
 
-    // Attach player to the window to make it easy to access in the JS console.
-    //window.player = player;
+      // Attach player to the window to make it easy to access in the JS console.
+      //window.player = player;
 
-    lightDemo.player_.configure({
-      streaming: {
-        bufferingGoal: 120,
-        rebufferingGoal: 4
-      }
+      lightDemo.player_.configure({
+        streaming: {
+          bufferingGoal: 120,
+          rebufferingGoal: 4
+        }
+      });
+
+      lightDemo.loadMpdFiles();
+      // Try to load a manifest.
+      // This is an asynchronous process.
+      // lightDemo.player_.load(manifestUri).then(function() {
+      //   // This runs if the asynchronous load is successful.
+      //   console.log('The video has now been loaded!');
+      // }).catch(lightDemo.onError);  // onError is executed if the asynchronous load fails.
     })
-    
-    lightDemo.loadMpdFiles();
-    // Try to load a manifest.
-    // This is an asynchronous process.
-    // lightDemo.player_.load(manifestUri).then(function() {
-    //   // This runs if the asynchronous load is successful.
-    //   console.log('The video has now been loaded!');
-    // }).catch(lightDemo.onError);  // onError is executed if the asynchronous load fails.
-  }).catch(function(error) {
-    // Some part of the setup of the demo app threw an error.
-    // Notify the user of this.
-    console.error("Player error",error);
-    //shakaDemo.onError_(/** @type {!shaka.util.Error} */ (error));
-  });
-}
+    .catch(function(error) {
+      // Some part of the setup of the demo app threw an error.
+      // Notify the user of this.
+      console.error("Player error", error);
+      //shakaDemo.onError_(/** @type {!shaka.util.Error} */ (error));
+    });
+};
 
 lightDemo.startPlayer = function() {
   let asyncSetup = lightDemo.setupAssets_();
@@ -170,21 +170,25 @@ lightDemo.startPlayer = function() {
   lightDemo.setupInfo_();
 
   lightDemo.controls_ = new ShakaControls();
-  lightDemo.controls_.init(lightDemo.castProxy_, lightDemo.onError,
-                              lightDemo.onCastStatusChange_);
+  lightDemo.controls_.init(
+    lightDemo.castProxy_,
+    lightDemo.onError,
+    lightDemo.onCastStatusChange_
+  );
 
-  asyncSetup.catch(function(error) {
-    // shakaDemo.setupOfflineAssets_ errored while trying to
-    // load the offline assets. Notify the user of this.
-    lightDemo.onError_(/** @type {!shaka.util.Error} */ (error));
-  }).then(function() {
-    //lightDemo.postBrowserCheckParams_(params);
-    window.addEventListener('hashchange', lightDemo.updateFromHash_);
-  });
+  asyncSetup
+    .catch(function(error) {
+      // shakaDemo.setupOfflineAssets_ errored while trying to
+      // load the offline assets. Notify the user of this.
+      lightDemo.onError_(/** @type {!shaka.util.Error} */ (error));
+    })
+    .then(function() {
+      //lightDemo.postBrowserCheckParams_(params);
+      window.addEventListener("hashchange", lightDemo.updateFromHash_);
+    });
 
   lightDemo.load();
-
-}
+};
 
 /** @private */
 lightDemo.hashShouldChange_ = function() {
@@ -205,10 +209,10 @@ lightDemo.hashShouldChange_ = function() {
       licenseServerUri = drmInfo.licenseServerUri;
     }
   }
-  let assetList = document.getElementById('assetList');
+  let assetList = document.getElementById("assetList");
   if (assetUri) {
     // Store the currently playing asset URI.
-    params.push('asset=' + assetUri);
+    params.push("asset=" + assetUri);
 
     // Is the asset a default asset?
     let isDefault = false;
@@ -223,34 +227,35 @@ lightDemo.hashShouldChange_ = function() {
     // If it's a custom asset we should store whatever the license
     // server URI is.
     if (!isDefault && licenseServerUri) {
-      params.push('license=' + licenseServerUri);
+      params.push("license=" + licenseServerUri);
     }
   } else {
-      // It's a default asset.
-      params.push('asset=' +
-          assetList[assetList.selectedIndex].asset.manifestUri);
+    // It's a default asset.
+    params.push(
+      "asset=" + assetList[assetList.selectedIndex].asset.manifestUri
+    );
   }
 };
 
-lightDemo.onCastStatusChange_ = function(isRunning){
-	if(isRunning){
-		console.log('Casting');
-	}else{
-		console.log('Stop Casting');
-	}
-}
+lightDemo.onCastStatusChange_ = function(isRunning) {
+  if (isRunning) {
+    console.log("Casting");
+  } else {
+    console.log("Stop Casting");
+  }
+};
 
 lightDemo.onErrorEvent = function(event) {
   // Extract the shaka.util.Error object from the event.
   lightDemo.onError_(event.detail);
-}
+};
 
 lightDemo.onError_ = function(error) {
   // Log the error.
-  console.error('Player error', error.message);
-  console.error('Error code', error.code, 'object', error);
-	console.error('error.data', error.data[0]);
-}
+  console.error("Player error", error.message);
+  console.error("Error code", error.code, "object", error);
+  console.error("error.data", error.data[0]);
+};
 
 /**
  * Closes the error bar.
@@ -260,7 +265,7 @@ lightDemo.closeError = function() {
   // let link = document.getElementById('errorDisplayLink');
   // link.href = '';
   // link.textContent = '';
-  // link.severity = null; 
+  // link.severity = null;
 };
 
 //TODO poster
@@ -271,4 +276,4 @@ shaka.polyfill.installAll();
 //shaka.polyfill.PatchedMediaKeysMs.install();
 //shaka.polyfill.PatchedMediaKeysWebkit.install();
 
-document.addEventListener('DOMContentLoaded', lightDemo.initPlayer);
+document.addEventListener("DOMContentLoaded", lightDemo.initPlayer);

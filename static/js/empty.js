@@ -1,10 +1,9 @@
+class EmptyContent {
+  constructor(templates, langs) {
+    this.langs = langs;
+  }
 
-class EmptyContent{
-    constructor(templates,langs){
-        this.langs = langs;
-    }
-
-    render(target){
-        $(target).html("<div id=\"\">Work in progress</div>");
-    }
+  render(target) {
+    $(target).html('<div id="">Work in progress</div>');
+  }
 }
