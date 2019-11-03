@@ -29,7 +29,7 @@ var authMW = require("./routes/middlewares/auth_mw"); // Authentification
 var utilsMW = require("./routes/middlewares/utils_mw"); // Utils
 var locales_path = __dirname + "/static/locales";
 var i18n = langMW.i18n(locales_path);
-var setupLocals = langMW.setupLocals;
+// var setupLocals = langMW.setupLocals;
 var loggedIn = authMW.loggedIn;
 var safePath = utilsMW.safePath;
 
@@ -157,70 +157,9 @@ app.initialize = async function(config_file, io_notifications) {
   app.use(passport.session());
   app.use(express.json());
 
-  /// Setup main entry point ///
-  app.get("/", function(req, res) {
-    res.redirect("/index");
-  });
-
-  app.get("/index", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("index.html", { UserName: req.user.displayName });
-  });
-
-  ////////////////////// templates //////////////////////////////////////////
-  app.get("/movies.html", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("templates/movies.html");
-  });
-  app.get("/movie.html", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("templates/movie.html");
-  });
-  app.get("/series.html", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("templates/series.html");
-  });
-  app.get("/serie.html", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("templates/serie.html");
-  });
-  app.get("/addvideo.html", i18n.init, setupLocals, loggedIn, function(
-    req,
-    res
-  ) {
-    res.render("templates/addvideo.html");
-  });
-  app.get("/workers.html", i18n.init, setupLocals, loggedIn, function(
-    req,
-    res
-  ) {
-    res.render("templates/workers.html");
-  });
-  app.get("/transcoding.html", i18n.init, setupLocals, loggedIn, function(
-    req,
-    res
-  ) {
-    res.render("templates/transcoding.html");
-  });
-  app.get("/mediacontent.html", i18n.init, setupLocals, loggedIn, function(
-    req,
-    res
-  ) {
-    res.render("templates/mediacontent.html");
-  });
-  app.get("/common.html", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("templates/common.html");
-  });
-  app.get("/users.html", i18n.init, setupLocals, loggedIn, function(req, res) {
-    res.render("templates/users.html");
-  });
-  app.get("/storage.html", i18n.init, setupLocals, loggedIn, function(
-    req,
-    res
-  ) {
-    res.render("templates/storage.html");
-  });
-  app.get("/settings.html", i18n.init, setupLocals, loggedIn, function(
-    req,
-    res
-  ) {
-    res.render("templates/settings.html");
-  });
+  // Setup client
+  const ClientRouter = require("./routes/clients/" + config.client_app.client);
+  var clientRouter = new ClientRouter();
 
   //static files from node_modules
   app.get("/js/shaka/*", loggedIn, safePath, function(req, res) {
@@ -231,6 +170,10 @@ app.initialize = async function(config_file, io_notifications) {
     res.sendFile(
       __dirname + "/node_modules/socket.io-client/dist/" + req.params[0]
     );
+  });
+
+  app.get("/js/mustache.min.js", loggedIn, function(req, res) {
+    res.sendFile(__dirname + "/node_modules/mustache/mustache.min.js");
   });
 
   app.get("/css/material-icons/*", loggedIn, safePath, function(req, res) {
@@ -255,6 +198,7 @@ app.initialize = async function(config_file, io_notifications) {
   app.use("/bricks", bricksRouter.buildRouter());
   app.use("/settings", settingsRouter.buildRouter());
   app.use("/transcoding_tasks", transcodingTasksRouter.buildRouter());
+  app.use("/", clientRouter.buildRouter(i18n));
 
   app.setupNotifications(io_notifications, processesMgr, transcodeMgr);
 

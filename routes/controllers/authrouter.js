@@ -33,13 +33,6 @@ class AuthRouter {
       res.redirect("/login");
     });
 
-    router.get("/login", i18n(locales_path).init, setupLocals, function(
-      req,
-      res
-    ) {
-      res.render("login.html");
-    });
-
     router.get("/session-infos", loggedIn, function(req, res) {
       var sessInfos = {};
       sessInfos.name = req.user.displayName;

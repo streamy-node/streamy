@@ -50,6 +50,30 @@ loadSessionConfig = function(conf) {
   }
 };
 
+loadSessionConfig = function(conf) {
+  try {
+    checkParameter("session", conf, PARAM_TYPES.OBJECT);
+    checkParameter("secret", conf.session, PARAM_TYPES.STRING);
+    if (conf.session.secret === "pwd") {
+      console.warn(
+        "You are using cookie sessions with the default password! You should set your own!"
+      );
+    }
+  } catch (e) {
+    throw ("Failed to load db configuration : ", e);
+  }
+};
+
+loadClientAppConfig = function(conf) {
+  try {
+    checkParameter("client_app", conf, PARAM_TYPES.OBJECT);
+    checkParameter("css", conf.client_app, PARAM_TYPES.STRING);
+    checkParameter("client", conf.client_app, PARAM_TYPES.STRING);
+  } catch (e) {
+    throw ("Failed to load client app config : ", e);
+  }
+};
+
 /**
  * Load configuration file. Throw exception on error
  */
@@ -58,6 +82,7 @@ loadConfig = function(config_file) {
   var conf = yaml.safeLoad(fs.readFileSync(config_file, "utf8"));
   loadDBConfig(conf);
   loadSessionConfig(conf);
+  loadClientAppConfig(conf);
   return conf;
 };
 

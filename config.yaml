@@ -9,3 +9,7 @@ db:
 
 session:
   secret: "pwd"
+
+client_app:
+  css: "default"
+  client: "default_client"
