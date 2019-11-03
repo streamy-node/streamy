@@ -94,7 +94,7 @@ app.initialize = async function(io_notifications) {
     multiMediaMgr.getMediaBase(),
     settings
   );
-  var importer = new Importer(dbMgr, multiMediaMgr, transcodeMgr);
+  var importer = new Importer(dbMgr, multiMediaMgr);
   var userMgr = new Users(dbMgr);
   var bricksMgr = new Bricks(dbMgr);
 

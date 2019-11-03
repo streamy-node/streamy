@@ -1,14 +1,10 @@
 //var moviedb = require('./moviedb.js');
 var fsutils = require("./utils/fsutils.js");
 
-var MPD = require("./transcoding/mpdutils.js").MPDFile;
-//var mpdUtils = require("./mpdutils").MPDUtils;
-
 class Importer {
-  constructor(dbMgr, multimediaMgr, transcoderMgr) {
+  constructor(dbMgr, multimediaMgr) {
     this.dbMgr = dbMgr;
     this.multimediaMgr = multimediaMgr;
-    this.trMgr = transcoderMgr; // for converting width to resolution
     this.mediaMgr = multimediaMgr.getMediaBase();
   }
 
