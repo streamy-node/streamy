@@ -287,7 +287,7 @@ CREATE TABLE `add_file_tasks` (
   `had_error` TINYINT(1) DEFAULT 0,
   `msg` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`brick_id`) REFERENCES brick(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`brick_id`) REFERENCES bricks(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
   CONSTRAINT UNIQUE (`file`) ,
