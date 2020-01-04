@@ -28,10 +28,7 @@ class UploadCtrl {
     this.settings = settings;
     this.resumable = resumable;
     this.transcodeMgr = transcodeMgr;
-
-    let tmpUploadPath = settings.getUploadPath() + "/tmp";
-    fsUtils.mkdirp(tmpUploadPath);
-    resumable.setTargetFolder(settings.getUploadPath());
+    this.has_target_folder = false;
   }
 
   buildRouter() {
@@ -68,6 +65,16 @@ class UploadCtrl {
           return;
         }
 
+        if (!self.has_target_folder) {
+          try {
+            await self._setup_upload_fs();
+            self.has_target_folder = true;
+          } catch (err) {
+            res.status(500).send("Upload brick not configured");
+            return;
+          }
+        }
+
         let result = await self.resumable.postSequential(req);
         if (result.status == 201) {
           var filename = path.basename(result.filename);
@@ -97,6 +104,16 @@ class UploadCtrl {
       res.sendStatus(result.status);
     });
     return router;
+  }
+
+  async _setup_upload_fs() {
+    if (this.settings.getUploadPath()) {
+      let tmpUploadPath = this.settings.getUploadPath() + "/tmp";
+      await fsUtils.mkdirp(tmpUploadPath);
+      this.resumable.setTargetFolder(this.settings.getUploadPath());
+    } else {
+      throw Error("No upload folder availables");
+    }
   }
 }
 
