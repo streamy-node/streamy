@@ -24,7 +24,11 @@ class SettingsMgr extends EventEmitter {
       } else if (result[i].key === "upload_brick") {
         this.global.upload_brick = result[i].int;
         var uploadBrick = await this.con.getBrick(this.global.upload_brick);
-        this.upload_path = uploadBrick.brick_path + "/upload";
+        if (uploadBrick) {
+          this.upload_path = uploadBrick.brick_path + "/upload";
+        } else {
+          this.upload_path = null;
+        }
       } else if (result[i].key === "segment_duration") {
         this.global.segment_duration = result[i].int;
       } else if (result[i].key === "encoder_h264_profile") {
