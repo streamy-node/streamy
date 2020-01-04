@@ -322,7 +322,7 @@ class MediaBase {
 
       for (let i = 0; i < paths.length; i++) {
         //Create serie folder
-        let path = paths[i];
+        let path = paths[i].path;
         if (!(await fsutils.exists(brick.brick_path + "/" + path))) {
           await fsutils.mkdirp(brick.brick_path + "/" + path);
         }
