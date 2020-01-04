@@ -558,7 +558,7 @@ class DBStructure extends EventEmitter{
         }
         var sql = "INSERT INTO `media_translations` (`media_id`,`lang_id`,`title`,`overview`) "
         + " VALUES( "+media_id+", "+lang_id+", "+"'"+title.replace(/'/g,"\\'")+
-        "', "+"'"+overview.replace(/'/g,"\\'")+"')";
+        "', "+"'"+(overview ? overview.replace(/'/g,"\\'"): "") +"')";
         var sqlres = await this.query(sql);
         var id = sqlres.insertId;
         return id;
@@ -571,7 +571,7 @@ class DBStructure extends EventEmitter{
         }
         var sql = "UPDATE `media_translations` "
         + " SET `title`='"+title.replace(/'/g,"\\'")+"', "
-        +" `overview`='"+overview.replace(/'/g,"\\'")+"'"
+        +" `overview`='"+(overview ? overview.replace(/'/g, "\\'") : "")+"'"
         + " WHERE `media_id`="+media_id+" AND `lang_id`="+lang_id;
 
         var sqlres = await this.query(sql);
