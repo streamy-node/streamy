@@ -331,20 +331,20 @@ CREATE TABLE `movies_transcoding_resolutions` (
 --   CONSTRAINT UNIQUE (`media_id`,`genre_id`) 
 -- );
 
--- TODO
--- CREATE TABLE `media_progressions` (
---   `id` int NOT NULL AUTO_INCREMENT,
---   `user_id` int NOT NULL,
---   `media_id` int NOT NULL,
---   `audio_lang` int,
---   `subtitle_lang` int,
---   `progression` float DEFAULT '0.0',
---   `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
---   `watched` TINYINT(1) NOT NULL,
---   PRIMARY KEY (`id`),
---   FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
---   FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
--- );
+-- TODO use it
+CREATE TABLE `media_progressions` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `media_id` int NOT NULL,
+  `audio_lang` int,
+  `subtitle_lang` int,
+  `progression` float DEFAULT '0.0',
+  `last_seen` datetime DEFAULT CURRENT_TIMESTAMP,
+  `watched` TINYINT(1) NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES users(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`media_id`) REFERENCES media(`id`) ON DELETE CASCADE
+);
 
 -- TODO
 -- CREATE TABLE `users_settings` (
