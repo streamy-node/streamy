@@ -84,7 +84,7 @@ class SettingsController extends ContentController {
     template.removeClass("hidden");
     template.find(".label").text(settingName);
     let listElem = template.find(".options_list");
-    listElem.val(value);
+    let loaded_value = value;
 
     //Fetch bricks
     $.getJSON("bricks", function(bricks) {
@@ -94,6 +94,12 @@ class SettingsController extends ContentController {
             .val(brick.id)
             .html(brick.brick_path)
         );
+
+        if (!self.settings[settingName]) {
+          self.settings[settingName] = brick.id.toString();
+        }
+
+        listElem.val(loaded_value);
       }
     });
 
