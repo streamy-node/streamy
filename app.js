@@ -53,6 +53,13 @@ app.initialize = async function(config_file, io_notifications) {
   let config = null;
   try {
     config = loadConfig(config_file);
+
+    // override configuration values if environment variables are setted
+    config.db.host = process.env.STREAMY_DB_HOST || config.db.host;
+    config.db.port = process.env.STREAMY_DB_PORT || config.db.port;
+    config.db.user = process.env.STREAMY_DB_USER || config.db.user;
+    config.db.password = process.env.STREAMY_DB_PASSWORD || config.db.password;
+    config.db.database = process.env.STREAMY_DB_DATABASE || config.db.database;
   } catch (e) {
     console.error("Failed to load config file: ", e);
     process.exit(1);
