@@ -228,6 +228,7 @@ app.initialize = async function(config_file, io_notifications) {
 
   // TODO properly shutdown
   // sessionStore.close();
+  return true;
 };
 
 app.setupNotifications = function(io, processesMgr, transcodeMgr) {
