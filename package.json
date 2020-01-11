@@ -4,6 +4,7 @@
   "description": "## Installation",
   "main": "app.js",
   "scripts": {
+    "start": "node --inspect=0.0.0.0 ./bin/www",
     "test": "./node_modules/.bin/_mocha --recursive --exit ./tests/*.test.js",
     "lint": "eslint src/js"
   },

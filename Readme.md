@@ -1,5 +1,22 @@
 # Streamy
 
+## Installation with docker-compose (Recommended)
+If you have docker-compose installed on your computer, you can start streamy and it's database with one command. You just need to set several environment variables
+
+- MYSQL_ROOT_PASSWORD: root password of the database that will be created
+- STREAMY_DB_DATABASE: name of the database to create
+- STREAMY_DB_USER: name of the db user that streamy will use
+- STREAMY_DB_PASSWORD: passord of the db
+- MYSQL_PERSISTENT_FOLDER: folder on your computer where the sql database will be stored
+- STREAMY_BRICK_FOLDER: folder on your computer that will be used for storing videos
+- STREAMY_UID user uid to use for streamy container (create files ...)
+- STREAMY_GID user gid to use for streamy container
+```
+MYSQL_ROOT_PASSWORD=pwd2 STREAMY_DB_DATABASE=streamy STREAMY_DB_USER=streamy STREAMY_DB_PASSWORD=pwd1 MYSQL_PERSISTENT_FOLDER=/data/streamy/mysql STREAMY_BRICK_FOLDER=/data/streamy/brick1 STREAMY_UID=$(id -u) STREAMY_GID=$(id -g) docker-compose up
+```
+
+Important note: A Nginx reverse proxy with certificates should be added in front of streamy to add https. Do not put streamy directly on internet without https! It will be added later in the compose file.
+
 ## Installation (tested on ubuntu)
 
 ### Nodejs
@@ -31,17 +48,17 @@ node bin/www
 
 If you connect to `http://127.0.0.1:8080/` you should see the login page!!!
 
-### Setup streamy
+## Setup streamy
 
 On the first run, a default user is added: `admin` with the password `astreamy` (you should change it in users menu on the top right)
 
-#### Setup your storage location(s)
+### Setup your storage location(s)
 By default streamy does not know where to put the videos you will add. You need to add one or several storage locations. These are called bricks. In the top right menu, click on storage.
 Give an alias an a brick path. If you want to transcode using different machines you need this location to be a shared folder otherwise you can put any folder you want.
 
 Click on add.
 
-#### Setup global settings
+### Setup global settings
 Now that you have created one or several bricks, you need to tell how to use these bricks. Here are the setting availables
 
 **upload_brick** correspond to the brick where raw uploaded files should be put (before transcoding). The file here are removed once the transcoding is done.
@@ -58,7 +75,7 @@ Click on save!
 
 You can now add series, films in streamy. However as you don't have any transcoder yet you won't be able to visualize them :'( . You need to add a transcoder for that. A transcoder take your uploaded video files and convert them to be available on most platforms with adaptative streaming.
 
-### Add transcoding workers
+## Add transcoding workers
 To add a worker we use another project called remote-ffmpeg-node. You need to build 2 dockers. One containing a compiled version of ffmpeg **streamy_ffmpeg** and another one based on this one which add remote control capabilities **remote_ffmpeg_node**
 ```
 git clone https://github.com/mickah/remote-ffmpeg-node
