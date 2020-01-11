@@ -1,0 +1,36 @@
+image: node:13.5.0
+
+variables:
+  MYSQL_USER: streamy
+  MYSQL_PASSWORD: pwd1
+  MYSQL_ROOT_PASSWORD: pwd2
+  MYSQL_DATABASE: streamy_test
+  STREAMY_CONFIG: configs/config.yaml
+  STREAMY_DB_HOST: mariadb
+  STREAMY_DB_PORT: 3306
+  STREAMY_DB_USER: streamy
+  STREAMY_DB_PASSWORD: pwd1
+  STREAMY_DB_DATABASE: streamy_test
+  STREAMY_DB_HOST: mariadb
+
+stages:
+  - build
+  - tests
+
+cache:
+  paths:
+    - node_modules/
+
+install_dependencies:
+  stage: build
+  script:
+    - npm install
+  artifacts:
+    paths:
+      - node_modules/
+
+run_npm_tests:
+  services:
+    - mariadb:10.0
+  stage: tests
+  script: npm test

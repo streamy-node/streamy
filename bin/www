@@ -5,19 +5,21 @@ var http = require("http");
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || "8080");
+var port = normalizePort(process.env.STREAMY_PORT || "8080");
 
 /**
  * Create HTTP server.
  */
-
 var server = http.createServer(app);
+
+//! Configuration
+let config = process.env.STREAMY_CONFIG || "configs/config.yaml";
 
 // Notifications using websockets
 var io = require("socket.io").listen(server);
 
-async function startStreamyWebServer() {
-  await app.initialize("config.yaml", io);
+async function startStreamyWebServer(config) {
+  await app.initialize(config, io);
 
   ///////// Start the server ///////
   server.listen(port, function() {
@@ -50,15 +52,14 @@ function normalizePort(val) {
 
 // Get the config file argument if any
 var myArgs = process.argv.slice(2);
-var default_config = "config.yaml";
 if (myArgs.length >= 1) {
   if (typeof myArgs[0] === "string") {
-    default_config = myArgs[0];
+    config = myArgs[0];
   } else {
     console.error("Invalid non string argument");
     process.exit(1);
   }
 }
 
-console.log("Using config file: ", default_config);
-startStreamyWebServer(default_config);
+console.log("Using config file: ", config);
+startStreamyWebServer(config);
