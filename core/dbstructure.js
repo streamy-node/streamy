@@ -173,9 +173,11 @@ class DBStructure extends EventEmitter {
 
   async setup_database(connection) {
     //If the database is available, create tables if necessary
-    var sql = fs.readFileSync("core/sql/init_db.sql").toString();
+    var base_sql = fs.readFileSync("core/sql/init_db.sql").toString();
+    var langs_sql = fs.readFileSync("core/sql/insert_lang.sql").toString();
     try {
-      await this._query(sql, connection);
+      await this._query(base_sql, connection);
+      await this._query(langs_sql, connection);
       console.log("Database tables initialized");
       return true;
     } catch (err) {
