@@ -2,21 +2,21 @@
 
 ## Description
 
-Streamy is a collaborative multimedia web server. It has been maid to share videos (movies/series and soon your own videos) between you and your family/friends. Any registred user with enough permission can add video content so that everyone can watch it.
+Streamy is a collaborative multimedia web server. It has been made to share videos (movies/series and soon custom videos) between you and your family/friends. Any registred user with enough permission can upload video content so that everyone can watch it.
 
 Advantages:
-- no app to install, it's only a web page
-- chrome cast support
-- offline mode
-- adaptative streaming (only dash for now)
-- handle multi lang and audio that can be switched dynamically
-- Multi transcoders support (called workers)
+  - no app to install, it's only a web page
+  - chrome cast support
+  - offline mode
+  - adaptative streaming (only dash for now)
+  - handle multi lang and audio that can be switched dynamically
+  - Multi transcoders support (called workers)
 
 Current limitations:
-- No Iphone support yet (dash streaming not supported)
-- No live transcoding yet => **you need to wait that the file is transcoded before watching it**(only offline)
-- Only CPU transcoding is used for now (for better and consistent quality)
-- ... see TODO at the end of this file ^^
+  - No Iphone support yet (dash streaming not supported)
+  - No live transcoding yet => **you need to wait that the file is transcoded before watching it**(only offline)
+  - Only CPU transcoding is used for now (for better and consistent quality)
+  - ... see TODO at the end of this file ^^
 
 Disclamer 1: This project is not yet ready for a first release. It's functionnal but a lot of changes are expected. It mainly target developers.
 
@@ -102,6 +102,8 @@ You streamy is now completly ready!
 - Handle multilang for the website/overview
 - Add explanation about reverse proxy
 - Add Synology ARM based installation instructions
+- Streamy proxy so that you can share content from another streamy server
+- Improve HMI
 - ...
 
 ## Known issues
