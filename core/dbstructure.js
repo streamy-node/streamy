@@ -68,7 +68,7 @@ class DBStructure extends EventEmitter {
   async createDatabase(originalConf) {
     //Create an independant connection at first then use pool
     let connection = mysql.createConnection({
-      host: originalConf.hostname,
+      host: originalConf.host,
       port: originalConf.port,
       user: originalConf.user,
       password: originalConf.password,
