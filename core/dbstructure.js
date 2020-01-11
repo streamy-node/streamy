@@ -51,14 +51,13 @@ class DBStructure extends EventEmitter {
       connectTimeout: parseInt(process.env.STREAMY_DB_TIMEOUT) || 5000
     };
     let combinedOptions = { ...defaultOptions, ...dbOptions };
-    var pool = mysql.createPool(combinedOptions);
 
-    if (!(await this.createDatabase(pool.config.connectionConfig))) {
+    if (!(await this.createDatabase(combinedOptions))) {
       console.error("Cannot create the db :'(");
       return false;
     }
-    this.con = pool;
-    if (!(await this.setup_database(pool))) {
+    this.con = mysql.createPool(combinedOptions);
+    if (!(await this.setup_database(this.con))) {
       console.error("Cannot setup the db :'(");
       return false;
     }
@@ -67,31 +66,44 @@ class DBStructure extends EventEmitter {
   }
 
   async createDatabase(originalConf) {
-    //Create an independant connection at first then use pool
-    let connection = mysql.createConnection({
-      host: originalConf.host,
-      port: originalConf.port,
-      user: originalConf.user,
-      password: originalConf.password,
-      multipleStatements: true,
-      connectTimeout: originalConf.connectTimeout
-    });
+    // Number of trial to create the database
+    // This can be usefull if the database is not yet ready
+    let remaining_tries = 30;
 
-    try {
-      let sql = "CREATE DATABASE `" + originalConf.database + "`;";
-      await this._query(sql, connection);
-      connection.end(function() {});
-      console.log("Database " + originalConf.database + " created");
-      return true;
-    } catch (err) {
-      connection.end(function() {});
-      if (err.errno === 1007) {
-        //DB already exists
-        console.log("Database " + originalConf.database + " already created");
+    while (remaining_tries > 0) {
+      remaining_tries = remaining_tries - 1;
+      //Create an independant connection at first then use pool
+      let connection = mysql.createConnection({
+        host: originalConf.host,
+        port: originalConf.port,
+        user: originalConf.user,
+        password: originalConf.password,
+        multipleStatements: true
+      });
+
+      try {
+        let sql = "CREATE DATABASE `" + originalConf.database + "`;";
+        await this._query(sql, connection);
+        connection.end(function() {});
+        console.log("Database " + originalConf.database + " created");
         return true;
-      } else {
-        console.log("Failed to create db table: " + originalConf.database, err);
-        return false;
+      } catch (err) {
+        connection.end(function() {});
+        if (err.errno === 1007) {
+          //DB already exists
+          console.log("Database " + originalConf.database + " already created");
+          return true;
+        } else if (err.errno === -111) {
+          // If the database is not completly ready, wait a bit
+          console.log("Database connection refused, retrying");
+          await new Promise(r => setTimeout(r, 2000));
+        } else {
+          console.log(
+            "Failed to create db table: " + originalConf.database,
+            err
+          );
+          return false;
+        }
       }
     }
 
