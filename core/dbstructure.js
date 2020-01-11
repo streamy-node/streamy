@@ -47,7 +47,8 @@ class DBStructure extends EventEmitter {
       user: "streamy",
       password: "pwd",
       database: "streamy",
-      multipleStatements: true
+      multipleStatements: true,
+      connectTimeout: parseInt(process.env.STREAMY_DB_TIMEOUT) || 5000
     };
     let combinedOptions = { ...defaultOptions, ...dbOptions };
     var pool = mysql.createPool(combinedOptions);
@@ -72,7 +73,8 @@ class DBStructure extends EventEmitter {
       port: originalConf.port,
       user: originalConf.user,
       password: originalConf.password,
-      multipleStatements: true
+      multipleStatements: true,
+      connectTimeout: originalConf.connectTimeout
     });
 
     try {
