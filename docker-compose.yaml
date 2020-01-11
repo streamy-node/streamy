@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+
+  mariadb:
+    image: mariadb:10.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${STREAMY_DB_DATABASE}
+      MYSQL_USER: ${STREAMY_DB_USER}
+      MYSQL_PASSWORD: ${STREAMY_DB_PASSWORD}
+    restart: always
+    volumes:
+      - ${MYSQL_PERSISTENT_FOLDER}/mariadb:/var/lib/mysql
+
+  streamy_node:
+    environment:
+      STREAMY_CONFIG: configs/config.yaml
+      STREAMY_DB_HOST: "mariadb"
+      STREAMY_DB_PORT: 3306
+      STREAMY_DB_USER: ${STREAMY_DB_USER}
+      STREAMY_DB_PASSWORD: ${STREAMY_DB_PASSWORD}
+      STREAMY_DB_DATABASE: ${STREAMY_DB_DATABASE}
+    user: "${STREAMY_UID}:${STREAMY_GID}"
+    build: 
+      context: .
+      dockerfile: ./dockerfiles/streamy/Dockerfile
+    depends_on:
+      - mariadb
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ${STREAMY_BRICK_FOLDER}:${STREAMY_BRICK_FOLDER}
+    ports:
+      - 8080:8080
+      - 9229:9229
+    command: npm start
+
