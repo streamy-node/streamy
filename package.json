@@ -38,7 +38,7 @@
     "request": "^2.88.0",
     "shaka-player": "^2.4.7",
     "shortid": "^2.2.14",
-    "socket.io": "^2.2.0",
+    "socket.io": "^2.5.0",
     "ws": "^5.2.2",
     "xml2js": "^0.4.19"
   },
